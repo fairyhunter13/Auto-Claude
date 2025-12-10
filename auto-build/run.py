@@ -469,6 +469,11 @@ def main() -> None:
     else:
         project_dir = Path.cwd()
 
+        # Auto-detect if running from within auto-build directory
+        # If cwd ends with 'auto-build' and contains run.py, go up one level
+        if project_dir.name == "auto-build" and (project_dir / "run.py").exists():
+            project_dir = project_dir.parent
+
     # Show dev mode info
     if args.dev:
         print(f"\n{icon(Icons.GEAR)} DEV MODE: Using specs from dev/auto-build/specs/")

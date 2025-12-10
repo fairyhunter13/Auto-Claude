@@ -1579,7 +1579,12 @@ Examples:
 
     # Find project root (look for auto-build folder)
     project_dir = args.project_dir
-    if not (project_dir / "auto-build").exists():
+
+    # Auto-detect if running from within auto-build directory
+    # If cwd is 'auto-build' and contains run.py, go up one level
+    if project_dir.name == "auto-build" and (project_dir / "run.py").exists():
+        project_dir = project_dir.parent
+    elif not (project_dir / "auto-build").exists():
         # Try parent directories
         for parent in project_dir.parents:
             if (parent / "auto-build").exists():
