@@ -458,8 +458,7 @@ class SpecOrchestrator:
     # === Phase Implementations ===
 
     async def phase_complexity_assessment_with_requirements(self) -> PhaseResult:
-        """Phase 3: Assess complexity after requirements are gathered (with full context)."""
-        print_section("PHASE 3: COMPLEXITY ASSESSMENT", Icons.GEAR)
+        """Assess complexity after requirements are gathered (with full context)."""
 
         assessment_file = self.spec_dir / "complexity_assessment.json"
         requirements_file = self.spec_dir / "requirements.json"
@@ -621,8 +620,7 @@ class SpecOrchestrator:
         return analyzer.analyze(self.task_description or "")
 
     async def phase_discovery(self) -> PhaseResult:
-        """Phase 1: Analyze project structure."""
-        print_section("PHASE 1: PROJECT DISCOVERY", Icons.FOLDER)
+        """Analyze project structure."""
 
         errors = []
         retries = 0
@@ -708,8 +706,7 @@ class SpecOrchestrator:
         }
 
     async def phase_requirements(self, interactive: bool = True) -> PhaseResult:
-        """Phase 2: Gather requirements."""
-        print_section("PHASE 2: REQUIREMENTS GATHERING", Icons.FILE)
+        """Gather requirements from user or task description."""
 
         requirements_file = self.spec_dir / "requirements.json"
 
@@ -771,8 +768,7 @@ class SpecOrchestrator:
         return PhaseResult("requirements", True, [str(requirements_file)], [], 0)
 
     async def phase_quick_spec(self) -> PhaseResult:
-        """Quick spec for simple tasks - combines requirements, context, and spec in one step."""
-        print_section("QUICK SPEC (Simple Task)", Icons.LIGHTNING)
+        """Quick spec for simple tasks - combines context and spec in one step."""
 
         spec_file = self.spec_dir / "spec.md"
         plan_file = self.spec_dir / "implementation_plan.json"
@@ -856,8 +852,7 @@ Create:
             json.dump(plan, f, indent=2)
 
     async def phase_research(self) -> PhaseResult:
-        """Phase 3: Research external integrations and validate assumptions."""
-        print_section("INTEGRATION RESEARCH", Icons.SEARCH)
+        """Research external integrations and validate assumptions."""
 
         research_file = self.spec_dir / "research.json"
         requirements_file = self.spec_dir / "requirements.json"
@@ -934,8 +929,7 @@ Output your findings to research.json.
         return PhaseResult("research", True, [str(research_file)], errors, MAX_RETRIES)
 
     async def phase_context(self) -> PhaseResult:
-        """Phase 4: Discover relevant files."""
-        print_section("CONTEXT DISCOVERY", Icons.FOLDER)
+        """Discover relevant files for the task."""
 
         context_file = self.spec_dir / "context.json"
         requirements_file = self.spec_dir / "requirements.json"
@@ -988,8 +982,7 @@ Output your findings to research.json.
         return PhaseResult("context", True, [str(context_file)], errors, MAX_RETRIES)
 
     async def phase_spec_writing(self) -> PhaseResult:
-        """Phase 5: Write spec.md document."""
-        print_section("SPEC DOCUMENT CREATION", Icons.FILE)
+        """Write the spec.md document."""
 
         spec_file = self.spec_dir / "spec.md"
 
@@ -1022,8 +1015,7 @@ Output your findings to research.json.
         return PhaseResult("spec_writing", False, [], errors, MAX_RETRIES)
 
     async def phase_self_critique(self) -> PhaseResult:
-        """Phase 6: Self-critique the spec using extended thinking."""
-        print_section("SPEC SELF-CRITIQUE", Icons.GEAR)
+        """Self-critique the spec using extended thinking."""
 
         spec_file = self.spec_dir / "spec.md"
         research_file = self.spec_dir / "research.json"
@@ -1109,8 +1101,7 @@ Output critique_report.json with:
         return PhaseResult("self_critique", True, [str(critique_file)], errors, MAX_RETRIES)
 
     async def phase_planning(self) -> PhaseResult:
-        """Phase 7: Create implementation plan."""
-        print_section("IMPLEMENTATION PLANNING", Icons.CHUNK)
+        """Create the implementation plan."""
 
         plan_file = self.spec_dir / "implementation_plan.json"
 
@@ -1176,8 +1167,7 @@ Output critique_report.json with:
         return PhaseResult("planning", False, [], errors, MAX_RETRIES)
 
     async def phase_validation(self) -> PhaseResult:
-        """Phase 8: Final validation."""
-        print_section("FINAL VALIDATION", Icons.SUCCESS)
+        """Final validation of all spec files."""
 
         results = self.validator.validate_all()
         all_valid = all(r.valid for r in results)
@@ -1215,40 +1205,60 @@ Output critique_report.json with:
         ))
 
         results = []
+        phase_num = 0  # Track phase number for display
+
+        # Phase display names and icons
+        phase_display = {
+            "discovery": ("PROJECT DISCOVERY", Icons.FOLDER),
+            "requirements": ("REQUIREMENTS GATHERING", Icons.FILE),
+            "complexity_assessment": ("COMPLEXITY ASSESSMENT", Icons.GEAR),
+            "research": ("INTEGRATION RESEARCH", Icons.SEARCH),
+            "context": ("CONTEXT DISCOVERY", Icons.FOLDER),
+            "quick_spec": ("QUICK SPEC", Icons.LIGHTNING),
+            "spec_writing": ("SPEC DOCUMENT CREATION", Icons.FILE),
+            "self_critique": ("SPEC SELF-CRITIQUE", Icons.GEAR),
+            "planning": ("IMPLEMENTATION PLANNING", Icons.CHUNK),
+            "validation": ("FINAL VALIDATION", Icons.SUCCESS),
+        }
+
+        def run_phase(name: str, phase_fn):
+            """Run a phase with proper numbering and display."""
+            nonlocal phase_num
+            phase_num += 1
+            display_name, display_icon = phase_display.get(name, (name.upper(), Icons.GEAR))
+            print_section(f"PHASE {phase_num}: {display_name}", display_icon)
+            return phase_fn()
 
         # === PHASE 1: DISCOVERY ===
-        # Always run discovery first to get project structure
-        result = await self.phase_discovery()
+        result = await run_phase("discovery", self.phase_discovery)
         results.append(result)
         if not result.success:
             print_status("Discovery failed", "error")
             return False
 
         # === PHASE 2: REQUIREMENTS GATHERING ===
-        # Gather requirements from user (interactive) or from task description
-        result = await self.phase_requirements(interactive)
+        result = await run_phase("requirements", lambda: self.phase_requirements(interactive))
         results.append(result)
         if not result.success:
             print_status("Requirements gathering failed", "error")
             return False
 
         # === PHASE 3: AI COMPLEXITY ASSESSMENT ===
-        # Now that we have full requirements, assess complexity properly
-        result = await self.phase_complexity_assessment_with_requirements()
+        result = await run_phase("complexity_assessment", self.phase_complexity_assessment_with_requirements)
         results.append(result)
         if not result.success:
             print_status("Complexity assessment failed", "error")
             return False
 
-        # Map of all available phases
+        # Map of all available phases (remaining after discovery/requirements/complexity)
         all_phases = {
-            "research": lambda: self.phase_research(),
-            "context": lambda: self.phase_context(),
-            "spec_writing": lambda: self.phase_spec_writing(),
-            "self_critique": lambda: self.phase_self_critique(),
-            "planning": lambda: self.phase_planning(),
-            "validation": lambda: self.phase_validation(),
-            "quick_spec": lambda: self.phase_quick_spec(),
+            "research": self.phase_research,
+            "context": self.phase_context,
+            "spec_writing": self.phase_spec_writing,
+            "self_critique": self.phase_self_critique,
+            "planning": self.phase_planning,
+            "validation": self.phase_validation,
+            "quick_spec": self.phase_quick_spec,
         }
 
         # Get remaining phases to run based on complexity (excluding discovery/requirements which are done)
@@ -1260,14 +1270,13 @@ Output critique_report.json with:
         print(f"  {muted('Remaining phases:')} {', '.join(phases_to_run)}")
         print()
 
-        phases_executed = ["discovery", "requirements"]
+        phases_executed = ["discovery", "requirements", "complexity_assessment"]
         for phase_name in phases_to_run:
             if phase_name not in all_phases:
                 print_status(f"Unknown phase: {phase_name}, skipping", "warning")
                 continue
 
-            phase_fn = all_phases[phase_name]
-            result = await phase_fn()
+            result = await run_phase(phase_name, all_phases[phase_name])
             results.append(result)
             phases_executed.append(phase_name)
 
