@@ -39,6 +39,12 @@ from typing import Optional
 # Add auto-build to path
 sys.path.insert(0, str(Path(__file__).parent))
 
+# Load .env file from auto-build directory
+from dotenv import load_dotenv
+env_file = Path(__file__).parent / ".env"
+if env_file.exists():
+    load_dotenv(env_file)
+
 from client import create_client
 from validate_spec import SpecValidator, auto_fix_plan
 from ui import (
