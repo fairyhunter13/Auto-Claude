@@ -21,6 +21,13 @@ from security import (
     validate_chmod_command,
     validate_rm_command,
     validate_git_commit,
+    validate_dropdb_command,
+    validate_dropuser_command,
+    validate_psql_command,
+    validate_mysql_command,
+    validate_redis_cli_command,
+    validate_mongosh_command,
+    validate_mysqladmin_command,
     get_command_for_validation,
     reset_profile_cache,
 )
@@ -384,3 +391,300 @@ class TestGitCommitValidator:
 
         allowed, reason = validate_git_commit("git push")
         assert allowed is True
+
+
+# =============================================================================
+# DATABASE VALIDATOR TESTS
+# =============================================================================
+
+class TestDropdbValidator:
+    """Tests for dropdb command validation."""
+
+    def test_allows_test_database(self):
+        """Allows dropping test databases."""
+        allowed, reason = validate_dropdb_command("dropdb test_myapp")
+        assert allowed is True
+
+        allowed, reason = validate_dropdb_command("dropdb myapp_test")
+        assert allowed is True
+
+    def test_allows_dev_database(self):
+        """Allows dropping dev databases."""
+        allowed, reason = validate_dropdb_command("dropdb dev_myapp")
+        assert allowed is True
+
+        allowed, reason = validate_dropdb_command("dropdb myapp_dev")
+        assert allowed is True
+
+    def test_allows_local_database(self):
+        """Allows dropping local databases."""
+        allowed, reason = validate_dropdb_command("dropdb local_myapp")
+        assert allowed is True
+
+    def test_allows_tmp_database(self):
+        """Allows dropping tmp/temp databases."""
+        allowed, reason = validate_dropdb_command("dropdb tmp_data")
+        assert allowed is True
+
+        allowed, reason = validate_dropdb_command("dropdb temp_cache")
+        assert allowed is True
+
+    def test_allows_sandbox_database(self):
+        """Allows dropping sandbox databases."""
+        allowed, reason = validate_dropdb_command("dropdb sandbox")
+        assert allowed is True
+
+    def test_blocks_production_database(self):
+        """Blocks dropping production databases."""
+        allowed, reason = validate_dropdb_command("dropdb production")
+        assert allowed is False
+        assert "blocked for safety" in reason
+
+    def test_blocks_main_database(self):
+        """Blocks dropping main/primary databases."""
+        allowed, reason = validate_dropdb_command("dropdb main")
+        assert allowed is False
+
+        allowed, reason = validate_dropdb_command("dropdb myapp")
+        assert allowed is False
+
+    def test_blocks_staging_database(self):
+        """Blocks dropping staging databases."""
+        allowed, reason = validate_dropdb_command("dropdb staging")
+        assert allowed is False
+
+    def test_handles_flags(self):
+        """Correctly parses command with flags."""
+        allowed, reason = validate_dropdb_command("dropdb -h localhost -p 5432 -U admin test_db")
+        assert allowed is True
+
+        allowed, reason = validate_dropdb_command("dropdb -h localhost -p 5432 production")
+        assert allowed is False
+
+
+class TestDropuserValidator:
+    """Tests for dropuser command validation."""
+
+    def test_allows_test_user(self):
+        """Allows dropping test users."""
+        allowed, reason = validate_dropuser_command("dropuser test_user")
+        assert allowed is True
+
+    def test_allows_dev_user(self):
+        """Allows dropping dev users."""
+        allowed, reason = validate_dropuser_command("dropuser dev_admin")
+        assert allowed is True
+
+    def test_blocks_production_user(self):
+        """Blocks dropping production users."""
+        allowed, reason = validate_dropuser_command("dropuser admin")
+        assert allowed is False
+
+        allowed, reason = validate_dropuser_command("dropuser postgres")
+        assert allowed is False
+
+
+class TestPsqlValidator:
+    """Tests for psql command validation."""
+
+    def test_allows_select(self):
+        """Allows SELECT queries."""
+        allowed, reason = validate_psql_command("psql -c 'SELECT * FROM users'")
+        assert allowed is True
+
+    def test_allows_insert(self):
+        """Allows INSERT queries."""
+        allowed, reason = validate_psql_command("psql -c \"INSERT INTO users (name) VALUES ('test')\"")
+        assert allowed is True
+
+    def test_allows_update_with_where(self):
+        """Allows UPDATE with WHERE clause."""
+        allowed, reason = validate_psql_command("psql -c \"UPDATE users SET name='new' WHERE id=1\"")
+        assert allowed is True
+
+    def test_allows_create_table(self):
+        """Allows CREATE TABLE."""
+        allowed, reason = validate_psql_command("psql -c 'CREATE TABLE test (id INT)'")
+        assert allowed is True
+
+    def test_blocks_drop_database(self):
+        """Blocks DROP DATABASE."""
+        allowed, reason = validate_psql_command("psql -c 'DROP DATABASE production'")
+        assert allowed is False
+        assert "destructive SQL" in reason
+
+    def test_blocks_drop_table(self):
+        """Blocks DROP TABLE."""
+        allowed, reason = validate_psql_command("psql -c 'DROP TABLE users'")
+        assert allowed is False
+
+    def test_blocks_truncate(self):
+        """Blocks TRUNCATE."""
+        allowed, reason = validate_psql_command("psql -c 'TRUNCATE TABLE users'")
+        assert allowed is False
+
+    def test_blocks_delete_without_where(self):
+        """Blocks DELETE without WHERE clause."""
+        allowed, reason = validate_psql_command("psql -c 'DELETE FROM users;'")
+        assert allowed is False
+
+    def test_allows_interactive_session(self):
+        """Allows interactive psql session (no -c flag)."""
+        allowed, reason = validate_psql_command("psql -h localhost mydb")
+        assert allowed is True
+
+
+class TestMysqlValidator:
+    """Tests for mysql command validation."""
+
+    def test_allows_select(self):
+        """Allows SELECT queries."""
+        allowed, reason = validate_mysql_command("mysql -e 'SELECT * FROM users'")
+        assert allowed is True
+
+    def test_blocks_drop_database(self):
+        """Blocks DROP DATABASE."""
+        allowed, reason = validate_mysql_command("mysql -e 'DROP DATABASE production'")
+        assert allowed is False
+
+    def test_blocks_drop_table(self):
+        """Blocks DROP TABLE."""
+        allowed, reason = validate_mysql_command("mysql -e 'DROP TABLE users'")
+        assert allowed is False
+
+    def test_blocks_truncate(self):
+        """Blocks TRUNCATE."""
+        allowed, reason = validate_mysql_command("mysql --execute 'TRUNCATE users'")
+        assert allowed is False
+
+    def test_allows_interactive_session(self):
+        """Allows interactive mysql session."""
+        allowed, reason = validate_mysql_command("mysql -h localhost -u root mydb")
+        assert allowed is True
+
+
+class TestRedisCliValidator:
+    """Tests for redis-cli command validation."""
+
+    def test_allows_get(self):
+        """Allows GET command."""
+        allowed, reason = validate_redis_cli_command("redis-cli GET mykey")
+        assert allowed is True
+
+    def test_allows_set(self):
+        """Allows SET command."""
+        allowed, reason = validate_redis_cli_command("redis-cli SET mykey 'value'")
+        assert allowed is True
+
+    def test_allows_keys(self):
+        """Allows KEYS command."""
+        allowed, reason = validate_redis_cli_command("redis-cli KEYS '*'")
+        assert allowed is True
+
+    def test_allows_del_specific(self):
+        """Allows DEL for specific keys."""
+        allowed, reason = validate_redis_cli_command("redis-cli DEL mykey")
+        assert allowed is True
+
+    def test_blocks_flushall(self):
+        """Blocks FLUSHALL."""
+        allowed, reason = validate_redis_cli_command("redis-cli FLUSHALL")
+        assert allowed is False
+        assert "blocked for safety" in reason
+
+    def test_blocks_flushdb(self):
+        """Blocks FLUSHDB."""
+        allowed, reason = validate_redis_cli_command("redis-cli FLUSHDB")
+        assert allowed is False
+
+    def test_blocks_shutdown(self):
+        """Blocks SHUTDOWN."""
+        allowed, reason = validate_redis_cli_command("redis-cli SHUTDOWN")
+        assert allowed is False
+
+    def test_blocks_config(self):
+        """Blocks CONFIG commands."""
+        allowed, reason = validate_redis_cli_command("redis-cli CONFIG SET maxmemory 100mb")
+        assert allowed is False
+
+    def test_handles_connection_flags(self):
+        """Correctly handles connection flags."""
+        allowed, reason = validate_redis_cli_command("redis-cli -h localhost -p 6379 GET mykey")
+        assert allowed is True
+
+        allowed, reason = validate_redis_cli_command("redis-cli -h localhost FLUSHALL")
+        assert allowed is False
+
+
+class TestMongoshValidator:
+    """Tests for mongosh/mongo command validation."""
+
+    def test_allows_find(self):
+        """Allows find queries."""
+        allowed, reason = validate_mongosh_command("mongosh --eval 'db.users.find()'")
+        assert allowed is True
+
+    def test_allows_insert(self):
+        """Allows insert operations."""
+        allowed, reason = validate_mongosh_command("mongosh --eval \"db.users.insertOne({name: 'test'})\"")
+        assert allowed is True
+
+    def test_blocks_drop_database(self):
+        """Blocks dropDatabase()."""
+        allowed, reason = validate_mongosh_command("mongosh --eval 'db.dropDatabase()'")
+        assert allowed is False
+        assert "destructive operation" in reason
+
+    def test_blocks_drop_collection(self):
+        """Blocks drop() on collections."""
+        allowed, reason = validate_mongosh_command("mongosh --eval 'db.users.drop()'")
+        assert allowed is False
+
+    def test_blocks_delete_all(self):
+        """Blocks deleteMany({}) which deletes all documents."""
+        allowed, reason = validate_mongosh_command("mongosh --eval 'db.users.deleteMany({})'")
+        assert allowed is False
+
+    def test_allows_delete_with_filter(self):
+        """Allows deleteMany with a filter."""
+        allowed, reason = validate_mongosh_command("mongosh --eval \"db.users.deleteMany({status: 'inactive'})\"")
+        assert allowed is True
+
+    def test_allows_interactive_session(self):
+        """Allows interactive mongosh session."""
+        allowed, reason = validate_mongosh_command("mongosh mongodb://localhost/mydb")
+        assert allowed is True
+
+
+class TestMysqladminValidator:
+    """Tests for mysqladmin command validation."""
+
+    def test_allows_status(self):
+        """Allows status check."""
+        allowed, reason = validate_mysqladmin_command("mysqladmin status")
+        assert allowed is True
+
+    def test_allows_ping(self):
+        """Allows ping."""
+        allowed, reason = validate_mysqladmin_command("mysqladmin ping")
+        assert allowed is True
+
+    def test_allows_create(self):
+        """Allows create database."""
+        allowed, reason = validate_mysqladmin_command("mysqladmin create test_db")
+        assert allowed is True
+
+    def test_blocks_drop(self):
+        """Blocks drop database."""
+        allowed, reason = validate_mysqladmin_command("mysqladmin drop production")
+        assert allowed is False
+
+    def test_blocks_shutdown(self):
+        """Blocks shutdown."""
+        allowed, reason = validate_mysqladmin_command("mysqladmin shutdown")
+        assert allowed is False
+
+    def test_blocks_kill(self):
+        """Blocks kill."""
+        allowed, reason = validate_mysqladmin_command("mysqladmin kill 123")
+        assert allowed is False
