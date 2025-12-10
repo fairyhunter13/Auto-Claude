@@ -410,7 +410,7 @@ def build_task_context(
     context = builder.build_context(task, services, keywords)
 
     result = {
-        "task": context.task_description,
+        "task_description": context.task_description,
         "scoped_services": context.scoped_services,
         "files_to_modify": context.files_to_modify,
         "files_to_reference": context.files_to_reference,

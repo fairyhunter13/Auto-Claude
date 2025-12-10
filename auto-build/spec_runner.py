@@ -982,6 +982,28 @@ Output your findings to research.json.
             success, output = self._run_script("context.py", args)
 
             if success and context_file.exists():
+                # Validate the created context.json has required fields
+                try:
+                    with open(context_file) as f:
+                        ctx = json.load(f)
+                    # Check for required field and fix common issues
+                    if "task_description" not in ctx:
+                        # Common issue: field named "task" instead of "task_description"
+                        if "task" in ctx:
+                            ctx["task_description"] = ctx.pop("task")
+                            with open(context_file, "w") as f:
+                                json.dump(ctx, f, indent=2)
+                            print_status("Fixed context.json schema (task → task_description)", "success")
+                        else:
+                            ctx["task_description"] = task or "unknown task"
+                            with open(context_file, "w") as f:
+                                json.dump(ctx, f, indent=2)
+                            print_status("Added missing task_description to context.json", "success")
+                except (json.JSONDecodeError, IOError) as e:
+                    errors.append(f"Attempt {attempt + 1}: Invalid context.json - {e}")
+                    context_file.unlink(missing_ok=True)
+                    continue
+
                 print_status("Created context.json", "success")
                 return PhaseResult("context", True, [str(context_file)], [], attempt)
 
@@ -1187,30 +1209,76 @@ Output critique_report.json with:
         return PhaseResult("planning", False, [], errors, MAX_RETRIES)
 
     async def phase_validation(self) -> PhaseResult:
-        """Final validation of all spec files."""
+        """Final validation of all spec files with auto-fix retry."""
 
-        results = self.validator.validate_all()
-        all_valid = all(r.valid for r in results)
+        for attempt in range(MAX_RETRIES):
+            results = self.validator.validate_all()
+            all_valid = all(r.valid for r in results)
 
-        for result in results:
-            if result.valid:
-                print_status(f"{result.checkpoint}: PASS", "success")
-            else:
-                print_status(f"{result.checkpoint}: FAIL", "error")
-            for err in result.errors:
-                print(f"    {muted('Error:')} {err}")
+            for result in results:
+                if result.valid:
+                    print_status(f"{result.checkpoint}: PASS", "success")
+                else:
+                    print_status(f"{result.checkpoint}: FAIL", "error")
+                for err in result.errors:
+                    print(f"    {muted('Error:')} {err}")
 
-        if all_valid:
-            print()
-            print_status("All validation checks passed", "success")
-            return PhaseResult("validation", True, [], [], 0)
-        else:
-            errors = [
-                f"{r.checkpoint}: {err}"
-                for r in results
-                for err in r.errors
-            ]
-            return PhaseResult("validation", False, [], errors, 0)
+            if all_valid:
+                print()
+                print_status("All validation checks passed", "success")
+                return PhaseResult("validation", True, [], [], attempt)
+
+            # If not valid, try to auto-fix with AI agent
+            if attempt < MAX_RETRIES - 1:
+                print()
+                print_status(f"Attempting auto-fix (attempt {attempt + 1}/{MAX_RETRIES - 1})...", "progress")
+
+                # Collect all errors for the fixer agent
+                error_details = []
+                for result in results:
+                    if not result.valid:
+                        error_details.append(f"**{result.checkpoint}** validation failed:")
+                        for err in result.errors:
+                            error_details.append(f"  - {err}")
+                        if result.fixes:
+                            error_details.append(f"  Suggested fixes:")
+                            for fix in result.fixes:
+                                error_details.append(f"    - {fix}")
+
+                # Run the validation fixer agent
+                context = f"""
+**Spec Directory**: {self.spec_dir}
+
+## Validation Errors to Fix
+
+{chr(10).join(error_details)}
+
+## Files in Spec Directory
+
+The following files exist in the spec directory:
+- context.json
+- requirements.json
+- spec.md
+- implementation_plan.json
+- project_index.json (if exists)
+
+Read the failed files, understand the errors, and fix them.
+"""
+                success, output = await self._run_agent(
+                    "validation_fixer.md",
+                    additional_context=context,
+                )
+
+                if not success:
+                    print_status("Auto-fix agent failed", "warning")
+
+        # All retries exhausted
+        errors = [
+            f"{r.checkpoint}: {err}"
+            for r in results
+            for err in r.errors
+        ]
+        return PhaseResult("validation", False, [], errors, MAX_RETRIES)
 
     # === Main Orchestration ===
 
