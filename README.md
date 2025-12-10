@@ -266,6 +266,8 @@ your-project/
 │   ├── coordinator.py       # Parallel execution coordinator
 │   ├── qa_loop.py           # QA validation loop
 │   ├── client.py            # Claude SDK configuration
+│   ├── memory.py            # File-based session memory (primary storage)
+│   ├── graphiti_memory.py   # Graphiti knowledge graph integration (optional)
 │   ├── spec_contract.json   # Spec creation contract (required outputs)
 │   ├── prompts/
 │   │   ├── planner.md       # Session 1 - creates implementation plan
@@ -306,6 +308,7 @@ your-project/
 - **Secret Scanning**: Automatic pre-commit scanning blocks secrets with actionable fix instructions
 - **Human Intervention**: Pause, add instructions, or stop at any time
 - **Multiple Specs**: Track and run multiple specifications independently
+- **Graphiti Memory** (Optional): Persistent knowledge graph for cross-session context retention
 
 ## Environment Variables
 
