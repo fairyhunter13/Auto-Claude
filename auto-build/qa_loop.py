@@ -170,10 +170,13 @@ async def run_qa_agent_session(
     # Load QA prompt
     prompt = load_qa_reviewer_prompt()
 
-    # Add session context
+    # Add session context - use full path so agent can find files
     prompt += f"\n\n---\n\n**QA Session**: {qa_session}\n"
-    prompt += f"**Spec Directory**: {spec_dir.name}\n"
+    prompt += f"**Spec Directory**: {spec_dir}\n"
+    prompt += f"**Spec Name**: {spec_dir.name}\n"
     prompt += f"**Max Iterations**: {MAX_QA_ITERATIONS}\n"
+    prompt += f"\n**IMPORTANT**: All spec files (spec.md, implementation_plan.json, etc.) are located in: `{spec_dir}/`\n"
+    prompt += f"Use the full path when reading files, e.g.: `cat {spec_dir}/spec.md`\n"
 
     try:
         await client.query(prompt)
@@ -266,9 +269,12 @@ async def run_qa_fixer_session(
     # Load fixer prompt
     prompt = load_qa_fixer_prompt()
 
-    # Add session context
+    # Add session context - use full path so agent can find files
     prompt += f"\n\n---\n\n**Fix Session**: {fix_session}\n"
-    prompt += f"**Spec Directory**: {spec_dir.name}\n"
+    prompt += f"**Spec Directory**: {spec_dir}\n"
+    prompt += f"**Spec Name**: {spec_dir.name}\n"
+    prompt += f"\n**IMPORTANT**: All spec files are located in: `{spec_dir}/`\n"
+    prompt += f"The fix request file is at: `{spec_dir}/QA_FIX_REQUEST.md`\n"
 
     try:
         await client.query(prompt)
