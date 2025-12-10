@@ -643,21 +643,18 @@ def main() -> None:
                 )
             )
 
-            # Post-build finalization (only for isolated sequential mode)
-            if worktree_manager:
-                choice = finalize_workspace(project_dir, spec_dir.name, worktree_manager)
-                handle_workspace_choice(choice, project_dir, spec_dir.name, worktree_manager)
-
-        # Run QA validation after build completes (unless skipped)
+        # Run QA validation BEFORE finalization (while worktree still exists)
+        # QA must sign off before the build is considered complete
+        qa_approved = True  # Default to approved if QA is skipped
         if not args.skip_qa and should_run_qa(spec_dir):
             print("\n" + "=" * 70)
-            print("  BUILD COMPLETE - STARTING QA VALIDATION")
+            print("  CHUNKS COMPLETE - STARTING QA VALIDATION")
             print("=" * 70)
             print("\nAll chunks completed. Now running QA validation loop...")
             print("This ensures production-quality output before sign-off.\n")
 
             try:
-                approved = asyncio.run(
+                qa_approved = asyncio.run(
                     run_qa_validation_loop(
                         project_dir=working_dir,
                         spec_dir=spec_dir,
@@ -666,15 +663,12 @@ def main() -> None:
                     )
                 )
 
-                if approved:
+                if qa_approved:
                     print("\n" + "=" * 70)
-                    print("  ✅ BUILD AND QA COMPLETE")
+                    print("  ✅ QA VALIDATION PASSED")
                     print("=" * 70)
                     print("\nAll acceptance criteria verified.")
-                    print("The implementation is production-ready.")
-                    print("\nNext steps:")
-                    print("  1. Review the auto-build/* branch")
-                    print("  2. Create a PR and merge to main")
+                    print("The implementation is production-ready.\n")
                 else:
                     print("\n" + "=" * 70)
                     print("  ⚠️  QA VALIDATION INCOMPLETE")
@@ -682,10 +676,17 @@ def main() -> None:
                     print("\nSome issues require manual attention.")
                     print(f"See: {spec_dir / 'qa_report.md'}")
                     print(f"Or:  {spec_dir / 'QA_FIX_REQUEST.md'}")
-                    print(f"\nResume QA: python auto-build/run.py --spec {spec_dir.name} --qa")
+                    print(f"\nResume QA: python auto-build/run.py --spec {spec_dir.name} --qa\n")
             except KeyboardInterrupt:
                 print("\n\nQA validation paused.")
                 print(f"Resume: python auto-build/run.py --spec {spec_dir.name} --qa")
+                qa_approved = False
+
+        # Post-build finalization (only for isolated sequential mode)
+        # This happens AFTER QA validation so the worktree still exists
+        if worktree_manager:
+            choice = finalize_workspace(project_dir, spec_dir.name, worktree_manager)
+            handle_workspace_choice(choice, project_dir, spec_dir.name, worktree_manager)
 
     except KeyboardInterrupt:
         # Print paused banner
