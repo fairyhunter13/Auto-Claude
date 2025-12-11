@@ -22,19 +22,19 @@ export const TASK_STATUS_LABELS: Record<string, string> = {
 
 // Status colors for UI
 export const TASK_STATUS_COLORS: Record<string, string> = {
-  backlog: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300',
-  in_progress: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
-  ai_review: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
-  human_review: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
-  done: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+  backlog: 'bg-muted text-muted-foreground',
+  in_progress: 'bg-info/10 text-info',
+  ai_review: 'bg-warning/10 text-warning',
+  human_review: 'bg-purple-500/10 text-purple-400',
+  done: 'bg-success/10 text-success'
 };
 
 // Chunk status colors
 export const CHUNK_STATUS_COLORS: Record<string, string> = {
-  pending: 'bg-gray-200 dark:bg-gray-700',
-  in_progress: 'bg-blue-500',
-  completed: 'bg-green-500',
-  failed: 'bg-red-500'
+  pending: 'bg-muted',
+  in_progress: 'bg-info',
+  completed: 'bg-success',
+  failed: 'bg-destructive'
 };
 
 // Default app settings
@@ -85,6 +85,18 @@ export const IPC_CHANNELS = {
   TASK_ERROR: 'task:error',
   TASK_LOG: 'task:log',
   TASK_STATUS_CHANGE: 'task:statusChange',
+
+  // Terminal operations
+  TERMINAL_CREATE: 'terminal:create',
+  TERMINAL_DESTROY: 'terminal:destroy',
+  TERMINAL_INPUT: 'terminal:input',
+  TERMINAL_RESIZE: 'terminal:resize',
+  TERMINAL_INVOKE_CLAUDE: 'terminal:invokeClaude',
+
+  // Terminal events (main -> renderer)
+  TERMINAL_OUTPUT: 'terminal:output',
+  TERMINAL_EXIT: 'terminal:exit',
+  TERMINAL_TITLE_CHANGE: 'terminal:titleChange',
 
   // Settings
   SETTINGS_GET: 'settings:get',

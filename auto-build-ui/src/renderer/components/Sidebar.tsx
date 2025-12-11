@@ -130,7 +130,7 @@ export function Sidebar({
         onClick={() => handleNavClick(item.id)}
         disabled={!selectedProjectId}
         className={cn(
-          'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+          'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-200',
           'hover:bg-accent hover:text-accent-foreground',
           'disabled:pointer-events-none disabled:opacity-50',
           isActive && 'bg-accent text-accent-foreground'
@@ -139,7 +139,7 @@ export function Sidebar({
         <Icon className="h-4 w-4 shrink-0" />
         <span className="flex-1 text-left">{item.label}</span>
         {item.shortcut && (
-          <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground sm:flex">
+          <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded-md border border-border bg-secondary px-1.5 font-mono text-[10px] font-medium text-muted-foreground sm:flex">
             {item.shortcut}
           </kbd>
         )}
@@ -149,10 +149,10 @@ export function Sidebar({
 
   return (
     <TooltipProvider>
-      <div className="flex h-full w-64 flex-col glass border-r-0 border-r border-border/50">
+      <div className="flex h-full w-64 flex-col bg-sidebar border-r border-border">
         {/* Header with drag area - extra top padding for macOS traffic lights */}
         <div className="electron-drag flex h-14 items-center justify-between px-4 pt-6">
-          <span className="electron-no-drag text-lg font-bold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">Auto-Build</span>
+          <span className="electron-no-drag text-lg font-bold text-primary">Auto-Build</span>
           <div className="electron-no-drag flex items-center gap-1">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -176,7 +176,7 @@ export function Sidebar({
         <Separator className="mt-2" />
 
         {/* Project Selector Dropdown */}
-        <div className="px-4 py-3">
+        <div className="px-4 py-4">
           <Select
             value={selectedProjectId || ''}
             onValueChange={handleProjectChange}
@@ -187,7 +187,7 @@ export function Sidebar({
                 <SelectValue placeholder="Select a project..." className="truncate min-w-0 flex-1" />
               </div>
             </SelectTrigger>
-            <SelectContent className="min-w-[var(--radix-select-trigger-width)] max-w-[var(--radix-select-trigger-width)] bg-background backdrop-blur-none">
+            <SelectContent className="min-w-[var(--radix-select-trigger-width)] max-w-[var(--radix-select-trigger-width)]">
               {projects.length === 0 ? (
                 <div className="px-2 py-4 text-center text-sm text-muted-foreground">
                   <p>No projects yet</p>
@@ -202,7 +202,7 @@ export function Sidebar({
                     </SelectItem>
                     <button
                       type="button"
-                      className="absolute right-2 flex h-6 w-6 items-center justify-center rounded-sm hover:bg-destructive/10 transition-colors"
+                      className="absolute right-2 flex h-6 w-6 items-center justify-center rounded-md hover:bg-destructive/10 transition-colors"
                       onPointerDown={(e) => {
                         e.stopPropagation();
                       }}
@@ -268,9 +268,9 @@ export function Sidebar({
 
         {/* New Task button */}
         <div className="p-4">
-          <Button 
-            className="w-full bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90 shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]" 
-            onClick={onNewTaskClick} 
+          <Button
+            className="w-full"
+            onClick={onNewTaskClick}
             disabled={!selectedProjectId}
           >
             <Plus className="mr-2 h-4 w-4" />

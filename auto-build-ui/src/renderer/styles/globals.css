@@ -1,44 +1,65 @@
 @import "tailwindcss";
 
+/* Auto-Build UI Design System - Oscura Midnight Theme */
+/* A modern, professional design system with deep dark mode and warm yellow accents */
+
 /* Define custom theme colors for Tailwind CSS v4 */
 @theme {
-  /* Colors */
-  --color-border: hsl(var(--border));
-  --color-input: hsl(var(--input));
-  --color-ring: hsl(var(--ring));
-  --color-background: hsl(var(--background));
-  --color-foreground: hsl(var(--foreground));
-  
-  --color-primary: hsl(var(--primary));
-  --color-primary-foreground: hsl(var(--primary-foreground));
-  
-  --color-secondary: hsl(var(--secondary));
-  --color-secondary-foreground: hsl(var(--secondary-foreground));
-  
-  --color-destructive: hsl(var(--destructive));
-  --color-destructive-foreground: hsl(var(--destructive-foreground));
-  
-  --color-muted: hsl(var(--muted));
-  --color-muted-foreground: hsl(var(--muted-foreground));
-  
-  --color-accent: hsl(var(--accent));
-  --color-accent-foreground: hsl(var(--accent-foreground));
-  
-  --color-card: hsl(var(--card));
-  --color-card-foreground: hsl(var(--card-foreground));
-  
-  --color-sidebar: hsl(var(--sidebar));
-  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  /* Font families */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
 
-  /* Border radius */
-  --radius-lg: var(--radius);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-sm: calc(var(--radius) - 4px);
-  
+  /* Colors - using CSS variables for theme switching */
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+
+  /* Semantic colors */
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+
+  /* Border radius - from design system */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+  --radius-full: 9999px;
+
   /* Animations */
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
-  --animate-glow: glow 2s ease-in-out infinite alternate;
+  --animate-fade-in: fade-in 0.25s cubic-bezier(0, 0, 0.2, 1);
+  --animate-slide-up: slide-up 0.25s cubic-bezier(0, 0, 0.2, 1);
+  --animate-scale-in: scale-in 0.2s cubic-bezier(0, 0, 0.2, 1);
 
   @keyframes accordion-down {
     from { height: 0 }
@@ -48,114 +69,192 @@
     from { height: var(--radix-accordion-content-height) }
     to { height: 0 }
   }
-  @keyframes glow {
-    from { box-shadow: 0 0 10px -5px var(--color-primary); }
-    to { box-shadow: 0 0 20px 5px var(--color-primary); }
+  @keyframes fade-in {
+    from { opacity: 0 }
+    to { opacity: 1 }
+  }
+  @keyframes slide-up {
+    from { transform: translateY(8px); opacity: 0 }
+    to { transform: translateY(0); opacity: 1 }
+  }
+  @keyframes scale-in {
+    from { transform: scale(0.95); opacity: 0 }
+    to { transform: scale(1); opacity: 1 }
   }
 }
 
-/* CSS variables for light/dark mode */
+/* CSS variables for light mode (secondary consideration per design system) */
 :root {
-  /* Futuristic Light Theme */
-  --background: 210 20% 98%; /* Soft cool white */
-  --foreground: 224 71% 4%;  /* Deep navy */
-  
-  --card: 0 0% 100%;
-  --card-foreground: 224 71% 4%;
-  
-  --primary: 250 80% 55%;    /* Electric Violet */
-  --primary-foreground: 210 20% 98%;
-  
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 215.4 16.3% 46.9%;
-  
-  --accent: 250 80% 96%;
-  --accent-foreground: 250 80% 55%;
-  
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 250 80% 55%;
-  
-  --sidebar: 0 0% 100%;
-  --sidebar-foreground: 224 71% 4%;
-  
-  --radius: 0.75rem; /* 12px for modern rounded feel */
+  /* Light Mode - Warm off-white tones */
+  --background: #F2F2ED;
+  --foreground: #0B0B0F;
+
+  --card: #FFFFFF;
+  --card-foreground: #0B0B0F;
+
+  /* Accent - Muted olive/yellow for light mode */
+  --primary: #A5A66A;
+  --primary-foreground: #0B0B0F;
+
+  --secondary: #E8E8E3;
+  --secondary-foreground: #0B0B0F;
+
+  --muted: #EDEDE8;
+  --muted-foreground: #5C6974;
+
+  --accent: #EFEFE0;
+  --accent-foreground: #A5A66A;
+
+  --destructive: #D84F68;
+  --destructive-foreground: #FFFFFF;
+
+  --border: #DEDED9;
+  --input: #DEDED9;
+  --ring: #A5A66A;
+
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #0B0B0F;
+
+  /* Semantic colors */
+  --success: #4EBE96;
+  --success-foreground: #FFFFFF;
+  --success-light: #E0F5ED;
+  --warning: #D2D714;
+  --warning-foreground: #0B0B0F;
+  --warning-light: #F5F5D0;
+  --info: #479FFA;
+  --info-foreground: #FFFFFF;
+  --info-light: #E8F4FF;
+  --error: #D84F68;
+  --error-light: #FCE8EC;
+
+  /* Shadows - soft and diffused for light mode */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  --shadow-focus: 0 0 0 3px rgba(165, 166, 106, 0.2);
+
+  /* Border radius */
+  --radius: 12px;
 }
 
+/* Dark Mode - Oscura Midnight (Default/Primary theme per design system) */
 .dark {
-  /* Futuristic Dark Theme */
-  --background: 224 71% 4%;  /* Deep Space Navy */
-  --foreground: 210 20% 98%;
-  
-  --card: 224 71% 6%;        /* Slightly lighter than bg */
-  --card-foreground: 210 20% 98%;
-  
-  --primary: 250 100% 65%;   /* Neon Violet */
-  --primary-foreground: 210 20% 98%;
-  
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
-  
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-  
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 250 100% 65%;
-  
-  --sidebar: 224 71% 4%;
-  --sidebar-foreground: 210 20% 98%;
+  /* Near-black backgrounds - OLED optimized */
+  --background: #0B0B0F;
+  --foreground: #E6E6E6;
+
+  /* Card surfaces - subtle elevation */
+  --card: #121216;
+  --card-foreground: #E6E6E6;
+
+  /* Accent - Saturated yellow for vibrant contrast */
+  --primary: #D6D876;
+  --primary-foreground: #0B0B0F;
+
+  --secondary: #1A1A1F;
+  --secondary-foreground: #E6E6E6;
+
+  --muted: #1A1A1F;
+  --muted-foreground: #868F97;
+
+  --accent: #2A2A1F;
+  --accent-foreground: #D6D876;
+
+  --destructive: #FF5C5C;
+  --destructive-foreground: #0B0B0F;
+
+  /* Subtle dark borders for card definition */
+  --border: #232323;
+  --input: #232323;
+  --ring: #D6D876;
+
+  --sidebar: #0E0E12;
+  --sidebar-foreground: #E6E6E6;
+
+  /* Semantic colors - muted for dark mode */
+  --success: #4EBE96;
+  --success-foreground: #0B0B0F;
+  --success-light: #1A2924;
+  --warning: #D2D714;
+  --warning-foreground: #0B0B0F;
+  --warning-light: #262618;
+  --info: #479FFA;
+  --info-foreground: #0B0B0F;
+  --info-light: #1A2230;
+  --error: #FF5C5C;
+  --error-light: #2A1A1A;
+
+  /* Shadows - deeper for dark mode, but cards use borders primarily */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.6);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.7);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.8);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.9);
+  --shadow-focus: 0 0 0 2px rgba(214, 216, 118, 0.2);
 }
 
 /* Base styles */
 * {
-  border-color: var(--color-border);
+  border-color: var(--border);
 }
 
 body {
-  background-color: var(--color-background);
-  color: var(--color-foreground);
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
   font-feature-settings: "rlig" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Glassmorphism Utilities */
-.glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+/* Typography utilities */
+.font-mono {
+  font-family: var(--font-mono);
 }
 
-.dark .glass {
-  background: rgba(15, 23, 42, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+/* Card styles - following design system card-based modularity */
+.card-surface {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
 }
 
-.glass-card {
-  background: linear-gradient(145deg, hsl(var(--card) / 0.9), hsl(var(--card) / 0.6));
-  backdrop-filter: blur(12px);
-  border: 1px solid hsl(var(--border) / 0.5);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+.dark .card-surface {
+  /* In dark mode, cards use borders instead of shadows */
+  box-shadow: none;
 }
 
-.dark .glass-card {
-  background: linear-gradient(145deg, hsl(var(--card) / 0.8), hsl(var(--card) / 0.4));
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+:root .card-surface {
+  /* Light mode can use subtle shadows */
+  box-shadow: var(--shadow-md);
 }
 
-/* Custom scrollbar */
+/* Interactive card hover state */
+.card-interactive {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-interactive:hover {
+  border-color: var(--primary);
+}
+
+.dark .card-interactive:hover {
+  border-color: rgba(214, 216, 118, 0.5);
+}
+
+/* Surface elevated - for dropdowns, popovers */
+.surface-elevated {
+  background-color: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+.dark .surface-elevated {
+  background-color: #1A1A1F;
+}
+
+/* Custom scrollbar - following design system */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -166,13 +265,22 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted-foreground) / 0.3);
-  border-radius: 9999px;
+  background: var(--muted-foreground);
+  opacity: 0.3;
+  border-radius: var(--radius-full);
   transition: background 0.2s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(var(--muted-foreground) / 0.5);
+  opacity: 0.5;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(134, 143, 151, 0.3);
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(134, 143, 151, 0.5);
 }
 
 /* Electron window dragging area */
@@ -182,4 +290,115 @@ body {
 
 .electron-no-drag {
   -webkit-app-region: no-drag;
+}
+
+/* Focus visible styles - following accessibility guidelines */
+.focus-ring {
+  outline: none;
+}
+
+.focus-ring:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Badge semantic variants */
+.badge-success {
+  background-color: var(--success-light);
+  color: var(--success);
+}
+
+.badge-warning {
+  background-color: var(--warning-light);
+  color: var(--warning);
+}
+
+.badge-error {
+  background-color: var(--error-light);
+  color: var(--error);
+}
+
+.badge-info {
+  background-color: var(--info-light);
+  color: var(--info);
+}
+
+/* Progress bar styling */
+.progress-track {
+  background-color: var(--border);
+}
+
+.progress-fill {
+  background-color: var(--primary);
+}
+
+/* Toggle/Switch styling */
+.toggle-track {
+  background-color: var(--border);
+}
+
+.toggle-track[data-state="checked"] {
+  background-color: var(--primary);
+}
+
+.toggle-thumb {
+  background-color: white;
+}
+
+.dark .toggle-thumb[data-state="checked"] {
+  background-color: var(--primary-foreground);
+}
+
+/* Column status colors for Kanban */
+.column-backlog {
+  border-top-color: var(--muted-foreground);
+}
+
+.column-in-progress {
+  border-top-color: var(--info);
+}
+
+.column-ai-review {
+  border-top-color: var(--warning);
+}
+
+.column-human-review {
+  border-top-color: #A855F7;
+}
+
+.column-done {
+  border-top-color: var(--success);
+}
+
+/* Animation utilities */
+.transition-default {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-fast {
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.transition-slow {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hover scale effect */
+.hover-scale {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-scale:hover {
+  transform: scale(1.02);
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

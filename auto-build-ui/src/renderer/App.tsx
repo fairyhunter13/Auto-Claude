@@ -13,9 +13,11 @@ import { TaskDetailPanel } from './components/TaskDetailPanel';
 import { TaskCreationWizard } from './components/TaskCreationWizard';
 import { AppSettingsDialog } from './components/AppSettings';
 import { ProjectSettings } from './components/ProjectSettings';
+import { TerminalGrid } from './components/TerminalGrid';
 import { useProjectStore, loadProjects } from './stores/project-store';
 import { useTaskStore, loadTasks } from './stores/task-store';
 import { useSettingsStore, loadSettings } from './stores/settings-store';
+import { useTerminalStore } from './stores/terminal-store';
 import { useIpcListeners } from './hooks/useIpc';
 import type { Task } from '../shared/types';
 
@@ -53,6 +55,12 @@ export function App() {
     } else {
       useTaskStore.getState().clearTasks();
     }
+    // Clear terminals when project changes
+    const terminals = useTerminalStore.getState().terminals;
+    terminals.forEach((t) => {
+      window.electronAPI.destroyTerminal(t.id);
+    });
+    useTerminalStore.getState().clearAllTerminals();
   }, [selectedProjectId]);
 
   // Apply theme on load
@@ -122,11 +130,11 @@ export function App() {
         {/* Main content */}
         <div className="flex flex-1 flex-col overflow-hidden">
           {/* Header */}
-          <header className="electron-drag flex h-14 items-center justify-between glass border-b border-border/50 px-6">
+          <header className="electron-drag flex h-14 items-center justify-between border-b border-border bg-card/50 backdrop-blur-sm px-6">
             <div className="electron-no-drag">
               {selectedProject ? (
                 <div>
-                  <h1 className="font-semibold">{selectedProject.name}</h1>
+                  <h1 className="font-semibold text-foreground">{selectedProject.name}</h1>
                   <p className="text-xs text-muted-foreground truncate max-w-md">
                     {selectedProject.path}
                   </p>
@@ -163,20 +171,13 @@ export function App() {
                   <KanbanBoard tasks={tasks} onTaskClick={handleTaskClick} />
                 )}
                 {activeView === 'terminals' && (
-                  <div className="flex h-full items-center justify-center">
-                    <div className="text-center">
-                      <h2 className="text-lg font-medium">Agent Terminals</h2>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Terminal view for running agents - Coming soon
-                      </p>
-                    </div>
-                  </div>
+                  <TerminalGrid projectPath={selectedProject?.path} />
                 )}
                 {activeView === 'roadmap' && (
                   <div className="flex h-full items-center justify-center">
                     <div className="text-center">
-                      <h2 className="text-lg font-medium">Roadmap</h2>
-                      <p className="mt-1 text-sm text-muted-foreground">
+                      <h2 className="text-lg font-semibold text-foreground">Roadmap</h2>
+                      <p className="mt-2 text-sm text-muted-foreground">
                         Project roadmap and planning - Coming soon
                       </p>
                     </div>
@@ -185,8 +186,8 @@ export function App() {
                 {activeView === 'context' && (
                   <div className="flex h-full items-center justify-center">
                     <div className="text-center">
-                      <h2 className="text-lg font-medium">Context</h2>
-                      <p className="mt-1 text-sm text-muted-foreground">
+                      <h2 className="text-lg font-semibold text-foreground">Context</h2>
+                      <p className="mt-2 text-sm text-muted-foreground">
                         Project context and documentation - Coming soon
                       </p>
                     </div>
@@ -195,8 +196,8 @@ export function App() {
                 {activeView === 'agent-tools' && (
                   <div className="flex h-full items-center justify-center">
                     <div className="text-center">
-                      <h2 className="text-lg font-medium">Agent Tools</h2>
-                      <p className="mt-1 text-sm text-muted-foreground">
+                      <h2 className="text-lg font-semibold text-foreground">Agent Tools</h2>
+                      <p className="mt-2 text-sm text-muted-foreground">
                         Configure and manage agent tools - Coming soon
                       </p>
                     </div>
@@ -206,8 +207,8 @@ export function App() {
             ) : (
               <div className="flex h-full items-center justify-center">
                 <div className="text-center">
-                  <h2 className="text-lg font-medium">Welcome to Auto-Build</h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
+                  <h2 className="text-xl font-semibold text-foreground">Welcome to Auto-Build</h2>
+                  <p className="mt-2 text-sm text-muted-foreground">
                     Add a project from the sidebar to start building with AI
                   </p>
                 </div>

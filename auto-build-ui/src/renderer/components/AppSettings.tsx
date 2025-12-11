@@ -98,7 +98,7 @@ export function AppSettingsDialog({ open, onOpenChange }: AppSettingsDialogProps
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-foreground">
             <Settings className="h-5 w-5" />
             Application Settings
           </DialogTitle>
@@ -107,13 +107,13 @@ export function AppSettingsDialog({ open, onOpenChange }: AppSettingsDialogProps
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 -mx-6 px-6">
+        <ScrollArea className="flex-1 -mx-6 px-6 max-h-[60vh]">
           <div className="py-4 space-y-6">
             {/* Appearance */}
-            <section className="space-y-3">
+            <section className="space-y-4">
               <h3 className="text-sm font-semibold text-foreground">Appearance</h3>
-              <div className="space-y-1.5">
-                <Label htmlFor="theme">Theme</Label>
+              <div className="space-y-2">
+                <Label htmlFor="theme" className="text-sm font-medium text-foreground">Theme</Label>
                 <Select
                   value={settings.theme}
                   onValueChange={(value: 'light' | 'dark' | 'system') =>
@@ -159,10 +159,10 @@ export function AppSettingsDialog({ open, onOpenChange }: AppSettingsDialogProps
             <Separator />
 
             {/* Default Agent Settings */}
-            <section className="space-y-3">
+            <section className="space-y-4">
               <h3 className="text-sm font-semibold text-foreground">Default Agent Settings</h3>
-              <div className="space-y-1.5">
-                <Label htmlFor="defaultModel">Default Model</Label>
+              <div className="space-y-2">
+                <Label htmlFor="defaultModel" className="text-sm font-medium text-foreground">Default Model</Label>
                 <Select
                   value={settings.defaultModel}
                   onValueChange={(value) =>
@@ -181,8 +181,8 @@ export function AppSettingsDialog({ open, onOpenChange }: AppSettingsDialogProps
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="defaultParallelism">Default Parallelism</Label>
+              <div className="space-y-2">
+                <Label htmlFor="defaultParallelism" className="text-sm font-medium text-foreground">Default Parallelism</Label>
                 <Input
                   id="defaultParallelism"
                   type="number"
@@ -202,10 +202,10 @@ export function AppSettingsDialog({ open, onOpenChange }: AppSettingsDialogProps
             <Separator />
 
             {/* Paths */}
-            <section className="space-y-3">
+            <section className="space-y-4">
               <h3 className="text-sm font-semibold text-foreground">Paths</h3>
-              <div className="space-y-1.5">
-                <Label htmlFor="pythonPath">Python Path</Label>
+              <div className="space-y-2">
+                <Label htmlFor="pythonPath" className="text-sm font-medium text-foreground">Python Path</Label>
                 <Input
                   id="pythonPath"
                   placeholder="python3 (default)"
@@ -218,8 +218,8 @@ export function AppSettingsDialog({ open, onOpenChange }: AppSettingsDialogProps
                   Path to Python executable (leave empty for default)
                 </p>
               </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="autoBuildPath">Auto-Build Path</Label>
+              <div className="space-y-2">
+                <Label htmlFor="autoBuildPath" className="text-sm font-medium text-foreground">Auto-Build Path</Label>
                 <Input
                   id="autoBuildPath"
                   placeholder="auto-build (default)"
@@ -237,11 +237,11 @@ export function AppSettingsDialog({ open, onOpenChange }: AppSettingsDialogProps
             <Separator />
 
             {/* Notifications */}
-            <section className="space-y-3">
+            <section className="space-y-4">
               <h3 className="text-sm font-semibold text-foreground">Default Notifications</h3>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label className="font-normal">On Task Complete</Label>
+                  <Label className="font-normal text-foreground">On Task Complete</Label>
                   <Switch
                     checked={settings.notifications.onTaskComplete}
                     onCheckedChange={(checked) =>
@@ -256,7 +256,7 @@ export function AppSettingsDialog({ open, onOpenChange }: AppSettingsDialogProps
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label className="font-normal">On Task Failed</Label>
+                  <Label className="font-normal text-foreground">On Task Failed</Label>
                   <Switch
                     checked={settings.notifications.onTaskFailed}
                     onCheckedChange={(checked) =>
@@ -271,7 +271,7 @@ export function AppSettingsDialog({ open, onOpenChange }: AppSettingsDialogProps
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label className="font-normal">On Review Needed</Label>
+                  <Label className="font-normal text-foreground">On Review Needed</Label>
                   <Switch
                     checked={settings.notifications.onReviewNeeded}
                     onCheckedChange={(checked) =>
@@ -286,7 +286,7 @@ export function AppSettingsDialog({ open, onOpenChange }: AppSettingsDialogProps
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label className="font-normal">Sound</Label>
+                  <Label className="font-normal text-foreground">Sound</Label>
                   <Switch
                     checked={settings.notifications.sound}
                     onCheckedChange={(checked) =>
@@ -305,7 +305,7 @@ export function AppSettingsDialog({ open, onOpenChange }: AppSettingsDialogProps
 
             {/* Error */}
             {error && (
-              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+              <div className="rounded-lg bg-[var(--error-light)] border border-[var(--error)]/30 p-3 text-sm text-[var(--error)]">
                 {error}
               </div>
             )}

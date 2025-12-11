@@ -9,7 +9,8 @@ import type {
   TaskStartOptions,
   TaskStatus,
   ImplementationPlan,
-  ElectronAPI
+  ElectronAPI,
+  TerminalCreateOptions
 } from '../shared/types';
 
 // Expose a secure API to the renderer process
@@ -126,6 +127,77 @@ const electronAPI: ElectronAPI = {
     ipcRenderer.on(IPC_CHANNELS.TASK_STATUS_CHANGE, handler);
     return () => {
       ipcRenderer.removeListener(IPC_CHANNELS.TASK_STATUS_CHANGE, handler);
+    };
+  },
+
+  // ============================================
+  // Terminal Operations
+  // ============================================
+
+  createTerminal: (options: TerminalCreateOptions): Promise<IPCResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.TERMINAL_CREATE, options),
+
+  destroyTerminal: (id: string): Promise<IPCResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.TERMINAL_DESTROY, id),
+
+  sendTerminalInput: (id: string, data: string): void =>
+    ipcRenderer.send(IPC_CHANNELS.TERMINAL_INPUT, id, data),
+
+  resizeTerminal: (id: string, cols: number, rows: number): void =>
+    ipcRenderer.send(IPC_CHANNELS.TERMINAL_RESIZE, id, cols, rows),
+
+  invokeClaudeInTerminal: (id: string, cwd?: string): void =>
+    ipcRenderer.send(IPC_CHANNELS.TERMINAL_INVOKE_CLAUDE, id, cwd),
+
+  // ============================================
+  // Terminal Event Listeners
+  // ============================================
+
+  onTerminalOutput: (
+    callback: (id: string, data: string) => void
+  ): (() => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      id: string,
+      data: string
+    ): void => {
+      callback(id, data);
+    };
+    ipcRenderer.on(IPC_CHANNELS.TERMINAL_OUTPUT, handler);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.TERMINAL_OUTPUT, handler);
+    };
+  },
+
+  onTerminalExit: (
+    callback: (id: string, exitCode: number) => void
+  ): (() => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      id: string,
+      exitCode: number
+    ): void => {
+      callback(id, exitCode);
+    };
+    ipcRenderer.on(IPC_CHANNELS.TERMINAL_EXIT, handler);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.TERMINAL_EXIT, handler);
+    };
+  },
+
+  onTerminalTitleChange: (
+    callback: (id: string, title: string) => void
+  ): (() => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      id: string,
+      title: string
+    ): void => {
+      callback(id, title);
+    };
+    ipcRenderer.on(IPC_CHANNELS.TERMINAL_TITLE_CHANGE, handler);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.TERMINAL_TITLE_CHANGE, handler);
     };
   },
 

@@ -136,6 +136,20 @@ export interface AppSettings {
   notifications: NotificationSettings;
 }
 
+// Terminal Types
+export interface TerminalCreateOptions {
+  id: string;
+  cwd?: string;
+  cols?: number;
+  rows?: number;
+}
+
+export interface TerminalResizeOptions {
+  id: string;
+  cols: number;
+  rows: number;
+}
+
 // Electron API exposed via contextBridge
 export interface ElectronAPI {
   // Project operations
@@ -156,6 +170,18 @@ export interface ElectronAPI {
   onTaskError: (callback: (taskId: string, error: string) => void) => () => void;
   onTaskLog: (callback: (taskId: string, log: string) => void) => () => void;
   onTaskStatusChange: (callback: (taskId: string, status: TaskStatus) => void) => () => void;
+
+  // Terminal operations
+  createTerminal: (options: TerminalCreateOptions) => Promise<IPCResult>;
+  destroyTerminal: (id: string) => Promise<IPCResult>;
+  sendTerminalInput: (id: string, data: string) => void;
+  resizeTerminal: (id: string, cols: number, rows: number) => void;
+  invokeClaudeInTerminal: (id: string, cwd?: string) => void;
+
+  // Terminal event listeners
+  onTerminalOutput: (callback: (id: string, data: string) => void) => () => void;
+  onTerminalExit: (callback: (id: string, exitCode: number) => void) => () => void;
+  onTerminalTitleChange: (callback: (id: string, title: string) => void) => () => void;
 
   // App settings
   getSettings: () => Promise<IPCResult<AppSettings>>;

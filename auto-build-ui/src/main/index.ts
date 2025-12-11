@@ -3,10 +3,12 @@ import { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import { setupIpcHandlers } from './ipc-handlers';
 import { AgentManager } from './agent-manager';
+import { TerminalManager } from './terminal-manager';
 
 // Keep a global reference of the window object to prevent garbage collection
 let mainWindow: BrowserWindow | null = null;
 let agentManager: AgentManager | null = null;
+let terminalManager: TerminalManager | null = null;
 
 function createWindow(): void {
   // Create the browser window
@@ -70,8 +72,11 @@ app.whenReady().then(() => {
   // Initialize agent manager
   agentManager = new AgentManager();
 
+  // Initialize terminal manager
+  terminalManager = new TerminalManager(() => mainWindow);
+
   // Setup IPC handlers
-  setupIpcHandlers(agentManager, () => mainWindow);
+  setupIpcHandlers(agentManager, terminalManager, () => mainWindow);
 
   // Create window
   createWindow();
@@ -96,6 +101,10 @@ app.on('before-quit', async () => {
   // Kill all running agent processes
   if (agentManager) {
     await agentManager.killAll();
+  }
+  // Kill all terminal processes
+  if (terminalManager) {
+    await terminalManager.killAll();
   }
 });
 

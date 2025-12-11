@@ -44,42 +44,37 @@ function DroppableColumn({ status, tasks, onTaskClick, isOver }: DroppableColumn
 
   const taskIds = tasks.map((t) => t.id);
 
-  const getColumnColor = (): string => {
-    return 'bg-secondary/20 backdrop-blur-sm border border-white/5';
-  };
-
   const getColumnBorderColor = (): string => {
     switch (status) {
       case 'backlog':
-        return 'border-t-muted-foreground/30';
+        return 'column-backlog';
       case 'in_progress':
-        return 'border-t-blue-500/70 shadow-[inset_0_1px_0_0_rgba(59,130,246,0.2)]';
+        return 'column-in-progress';
       case 'ai_review':
-        return 'border-t-amber-500/70 shadow-[inset_0_1px_0_0_rgba(245,158,11,0.2)]';
+        return 'column-ai-review';
       case 'human_review':
-        return 'border-t-purple-500/70 shadow-[inset_0_1px_0_0_rgba(168,85,247,0.2)]';
+        return 'column-human-review';
       case 'done':
-        return 'border-t-green-500/70 shadow-[inset_0_1px_0_0_rgba(34,197,94,0.2)]';
+        return 'column-done';
       default:
-        return 'border-t-gray-500/30';
+        return 'border-t-muted-foreground/30';
     }
   };
 
   return (
     <div
       className={cn(
-        'flex w-72 flex-shrink-0 flex-col rounded-lg border-t-4 transition-colors',
-        getColumnColor(),
+        'flex w-72 shrink-0 flex-col rounded-xl bg-secondary/10 border-t-2 transition-all duration-200',
         getColumnBorderColor(),
-        isOver && 'ring-2 ring-primary/50 bg-primary/5'
+        isOver && 'bg-accent/10'
       )}
     >
       {/* Column header */}
-      <div className="flex items-center justify-between p-3">
-        <h2 className="font-semibold text-sm">
+      <div className="flex items-center justify-between p-4">
+        <h2 className="font-semibold text-sm text-foreground">
           {TASK_STATUS_LABELS[status]}
         </h2>
-        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-background text-xs font-medium">
+        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-xs font-medium text-muted-foreground">
           {tasks.length}
         </span>
       </div>
@@ -95,8 +90,8 @@ function DroppableColumn({ status, tasks, onTaskClick, isOver }: DroppableColumn
               {tasks.length === 0 ? (
                 <div
                   className={cn(
-                    'rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground transition-colors',
-                    isOver && 'border-primary/50 bg-primary/5'
+                    'rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground transition-all duration-200',
+                    isOver && 'border-primary/50 bg-accent/30'
                   )}
                 >
                   {isOver ? 'Drop here' : 'No tasks'}
@@ -222,7 +217,7 @@ export function KanbanBoard({ tasks, onTaskClick }: KanbanBoardProps) {
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex h-full gap-4 overflow-x-auto p-4">
+      <div className="flex h-full gap-4 overflow-x-auto p-6">
         {TASK_STATUS_COLUMNS.map((status) => (
           <DroppableColumn
             key={status}
@@ -237,7 +232,7 @@ export function KanbanBoard({ tasks, onTaskClick }: KanbanBoardProps) {
       {/* Drag overlay - shows the card being dragged */}
       <DragOverlay>
         {activeTask ? (
-          <div className="opacity-90 rotate-2 scale-105 cursor-grabbing">
+          <div className="opacity-95 rotate-2 scale-105 cursor-grabbing">
             <TaskCard task={activeTask} onClick={() => {}} />
           </div>
         ) : null}

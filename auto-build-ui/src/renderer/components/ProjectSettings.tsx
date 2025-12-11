@@ -63,7 +63,7 @@ export function ProjectSettings({ project, open, onOpenChange }: ProjectSettings
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-foreground">
             <Settings2 className="h-5 w-5" />
             Project Settings
           </DialogTitle>
@@ -72,13 +72,13 @@ export function ProjectSettings({ project, open, onOpenChange }: ProjectSettings
           </DialogDescription>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 -mx-6 px-6">
+        <ScrollArea className="flex-1 -mx-6 px-6 max-h-[60vh]">
           <div className="py-4 space-y-6">
             {/* Agent Settings */}
-            <section className="space-y-3">
+            <section className="space-y-4">
               <h3 className="text-sm font-semibold text-foreground">Agent Configuration</h3>
-              <div className="space-y-1.5">
-                <Label htmlFor="model">Model</Label>
+              <div className="space-y-2">
+                <Label htmlFor="model" className="text-sm font-medium text-foreground">Model</Label>
                 <Select
                   value={settings.model}
                   onValueChange={(value) => setSettings({ ...settings, model: value })}
@@ -97,7 +97,7 @@ export function ProjectSettings({ project, open, onOpenChange }: ProjectSettings
               </div>
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label className="font-normal">Parallel Execution</Label>
+                  <Label className="font-normal text-foreground">Parallel Execution</Label>
                   <p className="text-xs text-muted-foreground">
                     Run multiple chunks simultaneously
                   </p>
@@ -110,8 +110,8 @@ export function ProjectSettings({ project, open, onOpenChange }: ProjectSettings
                 />
               </div>
               {settings.parallelEnabled && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="workers">Max Workers</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="workers" className="text-sm font-medium text-foreground">Max Workers</Label>
                   <Input
                     id="workers"
                     type="number"
@@ -132,10 +132,10 @@ export function ProjectSettings({ project, open, onOpenChange }: ProjectSettings
             <Separator />
 
             {/* Memory Settings */}
-            <section className="space-y-3">
+            <section className="space-y-4">
               <h3 className="text-sm font-semibold text-foreground">Memory Backend</h3>
-              <div className="space-y-1.5">
-                <Label htmlFor="memoryBackend">Backend</Label>
+              <div className="space-y-2">
+                <Label htmlFor="memoryBackend" className="text-sm font-medium text-foreground">Backend</Label>
                 <Select
                   value={settings.memoryBackend}
                   onValueChange={(value: 'file' | 'graphiti') =>
@@ -159,11 +159,11 @@ export function ProjectSettings({ project, open, onOpenChange }: ProjectSettings
             <Separator />
 
             {/* Linear Integration */}
-            <section className="space-y-3">
+            <section className="space-y-4">
               <h3 className="text-sm font-semibold text-foreground">Linear Integration</h3>
               <div className="flex items-center justify-between">
                 <div className="space-y-0.5">
-                  <Label className="font-normal">Sync to Linear</Label>
+                  <Label className="font-normal text-foreground">Sync to Linear</Label>
                   <p className="text-xs text-muted-foreground">
                     Create and update Linear issues
                   </p>
@@ -176,8 +176,8 @@ export function ProjectSettings({ project, open, onOpenChange }: ProjectSettings
                 />
               </div>
               {settings.linearSync && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="linearTeamId">Team ID</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="linearTeamId" className="text-sm font-medium text-foreground">Team ID</Label>
                   <Input
                     id="linearTeamId"
                     placeholder="Enter Linear team ID"
@@ -193,11 +193,11 @@ export function ProjectSettings({ project, open, onOpenChange }: ProjectSettings
             <Separator />
 
             {/* Notifications */}
-            <section className="space-y-3">
+            <section className="space-y-4">
               <h3 className="text-sm font-semibold text-foreground">Notifications</h3>
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label className="font-normal">On Task Complete</Label>
+                  <Label className="font-normal text-foreground">On Task Complete</Label>
                   <Switch
                     checked={settings.notifications.onTaskComplete}
                     onCheckedChange={(checked) =>
@@ -212,7 +212,7 @@ export function ProjectSettings({ project, open, onOpenChange }: ProjectSettings
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label className="font-normal">On Task Failed</Label>
+                  <Label className="font-normal text-foreground">On Task Failed</Label>
                   <Switch
                     checked={settings.notifications.onTaskFailed}
                     onCheckedChange={(checked) =>
@@ -227,7 +227,7 @@ export function ProjectSettings({ project, open, onOpenChange }: ProjectSettings
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label className="font-normal">On Review Needed</Label>
+                  <Label className="font-normal text-foreground">On Review Needed</Label>
                   <Switch
                     checked={settings.notifications.onReviewNeeded}
                     onCheckedChange={(checked) =>
@@ -242,9 +242,9 @@ export function ProjectSettings({ project, open, onOpenChange }: ProjectSettings
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label className="font-normal">Sound</Label>
+                  <Label className="font-normal text-foreground">Sound</Label>
                   <Switch
-                    checked={settings.notifications.sound}
+                    checked={settings.notifications.onReviewNeeded}
                     onCheckedChange={(checked) =>
                       setSettings({
                         ...settings,
@@ -261,7 +261,7 @@ export function ProjectSettings({ project, open, onOpenChange }: ProjectSettings
 
             {/* Error */}
             {error && (
-              <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+              <div className="rounded-lg bg-[var(--error-light)] border border-[var(--error)]/30 p-3 text-sm text-[var(--error)]">
                 {error}
               </div>
             )}

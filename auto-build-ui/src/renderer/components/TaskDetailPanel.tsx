@@ -72,23 +72,23 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
   const getChunkStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+        return <CheckCircle2 className="h-4 w-4 text-[var(--success)]" />;
       case 'in_progress':
-        return <Clock className="h-4 w-4 text-blue-500 animate-pulse" />;
+        return <Clock className="h-4 w-4 text-[var(--info)] animate-pulse" />;
       case 'failed':
-        return <XCircle className="h-4 w-4 text-red-500" />;
+        return <XCircle className="h-4 w-4 text-[var(--error)]" />;
       default:
-        return <AlertCircle className="h-4 w-4 text-gray-400" />;
+        return <AlertCircle className="h-4 w-4 text-muted-foreground" />;
     }
   };
 
   return (
-    <div className="flex h-full w-96 flex-col glass border-l border-border/50">
+    <div className="flex h-full w-96 flex-col bg-card border-l border-border">
       {/* Header */}
       <div className="flex items-start justify-between p-4">
         <div className="flex-1 min-w-0 pr-2">
-          <h2 className="font-semibold text-lg truncate">{task.title}</h2>
-          <div className="mt-1 flex items-center gap-2">
+          <h2 className="font-semibold text-lg text-foreground truncate">{task.title}</h2>
+          <div className="mt-1.5 flex items-center gap-2">
             <Badge variant="outline" className="text-xs">
               {task.specId}
             </Badge>
@@ -102,26 +102,26 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
         </Button>
       </div>
 
-      <Separator className="my-0" />
+      <Separator />
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0 h-auto">
+        <TabsList className="w-full justify-start rounded-none border-b border-border bg-transparent p-0 h-auto">
           <TabsTrigger
             value="overview"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none px-4 py-2"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-sm"
           >
             Overview
           </TabsTrigger>
           <TabsTrigger
             value="chunks"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none px-4 py-2"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-sm"
           >
             Chunks ({task.chunks.length})
           </TabsTrigger>
           <TabsTrigger
             value="logs"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none px-4 py-2"
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2.5 text-sm"
           >
             Logs
           </TabsTrigger>
@@ -130,12 +130,12 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
         {/* Overview Tab */}
         <TabsContent value="overview" className="flex-1 overflow-hidden mt-0">
           <ScrollArea className="h-full">
-            <div className="p-4 space-y-4">
+            <div className="p-4 space-y-5">
               {/* Progress */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium">Progress</span>
-                  <span className="text-sm">{progress}%</span>
+                  <span className="text-sm font-medium text-foreground">Progress</span>
+                  <span className="text-sm text-foreground">{progress}%</span>
                 </div>
                 <Progress value={progress} className="h-2" />
               </div>
@@ -143,7 +143,7 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
               {/* Description */}
               {task.description && (
                 <div>
-                  <h3 className="text-sm font-medium mb-2">Description</h3>
+                  <h3 className="text-sm font-medium text-foreground mb-2">Description</h3>
                   <p className="text-sm text-muted-foreground">{task.description}</p>
                 </div>
               )}
@@ -152,19 +152,19 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Created</span>
-                  <span>{formatRelativeTime(task.createdAt)}</span>
+                  <span className="text-foreground">{formatRelativeTime(task.createdAt)}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Updated</span>
-                  <span>{formatRelativeTime(task.updatedAt)}</span>
+                  <span className="text-foreground">{formatRelativeTime(task.updatedAt)}</span>
                 </div>
               </div>
 
               {/* Human Review Section */}
               {needsReview && (
-                <div className="rounded-lg border border-purple-200 bg-purple-50 p-4 dark:border-purple-800 dark:bg-purple-900/20">
-                  <h3 className="font-medium text-sm mb-2 flex items-center gap-2">
-                    <AlertCircle className="h-4 w-4 text-purple-600" />
+                <div className="rounded-xl border border-purple-500/30 bg-purple-500/10 p-4">
+                  <h3 className="font-medium text-sm text-foreground mb-2 flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 text-purple-400" />
                     Review Required
                   </h3>
                   <p className="text-sm text-muted-foreground mb-3">
@@ -179,7 +179,7 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
                   />
                   <div className="flex gap-2">
                     <Button
-                      variant="default"
+                      variant="success"
                       onClick={handleApprove}
                       disabled={isSubmitting}
                       className="flex-1"
@@ -206,7 +206,7 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
         {/* Chunks Tab */}
         <TabsContent value="chunks" className="flex-1 overflow-hidden mt-0">
           <ScrollArea className="h-full">
-            <div className="p-4 space-y-2">
+            <div className="p-4 space-y-3">
               {task.chunks.length === 0 ? (
                 <div className="text-center text-sm text-muted-foreground py-8">
                   No chunks defined yet
@@ -216,10 +216,10 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
                   <div
                     key={chunk.id}
                     className={cn(
-                      'rounded-lg border p-3 transition-colors glass-card',
-                      chunk.status === 'in_progress' && 'border-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.1)]',
-                      chunk.status === 'completed' && 'border-green-500/50 shadow-[0_0_10px_rgba(34,197,94,0.1)]',
-                      chunk.status === 'failed' && 'border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.1)]'
+                      'rounded-xl border border-border bg-secondary/30 p-3 transition-all duration-200',
+                      chunk.status === 'in_progress' && 'border-[var(--info)]/50 bg-[var(--info-light)]',
+                      chunk.status === 'completed' && 'border-[var(--success)]/50 bg-[var(--success-light)]',
+                      chunk.status === 'failed' && 'border-[var(--error)]/50 bg-[var(--error-light)]'
                     )}
                   >
                     <div className="flex items-start gap-2">
@@ -229,7 +229,7 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
                           <span className="text-xs text-muted-foreground">
                             #{index + 1}
                           </span>
-                          <span className="text-sm font-medium truncate">
+                          <span className="text-sm font-medium text-foreground truncate">
                             {chunk.id}
                           </span>
                         </div>
@@ -264,7 +264,7 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
           <ScrollArea className="h-full">
             <div className="p-4">
               {task.logs && task.logs.length > 0 ? (
-                <pre className="text-xs font-mono whitespace-pre-wrap break-all">
+                <pre className="text-xs font-mono text-muted-foreground whitespace-pre-wrap break-all">
                   {task.logs.join('')}
                   <div ref={logsEndRef} />
                 </pre>
@@ -304,7 +304,7 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
           </Button>
         )}
         {task.status === 'done' && (
-          <div className="text-center text-sm text-green-600 dark:text-green-400">
+          <div className="text-center text-sm text-[var(--success)]">
             <CheckCircle2 className="mx-auto mb-1 h-6 w-6" />
             Task completed successfully
           </div>

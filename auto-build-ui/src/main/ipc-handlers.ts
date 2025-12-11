@@ -9,17 +9,20 @@ import type {
   AppSettings,
   IPCResult,
   TaskStartOptions,
-  ImplementationPlan
+  ImplementationPlan,
+  TerminalCreateOptions
 } from '../shared/types';
 import { projectStore } from './project-store';
 import { fileWatcher } from './file-watcher';
 import { AgentManager } from './agent-manager';
+import { TerminalManager } from './terminal-manager';
 
 /**
  * Setup all IPC handlers
  */
 export function setupIpcHandlers(
   agentManager: AgentManager,
+  terminalManager: TerminalManager,
   getMainWindow: () => BrowserWindow | null
 ): void {
   // ============================================
@@ -350,6 +353,45 @@ export function setupIpcHandlers(
   ipcMain.handle(IPC_CHANNELS.APP_VERSION, async (): Promise<string> => {
     return app.getVersion();
   });
+
+  // ============================================
+  // Terminal Operations
+  // ============================================
+
+  ipcMain.handle(
+    IPC_CHANNELS.TERMINAL_CREATE,
+    async (_, options: TerminalCreateOptions): Promise<IPCResult> => {
+      return terminalManager.create(options);
+    }
+  );
+
+  ipcMain.handle(
+    IPC_CHANNELS.TERMINAL_DESTROY,
+    async (_, id: string): Promise<IPCResult> => {
+      return terminalManager.destroy(id);
+    }
+  );
+
+  ipcMain.on(
+    IPC_CHANNELS.TERMINAL_INPUT,
+    (_, id: string, data: string) => {
+      terminalManager.write(id, data);
+    }
+  );
+
+  ipcMain.on(
+    IPC_CHANNELS.TERMINAL_RESIZE,
+    (_, id: string, cols: number, rows: number) => {
+      terminalManager.resize(id, cols, rows);
+    }
+  );
+
+  ipcMain.on(
+    IPC_CHANNELS.TERMINAL_INVOKE_CLAUDE,
+    (_, id: string, cwd?: string) => {
+      terminalManager.invokeClaude(id, cwd);
+    }
+  );
 
   // ============================================
   // Agent Manager Events → Renderer

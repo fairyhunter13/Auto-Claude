@@ -59,15 +59,15 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
   return (
     <Card
       className={cn(
-        'cursor-pointer transition-all duration-300 hover:scale-[1.02] glass-card border-transparent',
-        isRunning ? 'ring-2 ring-primary shadow-[0_0_15px_rgba(var(--primary),0.3)]' : 'hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5'
+        'card-surface card-interactive cursor-pointer',
+        isRunning && 'ring-2 ring-primary border-primary'
       )}
       onClick={onClick}
     >
-      <CardContent className="p-3">
+      <CardContent className="p-4">
         {/* Header */}
         <div className="flex items-start justify-between gap-2">
-          <h3 className="font-medium text-sm line-clamp-2">{task.title}</h3>
+          <h3 className="font-medium text-sm text-foreground line-clamp-2">{task.title}</h3>
           <Badge variant={getStatusBadgeVariant(task.status)} className="shrink-0">
             {getStatusLabel(task.status)}
           </Badge>
@@ -75,19 +75,19 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
 
         {/* Description */}
         {task.description && (
-          <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+          <p className="mt-2 text-xs text-muted-foreground line-clamp-2">
             {task.description}
           </p>
         )}
 
         {/* Progress section */}
         {task.chunks.length > 0 && (
-          <div className="mt-3">
-            <div className="flex items-center justify-between mb-1">
+          <div className="mt-4">
+            <div className="flex items-center justify-between mb-1.5">
               <span className="text-xs text-muted-foreground">
                 Progress
               </span>
-              <span className="text-xs font-medium">{progress}%</span>
+              <span className="text-xs font-medium text-foreground">{progress}%</span>
             </div>
             <Progress value={progress} className="h-1.5" />
 
@@ -113,8 +113,8 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
         )}
 
         {/* Footer */}
-        <div className="mt-3 flex items-center justify-between">
-          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+        <div className="mt-4 flex items-center justify-between">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <Clock className="h-3 w-3" />
             <span>{formatRelativeTime(task.updatedAt)}</span>
           </div>
@@ -124,17 +124,17 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
             <Button
               variant={isRunning ? 'destructive' : 'default'}
               size="sm"
-              className="h-6 px-2"
+              className="h-7 px-2.5"
               onClick={handleStartStop}
             >
               {isRunning ? (
                 <>
-                  <Square className="mr-1 h-3 w-3" />
+                  <Square className="mr-1.5 h-3 w-3" />
                   Stop
                 </>
               ) : (
                 <>
-                  <Play className="mr-1 h-3 w-3" />
+                  <Play className="mr-1.5 h-3 w-3" />
                   Start
                 </>
               )}

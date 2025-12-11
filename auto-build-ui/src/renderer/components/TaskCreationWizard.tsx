@@ -69,17 +69,19 @@ export function TaskCreationWizard({
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>Create New Task</DialogTitle>
+          <DialogTitle className="text-foreground">Create New Task</DialogTitle>
           <DialogDescription>
             Describe what you want to build. The AI will analyze your request and
             create a detailed specification.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-5 py-6">
+        <div className="space-y-5 py-4">
           {/* Title */}
-          <div className="space-y-1.5">
-            <Label htmlFor="title">Task Title</Label>
+          <div className="space-y-2">
+            <Label htmlFor="title" className="text-sm font-medium text-foreground">
+              Task Title
+            </Label>
             <Input
               id="title"
               placeholder="e.g., Add user authentication"
@@ -90,8 +92,10 @@ export function TaskCreationWizard({
           </div>
 
           {/* Description */}
-          <div className="space-y-1.5">
-            <Label htmlFor="description">Description</Label>
+          <div className="space-y-2">
+            <Label htmlFor="description" className="text-sm font-medium text-foreground">
+              Description
+            </Label>
             <Textarea
               id="description"
               placeholder="Describe the feature, bug fix, or improvement you want to implement. Be as specific as possible about requirements, constraints, and expected behavior."
@@ -100,7 +104,7 @@ export function TaskCreationWizard({
               rows={6}
               disabled={isCreating}
             />
-            <p className="text-xs text-muted-foreground pt-1">
+            <p className="text-xs text-muted-foreground">
               Tip: Include details about UI changes, API endpoints, data models,
               and any technical requirements.
             </p>
@@ -108,7 +112,7 @@ export function TaskCreationWizard({
 
           {/* Error */}
           {error && (
-            <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+            <div className="rounded-lg bg-[var(--error-light)] border border-[var(--error)]/30 p-3 text-sm text-[var(--error)]">
               {error}
             </div>
           )}
