@@ -471,9 +471,16 @@ def main() -> None:
         project_dir = Path.cwd()
 
         # Auto-detect if running from within auto-build directory
-        # If cwd ends with 'auto-build' and contains run.py, go up one level
+        # Handle both: auto-build/ and dev/auto-build/
         if project_dir.name == "auto-build" and (project_dir / "run.py").exists():
-            project_dir = project_dir.parent
+            parent = project_dir.parent
+            # Check if we're in dev/auto-build (parent is 'dev')
+            if parent.name == "dev" and (parent.parent / "auto-build" / "run.py").exists():
+                # Running from dev/auto-build, go up 2 levels
+                project_dir = parent.parent
+            else:
+                # Running from auto-build, go up 1 level
+                project_dir = parent
 
     # Show dev mode info
     if args.dev:
