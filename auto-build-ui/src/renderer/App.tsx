@@ -7,7 +7,7 @@ import {
   TooltipContent,
   TooltipTrigger
 } from './components/ui/tooltip';
-import { Sidebar } from './components/Sidebar';
+import { Sidebar, type SidebarView } from './components/Sidebar';
 import { KanbanBoard } from './components/KanbanBoard';
 import { TaskDetailPanel } from './components/TaskDetailPanel';
 import { TaskCreationWizard } from './components/TaskCreationWizard';
@@ -34,6 +34,7 @@ export function App() {
   const [isNewTaskDialogOpen, setIsNewTaskDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [isProjectSettingsOpen, setIsProjectSettingsOpen] = useState(false);
+  const [activeView, setActiveView] = useState<SidebarView>('kanban');
 
   // Get selected project
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
@@ -114,12 +115,14 @@ export function App() {
         <Sidebar
           onSettingsClick={() => setIsSettingsDialogOpen(true)}
           onNewTaskClick={() => setIsNewTaskDialogOpen(true)}
+          activeView={activeView}
+          onViewChange={setActiveView}
         />
 
         {/* Main content */}
         <div className="flex flex-1 flex-col overflow-hidden">
           {/* Header */}
-          <header className="electron-drag flex h-14 items-center justify-between border-b px-6">
+          <header className="electron-drag flex h-14 items-center justify-between glass border-b border-border/50 px-6">
             <div className="electron-no-drag">
               {selectedProject ? (
                 <div>
@@ -152,10 +155,54 @@ export function App() {
             )}
           </header>
 
-          {/* Kanban board */}
+          {/* Main content area */}
           <main className="flex-1 overflow-hidden">
             {selectedProject ? (
-              <KanbanBoard tasks={tasks} onTaskClick={handleTaskClick} />
+              <>
+                {activeView === 'kanban' && (
+                  <KanbanBoard tasks={tasks} onTaskClick={handleTaskClick} />
+                )}
+                {activeView === 'terminals' && (
+                  <div className="flex h-full items-center justify-center">
+                    <div className="text-center">
+                      <h2 className="text-lg font-medium">Agent Terminals</h2>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Terminal view for running agents - Coming soon
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {activeView === 'roadmap' && (
+                  <div className="flex h-full items-center justify-center">
+                    <div className="text-center">
+                      <h2 className="text-lg font-medium">Roadmap</h2>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Project roadmap and planning - Coming soon
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {activeView === 'context' && (
+                  <div className="flex h-full items-center justify-center">
+                    <div className="text-center">
+                      <h2 className="text-lg font-medium">Context</h2>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Project context and documentation - Coming soon
+                      </p>
+                    </div>
+                  </div>
+                )}
+                {activeView === 'agent-tools' && (
+                  <div className="flex h-full items-center justify-center">
+                    <div className="text-center">
+                      <h2 className="text-lg font-medium">Agent Tools</h2>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Configure and manage agent tools - Coming soon
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="flex h-full items-center justify-center">
                 <div className="text-center">

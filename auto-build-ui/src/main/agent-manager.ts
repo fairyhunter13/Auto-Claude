@@ -102,7 +102,7 @@ export class AgentManager extends EventEmitter {
     // Kill existing process for this task if any
     this.killTask(taskId);
 
-    const process = spawn(this.pythonPath, args, {
+    const childProcess = spawn(this.pythonPath, args, {
       cwd,
       env: {
         ...process.env,
@@ -112,18 +112,18 @@ export class AgentManager extends EventEmitter {
 
     this.processes.set(taskId, {
       taskId,
-      process,
+      process: childProcess,
       startedAt: new Date()
     });
 
     // Handle stdout
-    process.stdout?.on('data', (data: Buffer) => {
+    childProcess.stdout?.on('data', (data: Buffer) => {
       const log = data.toString();
       this.emit('log', taskId, log);
     });
 
     // Handle stderr
-    process.stderr?.on('data', (data: Buffer) => {
+    childProcess.stderr?.on('data', (data: Buffer) => {
       const log = data.toString();
       // Some Python output goes to stderr (like progress bars)
       // so we treat it as log, not error
@@ -131,13 +131,13 @@ export class AgentManager extends EventEmitter {
     });
 
     // Handle process exit
-    process.on('exit', (code) => {
+    childProcess.on('exit', (code: number | null) => {
       this.processes.delete(taskId);
       this.emit('exit', taskId, code);
     });
 
     // Handle process error
-    process.on('error', (err) => {
+    childProcess.on('error', (err: Error) => {
       this.processes.delete(taskId);
       this.emit('error', taskId, err.message);
     });

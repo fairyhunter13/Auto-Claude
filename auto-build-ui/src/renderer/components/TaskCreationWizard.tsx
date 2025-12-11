@@ -76,9 +76,9 @@ export function TaskCreationWizard({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-5 py-6">
           {/* Title */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="title">Task Title</Label>
             <Input
               id="title"
@@ -90,7 +90,7 @@ export function TaskCreationWizard({
           </div>
 
           {/* Description */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
@@ -100,7 +100,7 @@ export function TaskCreationWizard({
               rows={6}
               disabled={isCreating}
             />
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-muted-foreground pt-1">
               Tip: Include details about UI changes, API endpoints, data models,
               and any technical requirements.
             </p>

@@ -1,3 +1,6 @@
+// Initialize browser mock before anything else (no-op in Electron)
+import './lib/browser-mock';
+
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { App } from './App';

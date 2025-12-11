@@ -66,7 +66,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
             description: chunk.description,
             status: chunk.status,
             files: [],
-            verification: chunk.verification
+            verification: chunk.verification as Chunk['verification']
           }))
         );
 

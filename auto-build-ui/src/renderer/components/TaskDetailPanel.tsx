@@ -18,9 +18,9 @@ import { Separator } from './ui/separator';
 import { Textarea } from './ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { cn, calculateProgress, formatRelativeTime } from '../lib/utils';
-import { CHUNK_STATUS_COLORS, TASK_STATUS_LABELS } from '../../shared/constants';
+import { TASK_STATUS_LABELS } from '../../shared/constants';
 import { startTask, stopTask, submitReview } from '../stores/task-store';
-import type { Task, Chunk } from '../../shared/types';
+import type { Task } from '../../shared/types';
 
 interface TaskDetailPanelProps {
   task: Task;
@@ -83,7 +83,7 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
   };
 
   return (
-    <div className="flex h-full w-96 flex-col border-l bg-card">
+    <div className="flex h-full w-96 flex-col glass border-l border-border/50">
       {/* Header */}
       <div className="flex items-start justify-between p-4">
         <div className="flex-1 min-w-0 pr-2">
@@ -102,7 +102,7 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
         </Button>
       </div>
 
-      <Separator />
+      <Separator className="my-0" />
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
@@ -216,10 +216,10 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
                   <div
                     key={chunk.id}
                     className={cn(
-                      'rounded-lg border p-3 transition-colors',
-                      chunk.status === 'in_progress' && 'border-blue-300 bg-blue-50 dark:border-blue-700 dark:bg-blue-900/20',
-                      chunk.status === 'completed' && 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/20',
-                      chunk.status === 'failed' && 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/20'
+                      'rounded-lg border p-3 transition-colors glass-card',
+                      chunk.status === 'in_progress' && 'border-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.1)]',
+                      chunk.status === 'completed' && 'border-green-500/50 shadow-[0_0_10px_rgba(34,197,94,0.1)]',
+                      chunk.status === 'failed' && 'border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.1)]'
                     )}
                   >
                     <div className="flex items-start gap-2">

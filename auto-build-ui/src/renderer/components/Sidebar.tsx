@@ -4,14 +4,24 @@ import {
   Plus,
   Settings,
   Trash2,
-  ChevronDown,
-  ChevronRight,
   Moon,
-  Sun
+  Sun,
+  LayoutGrid,
+  Terminal,
+  Map,
+  BookOpen,
+  Wrench
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from './ui/select';
 import {
   Tooltip,
   TooltipContent,
@@ -23,50 +33,78 @@ import { useProjectStore, addProject, removeProject } from '../stores/project-st
 import { useSettingsStore, saveSettings } from '../stores/settings-store';
 import type { Project } from '../../shared/types';
 
+export type SidebarView = 'kanban' | 'terminals' | 'roadmap' | 'context' | 'agent-tools';
+
 interface SidebarProps {
   onSettingsClick: () => void;
   onNewTaskClick: () => void;
+  activeView?: SidebarView;
+  onViewChange?: (view: SidebarView) => void;
 }
 
-export function Sidebar({ onSettingsClick, onNewTaskClick }: SidebarProps) {
+interface NavItem {
+  id: SidebarView;
+  label: string;
+  icon: React.ElementType;
+  shortcut?: string;
+}
+
+const projectNavItems: NavItem[] = [
+  { id: 'kanban', label: 'Kanban Board', icon: LayoutGrid, shortcut: 'K' },
+  { id: 'terminals', label: 'Agent Terminals', icon: Terminal, shortcut: 'A' }
+];
+
+const toolsNavItems: NavItem[] = [
+  { id: 'roadmap', label: 'Roadmap', icon: Map, shortcut: 'D' },
+  { id: 'context', label: 'Context', icon: BookOpen, shortcut: 'C' },
+  { id: 'agent-tools', label: 'Agent Tools', icon: Wrench, shortcut: 'T' }
+];
+
+export function Sidebar({
+  onSettingsClick,
+  onNewTaskClick,
+  activeView = 'kanban',
+  onViewChange
+}: SidebarProps) {
   const projects = useProjectStore((state) => state.projects);
   const selectedProjectId = useProjectStore((state) => state.selectedProjectId);
   const selectProject = useProjectStore((state) => state.selectProject);
   const settings = useSettingsStore((state) => state.settings);
 
-  const [expandedProjects, setExpandedProjects] = useState<Set<string>>(new Set());
+  const [isAddingProject, setIsAddingProject] = useState(false);
 
-  const toggleProject = (projectId: string) => {
-    const newExpanded = new Set(expandedProjects);
-    if (newExpanded.has(projectId)) {
-      newExpanded.delete(projectId);
-    } else {
-      newExpanded.add(projectId);
-    }
-    setExpandedProjects(newExpanded);
-  };
+  const selectedProject = projects.find((p) => p.id === selectedProjectId);
 
   const handleAddProject = async () => {
-    const path = await window.electronAPI.selectDirectory();
-    if (path) {
-      await addProject(path);
+    setIsAddingProject(true);
+    try {
+      const path = await window.electronAPI.selectDirectory();
+      if (path) {
+        await addProject(path);
+      }
+    } finally {
+      setIsAddingProject(false);
     }
   };
 
   const handleRemoveProject = async (projectId: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     await removeProject(projectId);
   };
 
-  const handleSelectProject = (project: Project) => {
-    selectProject(project.id);
+  const handleProjectChange = (projectId: string) => {
+    if (projectId === '__add_new__') {
+      handleAddProject();
+    } else {
+      selectProject(projectId);
+    }
   };
 
   const toggleTheme = () => {
     const newTheme = settings.theme === 'dark' ? 'light' : 'dark';
     saveSettings({ theme: newTheme });
 
-    // Apply theme to document
     if (newTheme === 'dark') {
       document.documentElement.classList.add('dark');
     } else {
@@ -74,24 +112,52 @@ export function Sidebar({ onSettingsClick, onNewTaskClick }: SidebarProps) {
     }
   };
 
-  const isDark = settings.theme === 'dark' ||
+  const isDark =
+    settings.theme === 'dark' ||
     (settings.theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
+  const handleNavClick = (view: SidebarView) => {
+    onViewChange?.(view);
+  };
+
+  const renderNavItem = (item: NavItem) => {
+    const isActive = activeView === item.id;
+    const Icon = item.icon;
+
+    return (
+      <button
+        key={item.id}
+        onClick={() => handleNavClick(item.id)}
+        disabled={!selectedProjectId}
+        className={cn(
+          'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors',
+          'hover:bg-accent hover:text-accent-foreground',
+          'disabled:pointer-events-none disabled:opacity-50',
+          isActive && 'bg-accent text-accent-foreground'
+        )}
+      >
+        <Icon className="h-4 w-4 shrink-0" />
+        <span className="flex-1 text-left">{item.label}</span>
+        {item.shortcut && (
+          <kbd className="pointer-events-none hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground sm:flex">
+            {item.shortcut}
+          </kbd>
+        )}
+      </button>
+    );
+  };
 
   return (
     <TooltipProvider>
-      <div className="flex h-full w-64 flex-col border-r bg-card">
-        {/* Header with drag area */}
-        <div className="electron-drag flex h-14 items-center justify-between px-4">
-          <span className="electron-no-drag text-lg font-semibold">Auto-Build</span>
+      <div className="flex h-full w-64 flex-col glass border-r-0 border-r border-border/50">
+        {/* Header with drag area - extra top padding for macOS traffic lights */}
+        <div className="electron-drag flex h-14 items-center justify-between px-4 pt-6">
+          <span className="electron-no-drag text-lg font-bold bg-gradient-to-r from-primary to-purple-400 bg-clip-text text-transparent">Auto-Build</span>
           <div className="electron-no-drag flex items-center gap-1">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" onClick={toggleTheme}>
-                  {isDark ? (
-                    <Sun className="h-4 w-4" />
-                  ) : (
-                    <Moon className="h-4 w-4" />
-                  )}
+                  {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Toggle theme</TooltipContent>
@@ -107,81 +173,94 @@ export function Sidebar({ onSettingsClick, onNewTaskClick }: SidebarProps) {
           </div>
         </div>
 
-        <Separator />
+        <Separator className="mt-2" />
 
-        {/* Projects section */}
-        <div className="flex items-center justify-between px-4 py-2">
-          <span className="text-sm font-medium text-muted-foreground">Projects</span>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleAddProject}>
-                <Plus className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Add project</TooltipContent>
-          </Tooltip>
-        </div>
-
-        {/* Project list */}
-        <ScrollArea className="flex-1">
-          <div className="space-y-1 p-2">
-            {projects.length === 0 ? (
-              <div className="px-2 py-8 text-center text-sm text-muted-foreground">
-                <FolderOpen className="mx-auto mb-2 h-8 w-8 opacity-50" />
-                <p>No projects yet</p>
-                <p className="mt-1 text-xs">Click + to add a project</p>
+        {/* Project Selector Dropdown */}
+        <div className="px-4 py-3">
+          <Select
+            value={selectedProjectId || ''}
+            onValueChange={handleProjectChange}
+          >
+            <SelectTrigger className="w-full [&_span]:truncate">
+              <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
+                <FolderOpen className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <SelectValue placeholder="Select a project..." className="truncate min-w-0 flex-1" />
               </div>
-            ) : (
-              projects.map((project) => (
-                <div key={project.id}>
-                  <div
-                    className={cn(
-                      'group flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 hover:bg-accent',
-                      selectedProjectId === project.id && 'bg-accent'
-                    )}
-                    onClick={() => handleSelectProject(project)}
-                  >
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-4 w-4 p-0"
+            </SelectTrigger>
+            <SelectContent className="min-w-[var(--radix-select-trigger-width)] max-w-[var(--radix-select-trigger-width)] bg-background backdrop-blur-none">
+              {projects.length === 0 ? (
+                <div className="px-2 py-4 text-center text-sm text-muted-foreground">
+                  <p>No projects yet</p>
+                </div>
+              ) : (
+                projects.map((project) => (
+                  <div key={project.id} className="relative flex items-center">
+                    <SelectItem value={project.id} className="flex-1 pr-10">
+                      <span className="truncate" title={`${project.name} - ${project.path}`}>
+                        {project.name}
+                      </span>
+                    </SelectItem>
+                    <button
+                      type="button"
+                      className="absolute right-2 flex h-6 w-6 items-center justify-center rounded-sm hover:bg-destructive/10 transition-colors"
+                      onPointerDown={(e) => {
+                        e.stopPropagation();
+                      }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        toggleProject(project.id);
+                        e.preventDefault();
+                        removeProject(project.id);
                       }}
                     >
-                      {expandedProjects.has(project.id) ? (
-                        <ChevronDown className="h-3 w-3" />
-                      ) : (
-                        <ChevronRight className="h-3 w-3" />
-                      )}
-                    </Button>
-                    <FolderOpen className="h-4 w-4 text-muted-foreground" />
-                    <span className="flex-1 truncate text-sm">{project.name}</span>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 opacity-0 group-hover:opacity-100"
-                          onClick={(e) => handleRemoveProject(project.id, e)}
-                        >
-                          <Trash2 className="h-3 w-3 text-destructive" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Remove project</TooltipContent>
-                    </Tooltip>
+                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                    </button>
                   </div>
-                  {expandedProjects.has(project.id) && (
-                    <div className="ml-6 mt-1 space-y-1">
-                      <div className="text-xs text-muted-foreground truncate px-2">
-                        {project.path}
-                      </div>
-                    </div>
-                  )}
+                ))
+              )}
+              <Separator className="my-1" />
+              <SelectItem value="__add_new__">
+                <div className="flex items-center gap-2">
+                  <Plus className="h-4 w-4 shrink-0" />
+                  <span>Add Project...</span>
                 </div>
-              ))
-            )}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+
+          {/* Project path - shown when project is selected */}
+          {selectedProject && (
+            <div className="mt-2">
+              <span className="truncate block text-xs text-muted-foreground" title={selectedProject.path}>
+                {selectedProject.path}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <Separator />
+
+        {/* Navigation */}
+        <ScrollArea className="flex-1">
+          <div className="px-3 py-4">
+            {/* Project Section */}
+            <div className="mb-6">
+              <h3 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Project
+              </h3>
+              <nav className="space-y-1">
+                {projectNavItems.map(renderNavItem)}
+              </nav>
+            </div>
+
+            {/* Tools Section */}
+            <div>
+              <h3 className="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Tools
+              </h3>
+              <nav className="space-y-1">
+                {toolsNavItems.map(renderNavItem)}
+              </nav>
+            </div>
           </div>
         </ScrollArea>
 
@@ -189,7 +268,11 @@ export function Sidebar({ onSettingsClick, onNewTaskClick }: SidebarProps) {
 
         {/* New Task button */}
         <div className="p-4">
-          <Button className="w-full" onClick={onNewTaskClick} disabled={!selectedProjectId}>
+          <Button 
+            className="w-full bg-gradient-to-r from-primary to-indigo-600 hover:from-primary/90 hover:to-indigo-600/90 shadow-lg shadow-primary/20 transition-all hover:scale-[1.02]" 
+            onClick={onNewTaskClick} 
+            disabled={!selectedProjectId}
+          >
             <Plus className="mr-2 h-4 w-4" />
             New Task
           </Button>

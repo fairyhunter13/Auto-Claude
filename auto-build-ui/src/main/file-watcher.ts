@@ -54,15 +54,16 @@ export class FileWatcher extends EventEmitter {
         const content = readFileSync(planPath, 'utf-8');
         const plan: ImplementationPlan = JSON.parse(content);
         this.emit('progress', taskId, plan);
-      } catch (err) {
+      } catch {
         // File might be in the middle of being written
         // Ignore parse errors, next change event will have complete file
       }
     });
 
     // Handle errors
-    watcher.on('error', (error) => {
-      this.emit('error', taskId, error.message);
+    watcher.on('error', (error: unknown) => {
+      const message = error instanceof Error ? error.message : String(error);
+      this.emit('error', taskId, message);
     });
 
     // Read and emit initial state
@@ -70,7 +71,7 @@ export class FileWatcher extends EventEmitter {
       const content = readFileSync(planPath, 'utf-8');
       const plan: ImplementationPlan = JSON.parse(content);
       this.emit('progress', taskId, plan);
-    } catch (err) {
+    } catch {
       // Initial read failed - not critical
     }
   }

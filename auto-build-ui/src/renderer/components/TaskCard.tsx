@@ -4,7 +4,7 @@ import { Badge } from './ui/badge';
 import { Progress } from './ui/progress';
 import { Button } from './ui/button';
 import { cn, calculateProgress, formatRelativeTime } from '../lib/utils';
-import { TASK_STATUS_COLORS, CHUNK_STATUS_COLORS } from '../../shared/constants';
+import { CHUNK_STATUS_COLORS } from '../../shared/constants';
 import { startTask, stopTask } from '../stores/task-store';
 import type { Task } from '../../shared/types';
 
@@ -59,8 +59,8 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
   return (
     <Card
       className={cn(
-        'cursor-pointer transition-all hover:shadow-md',
-        isRunning && 'ring-2 ring-blue-500/50'
+        'cursor-pointer transition-all duration-300 hover:scale-[1.02] glass-card border-transparent',
+        isRunning ? 'ring-2 ring-primary shadow-[0_0_15px_rgba(var(--primary),0.3)]' : 'hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5'
       )}
       onClick={onClick}
     >
