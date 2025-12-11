@@ -831,6 +831,9 @@ export interface ElectronAPI {
   onIdeationProgress: (
     callback: (projectId: string, status: IdeationGenerationStatus) => void
   ) => () => void;
+  onIdeationLog: (
+    callback: (projectId: string, log: string) => void
+  ) => () => void;
   onIdeationComplete: (
     callback: (projectId: string, session: IdeationSession) => void
   ) => () => void;

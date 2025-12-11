@@ -199,3 +199,46 @@ export function isUIUXIdea(idea: Idea): idea is Idea & { type: 'ui_ux_improvemen
 export function isHighValueIdea(idea: Idea): idea is Idea & { type: 'high_value_features' } {
   return idea.type === 'high_value_features';
 }
+
+// IPC listener setup - call this once when the app initializes
+export function setupIdeationListeners(): () => void {
+  // Listen for progress updates
+  const unsubProgress = window.electronAPI.onIdeationProgress((_projectId, status) => {
+    useIdeationStore.getState().setGenerationStatus(status);
+  });
+
+  // Listen for log messages
+  const unsubLog = window.electronAPI.onIdeationLog((_projectId, log) => {
+    useIdeationStore.getState().addLog(log);
+  });
+
+  // Listen for completion
+  const unsubComplete = window.electronAPI.onIdeationComplete((_projectId, session) => {
+    useIdeationStore.getState().setSession(session);
+    useIdeationStore.getState().setGenerationStatus({
+      phase: 'complete',
+      progress: 100,
+      message: 'Ideation complete'
+    });
+    useIdeationStore.getState().addLog('Ideation generation complete!');
+  });
+
+  // Listen for errors
+  const unsubError = window.electronAPI.onIdeationError((_projectId, error) => {
+    useIdeationStore.getState().setGenerationStatus({
+      phase: 'idle',
+      progress: 0,
+      message: '',
+      error
+    });
+    useIdeationStore.getState().addLog(`Error: ${error}`);
+  });
+
+  // Return cleanup function
+  return () => {
+    unsubProgress();
+    unsubLog();
+    unsubComplete();
+    unsubError();
+  };
+}
