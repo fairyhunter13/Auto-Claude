@@ -1643,7 +1643,7 @@ Examples:
     parser.add_argument(
         "--dev",
         action="store_true",
-        help="Dev mode: specs saved to dev/auto-build/specs/ (gitignored), code changes target auto-build/",
+        help="Dev mode: specs saved to dev/auto-build/specs/ (gitignored) for framework development",
     )
     parser.add_argument(
         "--no-build",
@@ -1689,7 +1689,7 @@ Examples:
     # Show dev mode warning
     if args.dev:
         print(f"\n{icon(Icons.GEAR)} DEV MODE: Specs will be saved to dev/auto-build/specs/ (gitignored)")
-        print(f"  Code changes will target auto-build/ (versioned)\n")
+        print(f"  Code changes can target the entire project root\n")
 
     orchestrator = SpecOrchestrator(
         project_dir=project_dir,

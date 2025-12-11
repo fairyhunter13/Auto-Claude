@@ -388,7 +388,7 @@ Environment Variables:
     parser.add_argument(
         "--dev",
         action="store_true",
-        help="Dev mode: use specs from dev/auto-build/specs/ (gitignored), code changes target auto-build/",
+        help="Dev mode: use specs from dev/auto-build/specs/ (gitignored) for framework development",
     )
 
     return parser.parse_args()
@@ -478,7 +478,7 @@ def main() -> None:
     # Show dev mode info
     if args.dev:
         print(f"\n{icon(Icons.GEAR)} DEV MODE: Using specs from dev/auto-build/specs/")
-        print(f"  Code changes will target auto-build/\n")
+        print(f"  Code changes can target the entire project root\n")
 
     # Handle --list
     if args.list:
