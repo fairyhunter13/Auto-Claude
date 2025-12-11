@@ -104,18 +104,21 @@
     ],
     "mac": {
       "category": "public.app-category.developer-tools",
+      "icon": "resources/icon.icns",
       "target": [
         "dmg",
         "zip"
       ]
     },
     "win": {
+      "icon": "resources/icon-256.png",
       "target": [
         "nsis",
         "zip"
       ]
     },
     "linux": {
+      "icon": "resources/icon.png",
       "target": [
         "AppImage",
         "deb"

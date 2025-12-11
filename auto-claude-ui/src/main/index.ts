@@ -1,9 +1,32 @@
-import { app, BrowserWindow, shell } from 'electron';
+import { app, BrowserWindow, shell, nativeImage } from 'electron';
 import { join } from 'path';
 import { electronApp, optimizer, is } from '@electron-toolkit/utils';
 import { setupIpcHandlers } from './ipc-handlers';
 import { AgentManager } from './agent-manager';
 import { TerminalManager } from './terminal-manager';
+
+// Get icon path based on platform
+function getIconPath(): string {
+  // In dev mode, __dirname is out/main, so we go up to project root then into resources
+  // In production, resources are in the app's resources folder
+  const resourcesPath = is.dev
+    ? join(__dirname, '../../resources')
+    : join(process.resourcesPath);
+
+  let iconName: string;
+  if (process.platform === 'darwin') {
+    // Use PNG in dev mode (works better), ICNS in production
+    iconName = is.dev ? 'icon-256.png' : 'icon.icns';
+  } else if (process.platform === 'win32') {
+    iconName = 'icon-256.png';
+  } else {
+    iconName = 'icon.png';
+  }
+
+  const iconPath = join(resourcesPath, iconName);
+  console.log('[Auto-Claude] Icon path:', iconPath);
+  return iconPath;
+}
 
 // Keep a global reference of the window object to prevent garbage collection
 let mainWindow: BrowserWindow | null = null;
@@ -21,6 +44,7 @@ function createWindow(): void {
     autoHideMenuBar: true,
     titleBarStyle: 'hiddenInset',
     trafficLightPosition: { x: 15, y: 10 },
+    icon: getIconPath(),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -58,10 +82,26 @@ function createWindow(): void {
   });
 }
 
+// Set app name before ready
+app.name = 'Auto Claude';
+
 // Initialize the application
 app.whenReady().then(() => {
   // Set app user model id for Windows
-  electronApp.setAppUserModelId('com.autobuild.ui');
+  electronApp.setAppUserModelId('com.autoclaude.ui');
+
+  // Set dock icon on macOS
+  if (process.platform === 'darwin') {
+    const iconPath = getIconPath();
+    try {
+      const icon = nativeImage.createFromPath(iconPath);
+      if (!icon.isEmpty()) {
+        app.dock.setIcon(icon);
+      }
+    } catch (e) {
+      console.warn('Could not set dock icon:', e);
+    }
+  }
 
   // Default open or close DevTools by F12 in development
   // and ignore CommandOrControl + R in production.
