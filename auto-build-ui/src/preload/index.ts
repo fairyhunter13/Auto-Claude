@@ -10,7 +10,36 @@ import type {
   TaskStatus,
   ImplementationPlan,
   ElectronAPI,
-  TerminalCreateOptions
+  TerminalCreateOptions,
+  Roadmap,
+  RoadmapFeatureStatus,
+  RoadmapGenerationStatus,
+  InitializationResult,
+  AutoBuildVersionInfo,
+  ProjectContextData,
+  ProjectIndex,
+  GraphitiMemoryStatus,
+  ContextSearchResult,
+  MemoryEpisode,
+  ProjectEnvConfig,
+  ClaudeAuthResult,
+  LinearTeam,
+  LinearProject,
+  LinearIssue,
+  LinearImportResult,
+  LinearSyncStatus,
+  GitHubRepository,
+  GitHubIssue,
+  GitHubSyncStatus,
+  GitHubImportResult,
+  GitHubInvestigationStatus,
+  GitHubInvestigationResult,
+  IdeationSession,
+  IdeationConfig,
+  IdeationStatus,
+  IdeationGenerationStatus,
+  AutoBuildSourceUpdateCheck,
+  AutoBuildSourceUpdateProgress
 } from '../shared/types';
 
 // Expose a secure API to the renderer process
@@ -33,6 +62,15 @@ const electronAPI: ElectronAPI = {
     settings: Partial<ProjectSettings>
   ): Promise<IPCResult> =>
     ipcRenderer.invoke(IPC_CHANNELS.PROJECT_UPDATE_SETTINGS, projectId, settings),
+
+  initializeProject: (projectId: string): Promise<IPCResult<InitializationResult>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.PROJECT_INITIALIZE, projectId),
+
+  updateProjectAutoBuild: (projectId: string): Promise<IPCResult<InitializationResult>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.PROJECT_UPDATE_AUTOBUILD, projectId),
+
+  checkProjectVersion: (projectId: string): Promise<IPCResult<AutoBuildVersionInfo>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.PROJECT_CHECK_VERSION, projectId),
 
   // ============================================
   // Task Operations
@@ -223,7 +261,315 @@ const electronAPI: ElectronAPI = {
   // ============================================
 
   getAppVersion: (): Promise<string> =>
-    ipcRenderer.invoke(IPC_CHANNELS.APP_VERSION)
+    ipcRenderer.invoke(IPC_CHANNELS.APP_VERSION),
+
+  // ============================================
+  // Roadmap Operations
+  // ============================================
+
+  getRoadmap: (projectId: string): Promise<IPCResult<Roadmap | null>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.ROADMAP_GET, projectId),
+
+  generateRoadmap: (projectId: string): void =>
+    ipcRenderer.send(IPC_CHANNELS.ROADMAP_GENERATE, projectId),
+
+  refreshRoadmap: (projectId: string): void =>
+    ipcRenderer.send(IPC_CHANNELS.ROADMAP_REFRESH, projectId),
+
+  updateFeatureStatus: (
+    projectId: string,
+    featureId: string,
+    status: RoadmapFeatureStatus
+  ): Promise<IPCResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.ROADMAP_UPDATE_FEATURE, projectId, featureId, status),
+
+  convertFeatureToSpec: (
+    projectId: string,
+    featureId: string
+  ): Promise<IPCResult<Task>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.ROADMAP_CONVERT_TO_SPEC, projectId, featureId),
+
+  // ============================================
+  // Roadmap Event Listeners
+  // ============================================
+
+  onRoadmapProgress: (
+    callback: (projectId: string, status: RoadmapGenerationStatus) => void
+  ): (() => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      projectId: string,
+      status: RoadmapGenerationStatus
+    ): void => {
+      callback(projectId, status);
+    };
+    ipcRenderer.on(IPC_CHANNELS.ROADMAP_PROGRESS, handler);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.ROADMAP_PROGRESS, handler);
+    };
+  },
+
+  onRoadmapComplete: (
+    callback: (projectId: string, roadmap: Roadmap) => void
+  ): (() => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      projectId: string,
+      roadmap: Roadmap
+    ): void => {
+      callback(projectId, roadmap);
+    };
+    ipcRenderer.on(IPC_CHANNELS.ROADMAP_COMPLETE, handler);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.ROADMAP_COMPLETE, handler);
+    };
+  },
+
+  onRoadmapError: (
+    callback: (projectId: string, error: string) => void
+  ): (() => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      projectId: string,
+      error: string
+    ): void => {
+      callback(projectId, error);
+    };
+    ipcRenderer.on(IPC_CHANNELS.ROADMAP_ERROR, handler);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.ROADMAP_ERROR, handler);
+    };
+  },
+
+  // ============================================
+  // Context Operations
+  // ============================================
+
+  getProjectContext: (projectId: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.CONTEXT_GET, projectId),
+
+  refreshProjectIndex: (projectId: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.CONTEXT_REFRESH_INDEX, projectId),
+
+  getMemoryStatus: (projectId: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.CONTEXT_MEMORY_STATUS, projectId),
+
+  searchMemories: (projectId: string, query: string) =>
+    ipcRenderer.invoke(IPC_CHANNELS.CONTEXT_SEARCH_MEMORIES, projectId, query),
+
+  getRecentMemories: (projectId: string, limit?: number) =>
+    ipcRenderer.invoke(IPC_CHANNELS.CONTEXT_GET_MEMORIES, projectId, limit),
+
+  // ============================================
+  // Environment Configuration Operations
+  // ============================================
+
+  getProjectEnv: (projectId: string): Promise<IPCResult<ProjectEnvConfig>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.ENV_GET, projectId),
+
+  updateProjectEnv: (projectId: string, config: Partial<ProjectEnvConfig>): Promise<IPCResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.ENV_UPDATE, projectId, config),
+
+  checkClaudeAuth: (projectId: string): Promise<IPCResult<ClaudeAuthResult>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.ENV_CHECK_CLAUDE_AUTH, projectId),
+
+  invokeClaudeSetup: (projectId: string): Promise<IPCResult<ClaudeAuthResult>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.ENV_INVOKE_CLAUDE_SETUP, projectId),
+
+  // ============================================
+  // Linear Integration Operations
+  // ============================================
+
+  getLinearTeams: (projectId: string): Promise<IPCResult<LinearTeam[]>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.LINEAR_GET_TEAMS, projectId),
+
+  getLinearProjects: (projectId: string, teamId: string): Promise<IPCResult<LinearProject[]>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.LINEAR_GET_PROJECTS, projectId, teamId),
+
+  getLinearIssues: (projectId: string, teamId?: string, linearProjectId?: string): Promise<IPCResult<LinearIssue[]>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.LINEAR_GET_ISSUES, projectId, teamId, linearProjectId),
+
+  importLinearIssues: (projectId: string, issueIds: string[]): Promise<IPCResult<LinearImportResult>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.LINEAR_IMPORT_ISSUES, projectId, issueIds),
+
+  checkLinearConnection: (projectId: string): Promise<IPCResult<LinearSyncStatus>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.LINEAR_CHECK_CONNECTION, projectId),
+
+  // ============================================
+  // GitHub Integration Operations
+  // ============================================
+
+  getGitHubRepositories: (projectId: string): Promise<IPCResult<GitHubRepository[]>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.GITHUB_GET_REPOSITORIES, projectId),
+
+  getGitHubIssues: (projectId: string, state?: 'open' | 'closed' | 'all'): Promise<IPCResult<GitHubIssue[]>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.GITHUB_GET_ISSUES, projectId, state),
+
+  getGitHubIssue: (projectId: string, issueNumber: number): Promise<IPCResult<GitHubIssue>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.GITHUB_GET_ISSUE, projectId, issueNumber),
+
+  checkGitHubConnection: (projectId: string): Promise<IPCResult<GitHubSyncStatus>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.GITHUB_CHECK_CONNECTION, projectId),
+
+  investigateGitHubIssue: (projectId: string, issueNumber: number): void =>
+    ipcRenderer.send(IPC_CHANNELS.GITHUB_INVESTIGATE_ISSUE, projectId, issueNumber),
+
+  importGitHubIssues: (projectId: string, issueNumbers: number[]): Promise<IPCResult<GitHubImportResult>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.GITHUB_IMPORT_ISSUES, projectId, issueNumbers),
+
+  // ============================================
+  // GitHub Event Listeners
+  // ============================================
+
+  onGitHubInvestigationProgress: (
+    callback: (projectId: string, status: GitHubInvestigationStatus) => void
+  ): (() => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      projectId: string,
+      status: GitHubInvestigationStatus
+    ): void => {
+      callback(projectId, status);
+    };
+    ipcRenderer.on(IPC_CHANNELS.GITHUB_INVESTIGATION_PROGRESS, handler);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.GITHUB_INVESTIGATION_PROGRESS, handler);
+    };
+  },
+
+  onGitHubInvestigationComplete: (
+    callback: (projectId: string, result: GitHubInvestigationResult) => void
+  ): (() => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      projectId: string,
+      result: GitHubInvestigationResult
+    ): void => {
+      callback(projectId, result);
+    };
+    ipcRenderer.on(IPC_CHANNELS.GITHUB_INVESTIGATION_COMPLETE, handler);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.GITHUB_INVESTIGATION_COMPLETE, handler);
+    };
+  },
+
+  onGitHubInvestigationError: (
+    callback: (projectId: string, error: string) => void
+  ): (() => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      projectId: string,
+      error: string
+    ): void => {
+      callback(projectId, error);
+    };
+    ipcRenderer.on(IPC_CHANNELS.GITHUB_INVESTIGATION_ERROR, handler);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.GITHUB_INVESTIGATION_ERROR, handler);
+    };
+  },
+
+  // ============================================
+  // Ideation Operations
+  // ============================================
+
+  getIdeation: (projectId: string): Promise<IPCResult<IdeationSession | null>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.IDEATION_GET, projectId),
+
+  generateIdeation: (projectId: string, config: IdeationConfig): void =>
+    ipcRenderer.send(IPC_CHANNELS.IDEATION_GENERATE, projectId, config),
+
+  refreshIdeation: (projectId: string, config: IdeationConfig): void =>
+    ipcRenderer.send(IPC_CHANNELS.IDEATION_REFRESH, projectId, config),
+
+  updateIdeaStatus: (projectId: string, ideaId: string, status: IdeationStatus): Promise<IPCResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.IDEATION_UPDATE_IDEA, projectId, ideaId, status),
+
+  convertIdeaToTask: (projectId: string, ideaId: string): Promise<IPCResult<Task>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.IDEATION_CONVERT_TO_TASK, projectId, ideaId),
+
+  dismissIdea: (projectId: string, ideaId: string): Promise<IPCResult> =>
+    ipcRenderer.invoke(IPC_CHANNELS.IDEATION_DISMISS, projectId, ideaId),
+
+  // ============================================
+  // Ideation Event Listeners
+  // ============================================
+
+  onIdeationProgress: (
+    callback: (projectId: string, status: IdeationGenerationStatus) => void
+  ): (() => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      projectId: string,
+      status: IdeationGenerationStatus
+    ): void => {
+      callback(projectId, status);
+    };
+    ipcRenderer.on(IPC_CHANNELS.IDEATION_PROGRESS, handler);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.IDEATION_PROGRESS, handler);
+    };
+  },
+
+  onIdeationComplete: (
+    callback: (projectId: string, session: IdeationSession) => void
+  ): (() => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      projectId: string,
+      session: IdeationSession
+    ): void => {
+      callback(projectId, session);
+    };
+    ipcRenderer.on(IPC_CHANNELS.IDEATION_COMPLETE, handler);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.IDEATION_COMPLETE, handler);
+    };
+  },
+
+  onIdeationError: (
+    callback: (projectId: string, error: string) => void
+  ): (() => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      projectId: string,
+      error: string
+    ): void => {
+      callback(projectId, error);
+    };
+    ipcRenderer.on(IPC_CHANNELS.IDEATION_ERROR, handler);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.IDEATION_ERROR, handler);
+    };
+  },
+
+  // ============================================
+  // Auto-Build Source Update Operations
+  // ============================================
+
+  checkAutoBuildSourceUpdate: (): Promise<IPCResult<AutoBuildSourceUpdateCheck>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.AUTOBUILD_SOURCE_CHECK),
+
+  downloadAutoBuildSourceUpdate: (): void =>
+    ipcRenderer.send(IPC_CHANNELS.AUTOBUILD_SOURCE_DOWNLOAD),
+
+  getAutoBuildSourceVersion: (): Promise<IPCResult<string>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.AUTOBUILD_SOURCE_VERSION),
+
+  onAutoBuildSourceUpdateProgress: (
+    callback: (progress: AutoBuildSourceUpdateProgress) => void
+  ): (() => void) => {
+    const handler = (
+      _event: Electron.IpcRendererEvent,
+      progress: AutoBuildSourceUpdateProgress
+    ): void => {
+      callback(progress);
+    };
+    ipcRenderer.on(IPC_CHANNELS.AUTOBUILD_SOURCE_PROGRESS, handler);
+    return () => {
+      ipcRenderer.removeListener(IPC_CHANNELS.AUTOBUILD_SOURCE_PROGRESS, handler);
+    };
+  }
 };
 
 // Expose to renderer via contextBridge

@@ -24,9 +24,13 @@ export class TerminalManager {
   async create(options: TerminalCreateOptions): Promise<{ success: boolean; error?: string }> {
     const { id, cwd, cols = 80, rows = 24 } = options;
 
-    // Check if terminal already exists
+    console.log('[TerminalManager] Creating terminal:', { id, cwd, cols, rows });
+
+    // Check if terminal already exists - return success instead of error
+    // This handles React StrictMode double-render gracefully
     if (this.terminals.has(id)) {
-      return { success: false, error: 'Terminal already exists' };
+      console.log('[TerminalManager] Terminal already exists, returning success:', id);
+      return { success: true };
     }
 
     try {
@@ -36,7 +40,9 @@ export class TerminalManager {
         : process.env.SHELL || '/bin/zsh';
 
       // Get shell args
-      const shellArgs = process.platform === 'win32' ? [] : ['--login'];
+      const shellArgs = process.platform === 'win32' ? [] : ['-l'];
+
+      console.log('[TerminalManager] Spawning shell:', shell, shellArgs);
 
       // Spawn the pty process
       const ptyProcess = pty.spawn(shell, shellArgs, {
@@ -51,6 +57,8 @@ export class TerminalManager {
         },
       });
 
+      console.log('[TerminalManager] PTY process spawned, pid:', ptyProcess.pid);
+
       // Store the terminal
       this.terminals.set(id, {
         id,
@@ -60,6 +68,7 @@ export class TerminalManager {
 
       // Handle data from terminal
       ptyProcess.onData((data) => {
+        console.log('[TerminalManager] Data from terminal:', id, data.length, 'bytes');
         const win = this.getWindow();
         if (win) {
           win.webContents.send(IPC_CHANNELS.TERMINAL_OUTPUT, id, data);
@@ -68,6 +77,7 @@ export class TerminalManager {
 
       // Handle terminal exit
       ptyProcess.onExit(({ exitCode }) => {
+        console.log('[TerminalManager] Terminal exited:', id, 'code:', exitCode);
         const win = this.getWindow();
         if (win) {
           win.webContents.send(IPC_CHANNELS.TERMINAL_EXIT, id, exitCode);
@@ -75,8 +85,10 @@ export class TerminalManager {
         this.terminals.delete(id);
       });
 
+      console.log('[TerminalManager] Terminal created successfully:', id);
       return { success: true };
     } catch (error) {
+      console.error('[TerminalManager] Error creating terminal:', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to create terminal',

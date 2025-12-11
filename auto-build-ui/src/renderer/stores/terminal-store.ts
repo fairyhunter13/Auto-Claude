@@ -10,6 +10,7 @@ export interface Terminal {
   cwd: string;
   createdAt: Date;
   isClaudeMode: boolean;
+  outputBuffer: string; // Store terminal output for replay on remount
 }
 
 interface TerminalLayout {
@@ -33,6 +34,7 @@ interface TerminalState {
   setActiveTerminal: (id: string | null) => void;
   setTerminalStatus: (id: string, status: TerminalStatus) => void;
   setClaudeMode: (id: string, isClaudeMode: boolean) => void;
+  appendOutput: (id: string, data: string) => void;
   clearAllTerminals: () => void;
 
   // Selectors
@@ -45,7 +47,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   terminals: [],
   layouts: [],
   activeTerminalId: null,
-  maxTerminals: 10,
+  maxTerminals: 12,
 
   addTerminal: (cwd?: string) => {
     const state = get();
@@ -60,6 +62,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
       cwd: cwd || process.env.HOME || '~',
       createdAt: new Date(),
       isClaudeMode: false,
+      outputBuffer: '',
     };
 
     set((state) => ({
@@ -109,6 +112,20 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
       terminals: state.terminals.map((t) =>
         t.id === id
           ? { ...t, isClaudeMode, status: isClaudeMode ? 'claude-active' : 'running' }
+          : t
+      ),
+    }));
+  },
+
+  appendOutput: (id: string, data: string) => {
+    set((state) => ({
+      terminals: state.terminals.map((t) =>
+        t.id === id
+          ? {
+              ...t,
+              // Limit buffer size to prevent memory issues (keep last 100KB)
+              outputBuffer: (t.outputBuffer + data).slice(-100000)
+            }
           : t
       ),
     }));

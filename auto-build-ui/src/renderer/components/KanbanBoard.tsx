@@ -17,7 +17,9 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy
 } from '@dnd-kit/sortable';
+import { Plus } from 'lucide-react';
 import { ScrollArea } from './ui/scroll-area';
+import { Button } from './ui/button';
 import { TaskCard } from './TaskCard';
 import { SortableTaskCard } from './SortableTaskCard';
 import { TASK_STATUS_COLUMNS, TASK_STATUS_LABELS } from '../../shared/constants';
@@ -28,6 +30,7 @@ import type { Task, TaskStatus } from '../../shared/types';
 interface KanbanBoardProps {
   tasks: Task[];
   onTaskClick: (task: Task) => void;
+  onNewTaskClick?: () => void;
 }
 
 interface DroppableColumnProps {
@@ -35,9 +38,10 @@ interface DroppableColumnProps {
   tasks: Task[];
   onTaskClick: (task: Task) => void;
   isOver: boolean;
+  onAddClick?: () => void;
 }
 
-function DroppableColumn({ status, tasks, onTaskClick, isOver }: DroppableColumnProps) {
+function DroppableColumn({ status, tasks, onTaskClick, isOver, onAddClick }: DroppableColumnProps) {
   const { setNodeRef } = useDroppable({
     id: status
   });
@@ -64,19 +68,32 @@ function DroppableColumn({ status, tasks, onTaskClick, isOver }: DroppableColumn
   return (
     <div
       className={cn(
-        'flex w-72 shrink-0 flex-col rounded-xl bg-secondary/10 border-t-2 transition-all duration-200',
+        'flex w-72 shrink-0 flex-col rounded-xl border border-white/5 bg-linear-to-b from-secondary/30 to-transparent backdrop-blur-sm transition-all duration-200',
         getColumnBorderColor(),
+        'border-t-2',
         isOver && 'bg-accent/10'
       )}
     >
       {/* Column header */}
       <div className="flex items-center justify-between p-4">
-        <h2 className="font-semibold text-sm text-foreground">
-          {TASK_STATUS_LABELS[status]}
-        </h2>
-        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-xs font-medium text-muted-foreground">
-          {tasks.length}
-        </span>
+        <div className="flex items-center gap-2">
+          <h2 className="font-semibold text-sm text-foreground">
+            {TASK_STATUS_LABELS[status]}
+          </h2>
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-secondary text-xs font-medium text-muted-foreground">
+            {tasks.length}
+          </span>
+        </div>
+        {status === 'backlog' && onAddClick && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6"
+            onClick={onAddClick}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        )}
       </div>
 
       {/* Droppable task list */}
@@ -113,7 +130,7 @@ function DroppableColumn({ status, tasks, onTaskClick, isOver }: DroppableColumn
   );
 }
 
-export function KanbanBoard({ tasks, onTaskClick }: KanbanBoardProps) {
+export function KanbanBoard({ tasks, onTaskClick, onNewTaskClick }: KanbanBoardProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [overColumnId, setOverColumnId] = useState<string | null>(null);
   const updateTaskStatus = useTaskStore((state) => state.updateTaskStatus);
@@ -225,6 +242,7 @@ export function KanbanBoard({ tasks, onTaskClick }: KanbanBoardProps) {
             tasks={tasksByStatus[status]}
             onTaskClick={onTaskClick}
             isOver={overColumnId === status}
+            onAddClick={status === 'backlog' ? onNewTaskClick : undefined}
           />
         ))}
       </div>

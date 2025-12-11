@@ -1,6 +1,8 @@
 import { spawn, ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
 import path from 'path';
+import { existsSync, readFileSync } from 'fs';
+import { app } from 'electron';
 
 interface AgentProcess {
   taskId: string;
@@ -20,21 +22,94 @@ export interface AgentManagerEvents {
 export class AgentManager extends EventEmitter {
   private processes: Map<string, AgentProcess> = new Map();
   private pythonPath: string = 'python3';
-  private autoBuildPath: string = '';
+  private autoBuildSourcePath: string = ''; // Source auto-build repo location
 
   constructor() {
     super();
   }
 
   /**
-   * Configure paths for Python and auto-build
+   * Configure paths for Python and auto-build source
    */
-  configure(pythonPath?: string, autoBuildPath?: string): void {
+  configure(pythonPath?: string, autoBuildSourcePath?: string): void {
     if (pythonPath) {
       this.pythonPath = pythonPath;
     }
-    if (autoBuildPath) {
-      this.autoBuildPath = autoBuildPath;
+    if (autoBuildSourcePath) {
+      this.autoBuildSourcePath = autoBuildSourcePath;
+    }
+  }
+
+  /**
+   * Get the auto-build source path (detects automatically if not configured)
+   */
+  private getAutoBuildSourcePath(): string | null {
+    // If manually configured, use that
+    if (this.autoBuildSourcePath && existsSync(this.autoBuildSourcePath)) {
+      return this.autoBuildSourcePath;
+    }
+
+    // Auto-detect from app location
+    const possiblePaths = [
+      // Dev mode: from dist/main -> ../../auto-build (sibling to auto-build-ui)
+      path.resolve(__dirname, '..', '..', '..', 'auto-build'),
+      // Alternative: from app root
+      path.resolve(app.getAppPath(), '..', 'auto-build'),
+      // If running from repo root
+      path.resolve(process.cwd(), 'auto-build')
+    ];
+
+    for (const p of possiblePaths) {
+      if (existsSync(p) && existsSync(path.join(p, 'VERSION'))) {
+        return p;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Load environment variables from auto-build .env file
+   */
+  private loadAutoBuildEnv(): Record<string, string> {
+    const autoBuildSource = this.getAutoBuildSourcePath();
+    if (!autoBuildSource) {
+      return {};
+    }
+
+    const envPath = path.join(autoBuildSource, '.env');
+    if (!existsSync(envPath)) {
+      return {};
+    }
+
+    try {
+      const envContent = readFileSync(envPath, 'utf-8');
+      const envVars: Record<string, string> = {};
+
+      for (const line of envContent.split('\n')) {
+        const trimmed = line.trim();
+        // Skip comments and empty lines
+        if (!trimmed || trimmed.startsWith('#')) {
+          continue;
+        }
+
+        const eqIndex = trimmed.indexOf('=');
+        if (eqIndex > 0) {
+          const key = trimmed.substring(0, eqIndex).trim();
+          let value = trimmed.substring(eqIndex + 1).trim();
+
+          // Remove quotes if present
+          if ((value.startsWith('"') && value.endsWith('"')) ||
+              (value.startsWith("'") && value.endsWith("'"))) {
+            value = value.slice(1, -1);
+          }
+
+          envVars[key] = value;
+        }
+      }
+
+      return envVars;
+    } catch {
+      return {};
     }
   }
 
@@ -89,6 +164,297 @@ export class AgentManager extends EventEmitter {
     const args = [runPath, '--spec', specId, '--qa'];
 
     this.spawnProcess(taskId, projectPath, args);
+  }
+
+  /**
+   * Start roadmap generation process
+   */
+  startRoadmapGeneration(
+    projectId: string,
+    projectPath: string,
+    refresh: boolean = false
+  ): void {
+    // Use source auto-build path (the repo), not the project's auto-build
+    const autoBuildSource = this.getAutoBuildSourcePath();
+
+    if (!autoBuildSource) {
+      this.emit('roadmap-error', projectId, 'Auto-build source path not found. Please configure it in App Settings.');
+      return;
+    }
+
+    const roadmapRunnerPath = path.join(autoBuildSource, 'roadmap_runner.py');
+
+    if (!existsSync(roadmapRunnerPath)) {
+      this.emit('roadmap-error', projectId, `Roadmap runner not found at: ${roadmapRunnerPath}`);
+      return;
+    }
+
+    const args = [roadmapRunnerPath, '--project', projectPath];
+
+    if (refresh) {
+      args.push('--refresh');
+    }
+
+    // Use projectId as taskId for roadmap operations
+    this.spawnRoadmapProcess(projectId, projectPath, args);
+  }
+
+  /**
+   * Start ideation generation process
+   */
+  startIdeationGeneration(
+    projectId: string,
+    projectPath: string,
+    config: {
+      enabledTypes: string[];
+      includeRoadmapContext: boolean;
+      includeKanbanContext: boolean;
+      maxIdeasPerType: number;
+    },
+    refresh: boolean = false
+  ): void {
+    // Use source auto-build path (the repo), not the project's auto-build
+    const autoBuildSource = this.getAutoBuildSourcePath();
+
+    if (!autoBuildSource) {
+      this.emit('ideation-error', projectId, 'Auto-build source path not found. Please configure it in App Settings.');
+      return;
+    }
+
+    const ideationRunnerPath = path.join(autoBuildSource, 'ideation_runner.py');
+
+    if (!existsSync(ideationRunnerPath)) {
+      this.emit('ideation-error', projectId, `Ideation runner not found at: ${ideationRunnerPath}`);
+      return;
+    }
+
+    const args = [ideationRunnerPath, '--project', projectPath];
+
+    // Add enabled types
+    if (config.enabledTypes.length > 0) {
+      args.push('--types', ...config.enabledTypes);
+    }
+
+    // Add context flags
+    if (config.includeRoadmapContext) {
+      args.push('--include-roadmap');
+    }
+    if (config.includeKanbanContext) {
+      args.push('--include-kanban');
+    }
+
+    // Add max ideas per type
+    if (config.maxIdeasPerType) {
+      args.push('--max-ideas', config.maxIdeasPerType.toString());
+    }
+
+    if (refresh) {
+      args.push('--refresh');
+    }
+
+    // Use projectId as taskId for ideation operations
+    this.spawnIdeationProcess(projectId, projectPath, args);
+  }
+
+  /**
+   * Spawn a Python process for ideation generation
+   */
+  private spawnIdeationProcess(
+    projectId: string,
+    _projectPath: string,
+    args: string[]
+  ): void {
+    // Kill existing process for this project if any
+    this.killTask(projectId);
+
+    // Run from auto-build source directory so imports work correctly
+    const autoBuildSource = this.getAutoBuildSourcePath();
+    const cwd = autoBuildSource || process.cwd();
+
+    // Load environment variables from auto-build .env file
+    const autoBuildEnv = this.loadAutoBuildEnv();
+
+    const childProcess = spawn(this.pythonPath, args, {
+      cwd,
+      env: {
+        ...process.env,
+        ...autoBuildEnv, // Include auto-build .env variables (like CLAUDE_CODE_OAUTH_TOKEN)
+        PYTHONUNBUFFERED: '1'
+      }
+    });
+
+    this.processes.set(projectId, {
+      taskId: projectId,
+      process: childProcess,
+      startedAt: new Date()
+    });
+
+    // Track progress through output
+    let progressPhase = 'analyzing';
+    let progressPercent = 10;
+
+    // Handle stdout
+    childProcess.stdout?.on('data', (data: Buffer) => {
+      const log = data.toString();
+
+      // Parse progress from output
+      if (log.includes('PROJECT INDEX')) {
+        progressPhase = 'analyzing';
+        progressPercent = 20;
+      } else if (log.includes('CONTEXT GATHERING')) {
+        progressPhase = 'discovering';
+        progressPercent = 35;
+      } else if (log.includes('LOW_HANGING_FRUIT')) {
+        progressPhase = 'generating';
+        progressPercent = 50;
+      } else if (log.includes('UI_UX_IMPROVEMENTS')) {
+        progressPhase = 'generating';
+        progressPercent = 65;
+      } else if (log.includes('HIGH_VALUE_FEATURES')) {
+        progressPhase = 'generating';
+        progressPercent = 80;
+      } else if (log.includes('MERGING IDEAS')) {
+        progressPhase = 'generating';
+        progressPercent = 90;
+      } else if (log.includes('IDEATION COMPLETE')) {
+        progressPhase = 'complete';
+        progressPercent = 100;
+      }
+
+      // Emit progress update
+      this.emit('ideation-progress', projectId, {
+        phase: progressPhase,
+        progress: progressPercent,
+        message: log.trim().substring(0, 200) // Truncate long messages
+      });
+    });
+
+    // Handle stderr
+    childProcess.stderr?.on('data', (data: Buffer) => {
+      const log = data.toString();
+      this.emit('ideation-progress', projectId, {
+        phase: progressPhase,
+        progress: progressPercent,
+        message: log.trim().substring(0, 200)
+      });
+    });
+
+    // Handle process exit
+    childProcess.on('exit', (code: number | null) => {
+      this.processes.delete(projectId);
+
+      if (code === 0) {
+        this.emit('ideation-progress', projectId, {
+          phase: 'complete',
+          progress: 100,
+          message: 'Ideation generation complete'
+        });
+      } else {
+        this.emit('ideation-error', projectId, `Ideation generation failed with exit code ${code}`);
+      }
+    });
+
+    // Handle process error
+    childProcess.on('error', (err: Error) => {
+      this.processes.delete(projectId);
+      this.emit('ideation-error', projectId, err.message);
+    });
+  }
+
+  /**
+   * Spawn a Python process for roadmap generation
+   */
+  private spawnRoadmapProcess(
+    projectId: string,
+    _projectPath: string,
+    args: string[]
+  ): void {
+    // Kill existing process for this project if any
+    this.killTask(projectId);
+
+    // Run from auto-build source directory so imports work correctly
+    const autoBuildSource = this.getAutoBuildSourcePath();
+    const cwd = autoBuildSource || process.cwd();
+
+    // Load environment variables from auto-build .env file
+    const autoBuildEnv = this.loadAutoBuildEnv();
+
+    const childProcess = spawn(this.pythonPath, args, {
+      cwd,
+      env: {
+        ...process.env,
+        ...autoBuildEnv, // Include auto-build .env variables (like CLAUDE_CODE_OAUTH_TOKEN)
+        PYTHONUNBUFFERED: '1'
+      }
+    });
+
+    this.processes.set(projectId, {
+      taskId: projectId,
+      process: childProcess,
+      startedAt: new Date()
+    });
+
+    // Track progress through output
+    let progressPhase = 'analyzing';
+    let progressPercent = 10;
+
+    // Handle stdout
+    childProcess.stdout?.on('data', (data: Buffer) => {
+      const log = data.toString();
+
+      // Parse progress from output
+      if (log.includes('PROJECT ANALYSIS')) {
+        progressPhase = 'analyzing';
+        progressPercent = 20;
+      } else if (log.includes('PROJECT DISCOVERY')) {
+        progressPhase = 'discovering';
+        progressPercent = 40;
+      } else if (log.includes('FEATURE GENERATION')) {
+        progressPhase = 'generating';
+        progressPercent = 70;
+      } else if (log.includes('ROADMAP GENERATED')) {
+        progressPhase = 'complete';
+        progressPercent = 100;
+      }
+
+      // Emit progress update
+      this.emit('roadmap-progress', projectId, {
+        phase: progressPhase,
+        progress: progressPercent,
+        message: log.trim().substring(0, 200) // Truncate long messages
+      });
+    });
+
+    // Handle stderr
+    childProcess.stderr?.on('data', (data: Buffer) => {
+      const log = data.toString();
+      this.emit('roadmap-progress', projectId, {
+        phase: progressPhase,
+        progress: progressPercent,
+        message: log.trim().substring(0, 200)
+      });
+    });
+
+    // Handle process exit
+    childProcess.on('exit', (code: number | null) => {
+      this.processes.delete(projectId);
+
+      if (code === 0) {
+        this.emit('roadmap-progress', projectId, {
+          phase: 'complete',
+          progress: 100,
+          message: 'Roadmap generation complete'
+        });
+      } else {
+        this.emit('roadmap-error', projectId, `Roadmap generation failed with exit code ${code}`);
+      }
+    });
+
+    // Handle process error
+    childProcess.on('error', (err: Error) => {
+      this.processes.delete(projectId);
+      this.emit('roadmap-error', projectId, err.message);
+    });
   }
 
   /**

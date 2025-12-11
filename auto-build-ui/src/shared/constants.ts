@@ -13,7 +13,7 @@ export const TASK_STATUS_COLUMNS = [
 
 // Human-readable status labels
 export const TASK_STATUS_LABELS: Record<string, string> = {
-  backlog: 'Backlog',
+  backlog: 'Planning',
   in_progress: 'In Progress',
   ai_review: 'AI Review',
   human_review: 'Human Review',
@@ -42,6 +42,7 @@ export const DEFAULT_APP_SETTINGS = {
   theme: 'system' as const,
   defaultModel: 'sonnet',
   defaultParallelism: 1,
+  autoUpdateAutoBuild: true,
   notifications: {
     onTaskComplete: true,
     onTaskFailed: true,
@@ -72,6 +73,9 @@ export const IPC_CHANNELS = {
   PROJECT_REMOVE: 'project:remove',
   PROJECT_LIST: 'project:list',
   PROJECT_UPDATE_SETTINGS: 'project:updateSettings',
+  PROJECT_INITIALIZE: 'project:initialize',
+  PROJECT_UPDATE_AUTOBUILD: 'project:updateAutoBuild',
+  PROJECT_CHECK_VERSION: 'project:checkVersion',
 
   // Task operations
   TASK_LIST: 'task:list',
@@ -106,19 +110,121 @@ export const IPC_CHANNELS = {
   DIALOG_SELECT_DIRECTORY: 'dialog:selectDirectory',
 
   // App info
-  APP_VERSION: 'app:version'
+  APP_VERSION: 'app:version',
+
+  // Roadmap operations
+  ROADMAP_GET: 'roadmap:get',
+  ROADMAP_GENERATE: 'roadmap:generate',
+  ROADMAP_REFRESH: 'roadmap:refresh',
+  ROADMAP_UPDATE_FEATURE: 'roadmap:updateFeature',
+  ROADMAP_CONVERT_TO_SPEC: 'roadmap:convertToSpec',
+
+  // Roadmap events (main -> renderer)
+  ROADMAP_PROGRESS: 'roadmap:progress',
+  ROADMAP_COMPLETE: 'roadmap:complete',
+  ROADMAP_ERROR: 'roadmap:error',
+
+  // Context operations
+  CONTEXT_GET: 'context:get',
+  CONTEXT_REFRESH_INDEX: 'context:refreshIndex',
+  CONTEXT_MEMORY_STATUS: 'context:memoryStatus',
+  CONTEXT_SEARCH_MEMORIES: 'context:searchMemories',
+  CONTEXT_GET_MEMORIES: 'context:getMemories',
+
+  // Environment configuration
+  ENV_GET: 'env:get',
+  ENV_UPDATE: 'env:update',
+  ENV_CHECK_CLAUDE_AUTH: 'env:checkClaudeAuth',
+  ENV_INVOKE_CLAUDE_SETUP: 'env:invokeClaudeSetup',
+
+  // Ideation operations
+  IDEATION_GET: 'ideation:get',
+  IDEATION_GENERATE: 'ideation:generate',
+  IDEATION_REFRESH: 'ideation:refresh',
+  IDEATION_UPDATE_IDEA: 'ideation:updateIdea',
+  IDEATION_CONVERT_TO_TASK: 'ideation:convertToTask',
+  IDEATION_DISMISS: 'ideation:dismiss',
+
+  // Ideation events (main -> renderer)
+  IDEATION_PROGRESS: 'ideation:progress',
+  IDEATION_COMPLETE: 'ideation:complete',
+  IDEATION_ERROR: 'ideation:error',
+
+  // Linear integration
+  LINEAR_GET_TEAMS: 'linear:getTeams',
+  LINEAR_GET_PROJECTS: 'linear:getProjects',
+  LINEAR_GET_ISSUES: 'linear:getIssues',
+  LINEAR_IMPORT_ISSUES: 'linear:importIssues',
+  LINEAR_CHECK_CONNECTION: 'linear:checkConnection',
+
+  // GitHub integration
+  GITHUB_GET_REPOSITORIES: 'github:getRepositories',
+  GITHUB_GET_ISSUES: 'github:getIssues',
+  GITHUB_GET_ISSUE: 'github:getIssue',
+  GITHUB_CHECK_CONNECTION: 'github:checkConnection',
+  GITHUB_INVESTIGATE_ISSUE: 'github:investigateIssue',
+  GITHUB_IMPORT_ISSUES: 'github:importIssues',
+
+  // GitHub events (main -> renderer)
+  GITHUB_INVESTIGATION_PROGRESS: 'github:investigationProgress',
+  GITHUB_INVESTIGATION_COMPLETE: 'github:investigationComplete',
+  GITHUB_INVESTIGATION_ERROR: 'github:investigationError',
+
+  // Auto-Build source updates
+  AUTOBUILD_SOURCE_CHECK: 'autobuild:source:check',
+  AUTOBUILD_SOURCE_DOWNLOAD: 'autobuild:source:download',
+  AUTOBUILD_SOURCE_VERSION: 'autobuild:source:version',
+  AUTOBUILD_SOURCE_PROGRESS: 'autobuild:source:progress'
 } as const;
 
 // File paths relative to project
 export const AUTO_BUILD_PATHS = {
   SPECS_DIR: 'auto-build/specs',
+  ROADMAP_DIR: 'auto-build/roadmap',
+  IDEATION_DIR: 'auto-build/ideation',
   IMPLEMENTATION_PLAN: 'implementation_plan.json',
   SPEC_FILE: 'spec.md',
   QA_REPORT: 'qa_report.md',
   BUILD_PROGRESS: 'build-progress.txt',
   CONTEXT: 'context.json',
-  REQUIREMENTS: 'requirements.json'
+  REQUIREMENTS: 'requirements.json',
+  ROADMAP_FILE: 'roadmap.json',
+  ROADMAP_DISCOVERY: 'roadmap_discovery.json',
+  IDEATION_FILE: 'ideation.json',
+  IDEATION_CONTEXT: 'ideation_context.json',
+  PROJECT_INDEX: 'auto-build/project_index.json',
+  GRAPHITI_STATE: '.graphiti_state.json'
 } as const;
+
+// Roadmap feature priority colors
+export const ROADMAP_PRIORITY_COLORS: Record<string, string> = {
+  must: 'bg-destructive/10 text-destructive border-destructive/30',
+  should: 'bg-warning/10 text-warning border-warning/30',
+  could: 'bg-info/10 text-info border-info/30',
+  wont: 'bg-muted text-muted-foreground border-muted'
+};
+
+// Roadmap feature priority labels
+export const ROADMAP_PRIORITY_LABELS: Record<string, string> = {
+  must: 'Must Have',
+  should: 'Should Have',
+  could: 'Could Have',
+  wont: "Won't Have"
+};
+
+// Roadmap complexity colors
+export const ROADMAP_COMPLEXITY_COLORS: Record<string, string> = {
+  low: 'bg-success/10 text-success',
+  medium: 'bg-warning/10 text-warning',
+  high: 'bg-destructive/10 text-destructive'
+};
+
+// Roadmap impact colors
+export const ROADMAP_IMPACT_COLORS: Record<string, string> = {
+  low: 'bg-muted text-muted-foreground',
+  medium: 'bg-info/10 text-info',
+  high: 'bg-success/10 text-success'
+};
 
 // Models available for selection
 export const AVAILABLE_MODELS = [
@@ -132,3 +238,150 @@ export const MEMORY_BACKENDS = [
   { value: 'file', label: 'File-based (default)' },
   { value: 'graphiti', label: 'Graphiti (FalkorDB)' }
 ] as const;
+
+// ============================================
+// Ideation Constants
+// ============================================
+
+// Ideation type labels and descriptions
+export const IDEATION_TYPE_LABELS: Record<string, string> = {
+  low_hanging_fruit: 'Low-Hanging Fruit',
+  ui_ux_improvements: 'UI/UX Improvements',
+  high_value_features: 'High-Value Features',
+  documentation_gaps: 'Documentation',
+  security_hardening: 'Security',
+  performance_optimizations: 'Performance'
+};
+
+export const IDEATION_TYPE_DESCRIPTIONS: Record<string, string> = {
+  low_hanging_fruit: 'Quick wins that build upon existing code patterns and features',
+  ui_ux_improvements: 'Visual and interaction improvements identified through app analysis',
+  high_value_features: 'Strategic features that provide significant value to target users',
+  documentation_gaps: 'Missing or outdated documentation that needs attention',
+  security_hardening: 'Security vulnerabilities and hardening opportunities',
+  performance_optimizations: 'Performance bottlenecks and optimization opportunities'
+};
+
+// Ideation type colors
+export const IDEATION_TYPE_COLORS: Record<string, string> = {
+  low_hanging_fruit: 'bg-success/10 text-success border-success/30',
+  ui_ux_improvements: 'bg-info/10 text-info border-info/30',
+  high_value_features: 'bg-primary/10 text-primary border-primary/30',
+  documentation_gaps: 'bg-amber-500/10 text-amber-500 border-amber-500/30',
+  security_hardening: 'bg-destructive/10 text-destructive border-destructive/30',
+  performance_optimizations: 'bg-purple-500/10 text-purple-400 border-purple-500/30'
+};
+
+// Ideation type icons (Lucide icon names)
+export const IDEATION_TYPE_ICONS: Record<string, string> = {
+  low_hanging_fruit: 'Zap',
+  ui_ux_improvements: 'Palette',
+  high_value_features: 'Target',
+  documentation_gaps: 'BookOpen',
+  security_hardening: 'Shield',
+  performance_optimizations: 'Gauge'
+};
+
+// Ideation status colors
+export const IDEATION_STATUS_COLORS: Record<string, string> = {
+  draft: 'bg-muted text-muted-foreground',
+  selected: 'bg-primary/10 text-primary',
+  converted: 'bg-success/10 text-success',
+  dismissed: 'bg-destructive/10 text-destructive line-through'
+};
+
+// Ideation effort colors
+export const IDEATION_EFFORT_COLORS: Record<string, string> = {
+  trivial: 'bg-success/10 text-success',
+  small: 'bg-info/10 text-info',
+  medium: 'bg-warning/10 text-warning',
+  large: 'bg-destructive/10 text-destructive'
+};
+
+// Ideation impact colors
+export const IDEATION_IMPACT_COLORS: Record<string, string> = {
+  low: 'bg-muted text-muted-foreground',
+  medium: 'bg-info/10 text-info',
+  high: 'bg-warning/10 text-warning',
+  critical: 'bg-destructive/10 text-destructive'
+};
+
+// Security severity colors
+export const SECURITY_SEVERITY_COLORS: Record<string, string> = {
+  low: 'bg-info/10 text-info',
+  medium: 'bg-warning/10 text-warning',
+  high: 'bg-orange-500/10 text-orange-500',
+  critical: 'bg-destructive/10 text-destructive'
+};
+
+// UI/UX category labels
+export const UIUX_CATEGORY_LABELS: Record<string, string> = {
+  usability: 'Usability',
+  accessibility: 'Accessibility',
+  performance: 'Performance',
+  visual: 'Visual Design',
+  interaction: 'Interaction'
+};
+
+// Documentation category labels
+export const DOCUMENTATION_CATEGORY_LABELS: Record<string, string> = {
+  readme: 'README',
+  api_docs: 'API Documentation',
+  inline_comments: 'Inline Comments',
+  examples: 'Examples & Tutorials',
+  architecture: 'Architecture Docs',
+  troubleshooting: 'Troubleshooting Guide'
+};
+
+// Security category labels
+export const SECURITY_CATEGORY_LABELS: Record<string, string> = {
+  authentication: 'Authentication',
+  authorization: 'Authorization',
+  input_validation: 'Input Validation',
+  data_protection: 'Data Protection',
+  dependencies: 'Dependencies',
+  configuration: 'Configuration',
+  secrets_management: 'Secrets Management'
+};
+
+// Performance category labels
+export const PERFORMANCE_CATEGORY_LABELS: Record<string, string> = {
+  bundle_size: 'Bundle Size',
+  runtime: 'Runtime Performance',
+  memory: 'Memory Usage',
+  database: 'Database Queries',
+  network: 'Network Requests',
+  rendering: 'Rendering',
+  caching: 'Caching'
+};
+
+// Default ideation config
+export const DEFAULT_IDEATION_CONFIG = {
+  enabledTypes: ['low_hanging_fruit', 'ui_ux_improvements', 'high_value_features'] as const,
+  includeRoadmapContext: true,
+  includeKanbanContext: true,
+  maxIdeasPerType: 5
+};
+
+// ============================================
+// GitHub Constants
+// ============================================
+
+// GitHub issue state colors
+export const GITHUB_ISSUE_STATE_COLORS: Record<string, string> = {
+  open: 'bg-success/10 text-success border-success/30',
+  closed: 'bg-purple-500/10 text-purple-400 border-purple-500/30'
+};
+
+// GitHub issue state labels
+export const GITHUB_ISSUE_STATE_LABELS: Record<string, string> = {
+  open: 'Open',
+  closed: 'Closed'
+};
+
+// GitHub complexity colors (for investigation results)
+export const GITHUB_COMPLEXITY_COLORS: Record<string, string> = {
+  simple: 'bg-success/10 text-success',
+  standard: 'bg-warning/10 text-warning',
+  complex: 'bg-destructive/10 text-destructive'
+};

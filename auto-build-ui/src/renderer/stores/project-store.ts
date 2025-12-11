@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Project, ProjectSettings } from '../../shared/types';
+import type { Project, ProjectSettings, AutoBuildVersionInfo, InitializationResult } from '../../shared/types';
 
 interface ProjectState {
   projects: Project[];
@@ -151,5 +151,68 @@ export async function updateProjectSettings(
     return false;
   } catch {
     return false;
+  }
+}
+
+/**
+ * Check auto-build version status for a project
+ */
+export async function checkProjectVersion(
+  projectId: string
+): Promise<AutoBuildVersionInfo | null> {
+  try {
+    const result = await window.electronAPI.checkProjectVersion(projectId);
+    if (result.success && result.data) {
+      return result.data;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Initialize auto-build in a project
+ */
+export async function initializeProject(
+  projectId: string
+): Promise<InitializationResult | null> {
+  const store = useProjectStore.getState();
+
+  try {
+    const result = await window.electronAPI.initializeProject(projectId);
+    if (result.success && result.data) {
+      // Update the project's autoBuildPath in local state
+      if (result.data.success) {
+        store.updateProject(projectId, { autoBuildPath: '.auto-build' });
+      }
+      return result.data;
+    }
+    store.setError(result.error || 'Failed to initialize project');
+    return null;
+  } catch (error) {
+    store.setError(error instanceof Error ? error.message : 'Unknown error');
+    return null;
+  }
+}
+
+/**
+ * Update auto-build in a project
+ */
+export async function updateProjectAutoBuild(
+  projectId: string
+): Promise<InitializationResult | null> {
+  const store = useProjectStore.getState();
+
+  try {
+    const result = await window.electronAPI.updateProjectAutoBuild(projectId);
+    if (result.success && result.data) {
+      return result.data;
+    }
+    store.setError(result.error || 'Failed to update auto-build');
+    return null;
+  } catch (error) {
+    store.setError(error instanceof Error ? error.message : 'Unknown error');
+    return null;
   }
 }

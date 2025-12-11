@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useTaskStore } from '../stores/task-store';
-import type { ImplementationPlan, TaskStatus } from '../../shared/types';
+import { useRoadmapStore } from '../stores/roadmap-store';
+import type { ImplementationPlan, TaskStatus, RoadmapGenerationStatus, Roadmap } from '../../shared/types';
 
 /**
  * Hook to set up IPC event listeners for task updates
@@ -38,12 +39,47 @@ export function useIpcListeners(): void {
       }
     );
 
+    // Roadmap event listeners
+    const setGenerationStatus = useRoadmapStore.getState().setGenerationStatus;
+    const setRoadmap = useRoadmapStore.getState().setRoadmap;
+
+    const cleanupRoadmapProgress = window.electronAPI.onRoadmapProgress(
+      (_projectId: string, status: RoadmapGenerationStatus) => {
+        setGenerationStatus(status);
+      }
+    );
+
+    const cleanupRoadmapComplete = window.electronAPI.onRoadmapComplete(
+      (_projectId: string, roadmap: Roadmap) => {
+        setRoadmap(roadmap);
+        setGenerationStatus({
+          phase: 'complete',
+          progress: 100,
+          message: 'Roadmap ready'
+        });
+      }
+    );
+
+    const cleanupRoadmapError = window.electronAPI.onRoadmapError(
+      (_projectId: string, error: string) => {
+        setGenerationStatus({
+          phase: 'error',
+          progress: 0,
+          message: 'Generation failed',
+          error
+        });
+      }
+    );
+
     // Cleanup on unmount
     return () => {
       cleanupProgress();
       cleanupError();
       cleanupLog();
       cleanupStatus();
+      cleanupRoadmapProgress();
+      cleanupRoadmapComplete();
+      cleanupRoadmapError();
     };
   }, [updateTaskFromPlan, updateTaskStatus, appendLog, setError]);
 }

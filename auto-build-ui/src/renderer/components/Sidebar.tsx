@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   FolderOpen,
   Plus,
@@ -10,7 +10,12 @@ import {
   Terminal,
   Map,
   BookOpen,
-  Wrench
+  Wrench,
+  Lightbulb,
+  AlertCircle,
+  Download,
+  RefreshCw,
+  Github
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
@@ -28,12 +33,27 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from './ui/tooltip';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from './ui/dialog';
 import { cn } from '../lib/utils';
-import { useProjectStore, addProject, removeProject } from '../stores/project-store';
+import {
+  useProjectStore,
+  addProject,
+  removeProject,
+  initializeProject,
+  checkProjectVersion,
+  updateProjectAutoBuild
+} from '../stores/project-store';
 import { useSettingsStore, saveSettings } from '../stores/settings-store';
-import type { Project } from '../../shared/types';
+import type { Project, AutoBuildVersionInfo } from '../../shared/types';
 
-export type SidebarView = 'kanban' | 'terminals' | 'roadmap' | 'context' | 'agent-tools';
+export type SidebarView = 'kanban' | 'terminals' | 'roadmap' | 'context' | 'ideation' | 'agent-tools' | 'github-issues';
 
 interface SidebarProps {
   onSettingsClick: () => void;
@@ -56,6 +76,8 @@ const projectNavItems: NavItem[] = [
 
 const toolsNavItems: NavItem[] = [
   { id: 'roadmap', label: 'Roadmap', icon: Map, shortcut: 'D' },
+  { id: 'ideation', label: 'Ideation', icon: Lightbulb, shortcut: 'I' },
+  { id: 'github-issues', label: 'GitHub Issues', icon: Github, shortcut: 'G' },
   { id: 'context', label: 'Context', icon: BookOpen, shortcut: 'C' },
   { id: 'agent-tools', label: 'Agent Tools', icon: Wrench, shortcut: 'T' }
 ];
@@ -72,19 +94,83 @@ export function Sidebar({
   const settings = useSettingsStore((state) => state.settings);
 
   const [isAddingProject, setIsAddingProject] = useState(false);
+  const [showInitDialog, setShowInitDialog] = useState(false);
+  const [showUpdateDialog, setShowUpdateDialog] = useState(false);
+  const [pendingProject, setPendingProject] = useState<Project | null>(null);
+  const [versionInfo, setVersionInfo] = useState<AutoBuildVersionInfo | null>(null);
+  const [isInitializing, setIsInitializing] = useState(false);
 
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
+
+  // Check for updates when project changes
+  useEffect(() => {
+    const checkUpdates = async () => {
+      if (selectedProjectId && settings.autoUpdateAutoBuild) {
+        const info = await checkProjectVersion(selectedProjectId);
+        if (info?.updateAvailable) {
+          setVersionInfo(info);
+          setShowUpdateDialog(true);
+        }
+      }
+    };
+    checkUpdates();
+  }, [selectedProjectId, settings.autoUpdateAutoBuild]);
 
   const handleAddProject = async () => {
     setIsAddingProject(true);
     try {
       const path = await window.electronAPI.selectDirectory();
       if (path) {
-        await addProject(path);
+        const project = await addProject(path);
+        if (project && !project.autoBuildPath) {
+          // Project doesn't have auto-build, show init dialog
+          setPendingProject(project);
+          setShowInitDialog(true);
+        }
       }
     } finally {
       setIsAddingProject(false);
     }
+  };
+
+  const handleInitialize = async () => {
+    if (!pendingProject) return;
+
+    setIsInitializing(true);
+    try {
+      const result = await initializeProject(pendingProject.id);
+      if (result?.success) {
+        setShowInitDialog(false);
+        setPendingProject(null);
+      }
+    } finally {
+      setIsInitializing(false);
+    }
+  };
+
+  const handleSkipInit = () => {
+    setShowInitDialog(false);
+    setPendingProject(null);
+  };
+
+  const handleUpdate = async () => {
+    if (!selectedProjectId) return;
+
+    setIsInitializing(true);
+    try {
+      const result = await updateProjectAutoBuild(selectedProjectId);
+      if (result?.success) {
+        setShowUpdateDialog(false);
+        setVersionInfo(null);
+      }
+    } finally {
+      setIsInitializing(false);
+    }
+  };
+
+  const handleSkipUpdate = () => {
+    setShowUpdateDialog(false);
+    setVersionInfo(null);
   };
 
   const handleRemoveProject = async (projectId: string, e: React.MouseEvent) => {
@@ -271,13 +357,142 @@ export function Sidebar({
           <Button
             className="w-full"
             onClick={onNewTaskClick}
-            disabled={!selectedProjectId}
+            disabled={!selectedProjectId || !selectedProject?.autoBuildPath}
           >
             <Plus className="mr-2 h-4 w-4" />
             New Task
           </Button>
+          {selectedProject && !selectedProject.autoBuildPath && (
+            <p className="mt-2 text-xs text-muted-foreground text-center">
+              Initialize Auto-Build to create tasks
+            </p>
+          )}
         </div>
       </div>
+
+      {/* Initialize Auto-Build Dialog */}
+      <Dialog open={showInitDialog} onOpenChange={setShowInitDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Download className="h-5 w-5" />
+              Initialize Auto-Build
+            </DialogTitle>
+            <DialogDescription>
+              This project doesn't have Auto-Build initialized. Would you like to set it up now?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="rounded-lg bg-muted p-4 text-sm">
+              <p className="font-medium mb-2">This will:</p>
+              <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                <li>Create a <code className="text-xs bg-background px-1 py-0.5 rounded">.auto-build</code> folder in your project</li>
+                <li>Copy the Auto-Build framework files</li>
+                <li>Set up the specs directory for your tasks</li>
+              </ul>
+            </div>
+            {!settings.autoBuildPath && (
+              <div className="mt-4 rounded-lg border border-warning/50 bg-warning/10 p-4 text-sm">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium text-warning">Source path not configured</p>
+                    <p className="text-muted-foreground mt-1">
+                      Please set the Auto-Build source path in App Settings before initializing.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleSkipInit} disabled={isInitializing}>
+              Skip
+            </Button>
+            <Button
+              onClick={handleInitialize}
+              disabled={isInitializing || !settings.autoBuildPath}
+            >
+              {isInitializing ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Initializing...
+                </>
+              ) : (
+                <>
+                  <Download className="mr-2 h-4 w-4" />
+                  Initialize
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Update Auto-Build Dialog */}
+      <Dialog open={showUpdateDialog} onOpenChange={setShowUpdateDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <RefreshCw className="h-5 w-5" />
+              Update Available
+            </DialogTitle>
+            <DialogDescription>
+              A newer version of Auto-Build is available for this project.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="rounded-lg bg-muted p-4 text-sm space-y-2">
+              {versionInfo?.currentVersion && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Current version:</span>
+                  <span className="font-mono">{versionInfo.currentVersion}</span>
+                </div>
+              )}
+              {versionInfo?.sourceVersion && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Available version:</span>
+                  <span className="font-mono text-success">{versionInfo.sourceVersion}</span>
+                </div>
+              )}
+            </div>
+            {versionInfo?.hasCustomEnv && (
+              <div className="mt-4 rounded-lg border border-warning/50 bg-warning/10 p-4 text-sm">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-warning mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-medium text-warning">Custom .env detected</p>
+                    <p className="text-muted-foreground mt-1">
+                      Your .env file has been customized. It will be preserved during the update.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            <p className="mt-4 text-xs text-muted-foreground">
+              Your specs and .env file will be preserved during the update.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={handleSkipUpdate} disabled={isInitializing}>
+              Skip
+            </Button>
+            <Button onClick={handleUpdate} disabled={isInitializing}>
+              {isInitializing ? (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                  Updating...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Update Now
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </TooltipProvider>
   );
 }

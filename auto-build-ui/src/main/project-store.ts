@@ -4,6 +4,7 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import type { Project, ProjectSettings, Task, TaskStatus, ImplementationPlan } from '../shared/types';
 import { DEFAULT_PROJECT_SETTINGS, AUTO_BUILD_PATHS } from '../shared/constants';
+import { getAutoBuildPath } from './project-initializer';
 
 interface StoreData {
   projects: Project[];
@@ -73,10 +74,8 @@ export class ProjectStore {
     // Derive name from path if not provided
     const projectName = name || path.basename(projectPath);
 
-    // Determine auto-build path
-    const autoBuildPath = existsSync(path.join(projectPath, 'auto-build'))
-      ? 'auto-build'
-      : '';
+    // Determine auto-build path (supports both 'auto-build' and '.auto-build')
+    const autoBuildPath = getAutoBuildPath(projectPath) || '';
 
     const project: Project = {
       id: uuidv4(),
@@ -91,6 +90,19 @@ export class ProjectStore {
     this.data.projects.push(project);
     this.save();
 
+    return project;
+  }
+
+  /**
+   * Update project's autoBuildPath after initialization
+   */
+  updateAutoBuildPath(projectId: string, autoBuildPath: string): Project | undefined {
+    const project = this.data.projects.find((p) => p.id === projectId);
+    if (project) {
+      project.autoBuildPath = autoBuildPath;
+      project.updatedAt = new Date();
+      this.save();
+    }
     return project;
   }
 
@@ -144,7 +156,9 @@ export class ProjectStore {
     const project = this.getProject(projectId);
     if (!project) return [];
 
-    const specsDir = path.join(project.path, AUTO_BUILD_PATHS.SPECS_DIR);
+    // Use project's autoBuildPath if set, otherwise fallback to default
+    const autoBuildDir = project.autoBuildPath || 'auto-build';
+    const specsDir = path.join(project.path, autoBuildDir, 'specs');
     if (!existsSync(specsDir)) return [];
 
     const tasks: Task[] = [];

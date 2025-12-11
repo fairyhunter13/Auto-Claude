@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
@@ -17,7 +17,7 @@ interface TerminalProps {
 }
 
 const STATUS_COLORS: Record<TerminalStatus, string> = {
-  idle: 'bg-muted',
+  idle: 'bg-warning',
   running: 'bg-success',
   'claude-active': 'bg-primary',
   exited: 'bg-destructive',
@@ -27,16 +27,19 @@ export function Terminal({ id, cwd, isActive, onClose, onActivate }: TerminalPro
   const terminalRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
   const fitAddonRef = useRef<FitAddon | null>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
+  const isCreatingRef = useRef(false);
+  const isCreatedRef = useRef(false);
+  const isMountedRef = useRef(true);
 
   const terminal = useTerminalStore((state) => state.terminals.find((t) => t.id === id));
   const setTerminalStatus = useTerminalStore((state) => state.setTerminalStatus);
   const setClaudeMode = useTerminalStore((state) => state.setClaudeMode);
   const updateTerminal = useTerminalStore((state) => state.updateTerminal);
+  const appendOutput = useTerminalStore((state) => state.appendOutput);
 
-  // Initialize terminal
+  // Initialize xterm.js UI (separate from PTY creation)
   useEffect(() => {
-    if (!terminalRef.current || isInitialized) return;
+    if (!terminalRef.current || xtermRef.current) return;
 
     const xterm = new XTerm({
       cursorBlink: true,
@@ -80,12 +83,50 @@ export function Terminal({ id, cwd, isActive, onClose, onActivate }: TerminalPro
     xterm.loadAddon(webLinksAddon);
 
     xterm.open(terminalRef.current);
-    fitAddon.fit();
+
+    // Delay fit to ensure container is properly sized
+    setTimeout(() => {
+      fitAddon.fit();
+    }, 50);
 
     xtermRef.current = xterm;
     fitAddonRef.current = fitAddon;
 
-    // Create the terminal process in main
+    // Replay buffered output if this is a remount (output exists in store)
+    const terminalState = useTerminalStore.getState().terminals.find((t) => t.id === id);
+    if (terminalState?.outputBuffer) {
+      xterm.write(terminalState.outputBuffer);
+    }
+
+    // Handle terminal input - send to main process
+    xterm.onData((data) => {
+      window.electronAPI.sendTerminalInput(id, data);
+    });
+
+    // Handle resize
+    xterm.onResize(({ cols, rows }) => {
+      if (isCreatedRef.current) {
+        window.electronAPI.resizeTerminal(id, cols, rows);
+      }
+    });
+
+    return () => {
+      // Only dispose xterm on actual unmount, not StrictMode re-render
+      // The PTY cleanup is handled separately
+    };
+  }, [id]);
+
+  // Create PTY process in main - with protection against double creation
+  useEffect(() => {
+    if (!xtermRef.current || isCreatingRef.current || isCreatedRef.current) return;
+
+    // Check if terminal is already running (persisted across navigation)
+    const terminalState = useTerminalStore.getState().terminals.find((t) => t.id === id);
+    const alreadyRunning = terminalState?.status === 'running' || terminalState?.status === 'claude-active';
+
+    isCreatingRef.current = true;
+
+    const xterm = xtermRef.current;
     const cols = xterm.cols;
     const rows = xterm.rows;
 
@@ -96,45 +137,45 @@ export function Terminal({ id, cwd, isActive, onClose, onActivate }: TerminalPro
       rows,
     }).then((result) => {
       if (result.success) {
-        setTerminalStatus(id, 'running');
+        isCreatedRef.current = true;
+        // Only set to running if it wasn't already running (avoid overwriting claude-active)
+        if (!alreadyRunning) {
+          setTerminalStatus(id, 'running');
+        }
       } else {
         xterm.writeln(`\r\n\x1b[31mError: ${result.error}\x1b[0m`);
       }
+      isCreatingRef.current = false;
+    }).catch((err) => {
+      xterm.writeln(`\r\n\x1b[31mError: ${err.message}\x1b[0m`);
+      isCreatingRef.current = false;
     });
 
-    // Handle terminal input
-    xterm.onData((data) => {
-      window.electronAPI.sendTerminalInput(id, data);
-    });
-
-    // Handle resize
-    xterm.onResize(({ cols, rows }) => {
-      window.electronAPI.resizeTerminal(id, cols, rows);
-    });
-
-    setIsInitialized(true);
-
-    return () => {
-      xterm.dispose();
-      window.electronAPI.destroyTerminal(id);
-    };
-  }, [id, cwd, isInitialized, setTerminalStatus]);
+    // Note: cleanup is handled in the dedicated cleanup effect below
+    // to avoid race conditions with StrictMode
+  }, [id, cwd, setTerminalStatus]);
 
   // Handle terminal output from main process
   useEffect(() => {
     const cleanup = window.electronAPI.onTerminalOutput((terminalId, data) => {
-      if (terminalId === id && xtermRef.current) {
-        xtermRef.current.write(data);
+      if (terminalId === id) {
+        // Store output in buffer for replay on remount
+        appendOutput(id, data);
+        // Write to xterm if available
+        if (xtermRef.current) {
+          xtermRef.current.write(data);
+        }
       }
     });
 
     return cleanup;
-  }, [id]);
+  }, [id, appendOutput]);
 
   // Handle terminal exit
   useEffect(() => {
     const cleanup = window.electronAPI.onTerminalExit((terminalId, exitCode) => {
       if (terminalId === id) {
+        isCreatedRef.current = false;
         setTerminalStatus(id, 'exited');
         if (xtermRef.current) {
           xtermRef.current.writeln(`\r\n\x1b[90mProcess exited with code ${exitCode}\x1b[0m`);
@@ -156,10 +197,10 @@ export function Terminal({ id, cwd, isActive, onClose, onActivate }: TerminalPro
     return cleanup;
   }, [id, updateTerminal]);
 
-  // Handle resize on window resize
+  // Handle resize on container resize
   useEffect(() => {
     const handleResize = () => {
-      if (fitAddonRef.current) {
+      if (fitAddonRef.current && xtermRef.current) {
         fitAddonRef.current.fit();
       }
     };
@@ -171,7 +212,7 @@ export function Terminal({ id, cwd, isActive, onClose, onActivate }: TerminalPro
       resizeObserver.observe(container);
       return () => resizeObserver.disconnect();
     }
-  }, [isInitialized]);
+  }, []);
 
   // Focus terminal when it becomes active
   useEffect(() => {
@@ -179,6 +220,30 @@ export function Terminal({ id, cwd, isActive, onClose, onActivate }: TerminalPro
       xtermRef.current.focus();
     }
   }, [isActive]);
+
+  // Cleanup xterm UI on unmount - PTY persists in main process
+  // PTY is only destroyed via onClose callback (explicit close)
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+
+      // Delay cleanup to skip StrictMode's immediate remount
+      setTimeout(() => {
+        if (!isMountedRef.current) {
+          // Only dispose the xterm UI, NOT the PTY process
+          // PTY destruction happens only via explicit close (onClose prop)
+          if (xtermRef.current) {
+            xtermRef.current.dispose();
+            xtermRef.current = null;
+          }
+          // Reset creation refs so we can reconnect on remount
+          isCreatingRef.current = false;
+        }
+      }, 100);
+    };
+  }, [id]);
 
   const handleInvokeClaude = useCallback(() => {
     setClaudeMode(id, true);
@@ -218,7 +283,7 @@ export function Terminal({ id, cwd, isActive, onClose, onActivate }: TerminalPro
           )}
         </div>
         <div className="flex items-center gap-1">
-          {!terminal?.isClaudeMode && terminal?.status === 'running' && (
+          {!terminal?.isClaudeMode && terminal?.status !== 'exited' && (
             <Button
               variant="ghost"
               size="sm"

@@ -14,6 +14,10 @@ import { TaskCreationWizard } from './components/TaskCreationWizard';
 import { AppSettingsDialog } from './components/AppSettings';
 import { ProjectSettings } from './components/ProjectSettings';
 import { TerminalGrid } from './components/TerminalGrid';
+import { Roadmap } from './components/Roadmap';
+import { Context } from './components/Context';
+import { Ideation } from './components/Ideation';
+import { GitHubIssues } from './components/GitHubIssues';
 import { useProjectStore, loadProjects } from './stores/project-store';
 import { useTaskStore, loadTasks } from './stores/task-store';
 import { useSettingsStore, loadSettings } from './stores/settings-store';
@@ -168,30 +172,26 @@ export function App() {
             {selectedProject ? (
               <>
                 {activeView === 'kanban' && (
-                  <KanbanBoard tasks={tasks} onTaskClick={handleTaskClick} />
+                  <KanbanBoard
+                    tasks={tasks}
+                    onTaskClick={handleTaskClick}
+                    onNewTaskClick={() => setIsNewTaskDialogOpen(true)}
+                  />
                 )}
                 {activeView === 'terminals' && (
                   <TerminalGrid projectPath={selectedProject?.path} />
                 )}
-                {activeView === 'roadmap' && (
-                  <div className="flex h-full items-center justify-center">
-                    <div className="text-center">
-                      <h2 className="text-lg font-semibold text-foreground">Roadmap</h2>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        Project roadmap and planning - Coming soon
-                      </p>
-                    </div>
-                  </div>
+                {activeView === 'roadmap' && selectedProjectId && (
+                  <Roadmap projectId={selectedProjectId} />
                 )}
-                {activeView === 'context' && (
-                  <div className="flex h-full items-center justify-center">
-                    <div className="text-center">
-                      <h2 className="text-lg font-semibold text-foreground">Context</h2>
-                      <p className="mt-2 text-sm text-muted-foreground">
-                        Project context and documentation - Coming soon
-                      </p>
-                    </div>
-                  </div>
+                {activeView === 'context' && selectedProjectId && (
+                  <Context projectId={selectedProjectId} />
+                )}
+                {activeView === 'ideation' && selectedProjectId && (
+                  <Ideation projectId={selectedProjectId} />
+                )}
+                {activeView === 'github-issues' && selectedProjectId && (
+                  <GitHubIssues onOpenSettings={() => setIsProjectSettingsOpen(true)} />
                 )}
                 {activeView === 'agent-tools' && (
                   <div className="flex h-full items-center justify-center">

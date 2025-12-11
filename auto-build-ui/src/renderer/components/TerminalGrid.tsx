@@ -73,7 +73,7 @@ export function TerminalGrid({ projectPath }: TerminalGridProps) {
     if (count <= 4) return { rows: 2, cols: 2 };
     if (count <= 6) return { rows: 2, cols: 3 };
     if (count <= 9) return { rows: 3, cols: 3 };
-    return { rows: 3, cols: 4 }; // Max 10 terminals = 3x4 - 2
+    return { rows: 3, cols: 4 }; // Max 12 terminals = 3x4
   }, [terminals.length]);
 
   // Group terminals into rows
@@ -118,7 +118,7 @@ export function TerminalGrid({ projectPath }: TerminalGridProps) {
       <div className="flex h-10 items-center justify-between border-b border-border bg-card/30 px-3">
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium text-muted-foreground">
-            {terminals.length} / 10 terminals
+            {terminals.length} / 12 terminals
           </span>
         </div>
         <div className="flex items-center gap-2">
