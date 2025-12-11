@@ -66,7 +66,7 @@ class TestWorktreeCreation:
         info = manager.create("test-worker")
 
         assert info.path.exists()
-        assert info.branch == "auto-build/test-worker"
+        assert info.branch == "auto-claude/test-worker"
         assert info.is_active is True
         assert (info.path / "README.md").exists()
 
@@ -358,7 +358,7 @@ class TestWorktreeUtilities:
         info = manager.get_info("test-worker")
 
         assert info is not None
-        assert info.branch == "auto-build/test-worker"
+        assert info.branch == "auto-claude/test-worker"
 
     def test_get_worktree_path(self, temp_git_repo: Path):
         """get_worktree_path returns correct path."""

@@ -1,10 +1,10 @@
-# Auto-Build Framework
+# Auto Claude
 
 A production-ready framework for autonomous multi-session AI coding. Build complete applications or add features to existing projects through coordinated AI agent sessions.
 
 ## What It Does
 
-Auto-Build uses a **multi-agent pattern** to build software autonomously:
+Auto Claude uses a **multi-agent pattern** to build software autonomously:
 
 ### Spec Creation Pipeline (8 phases)
 1. **Discovery** - Analyzes project structure
@@ -33,18 +33,18 @@ Each session runs with a fresh context window. Progress is tracked via `implemen
 
 ### Setup
 
-**Step 1:** Copy the `auto-build` folder into your project
+**Step 1:** Copy the `auto-claude` folder into your project
 
 ```bash
-# Copy the auto-build folder to your project root
-cp -r auto-build /path/to/your/project/
+# Copy the auto-claude folder to your project root
+cp -r auto-claude /path/to/your/project/
 ```
 
 **Step 2:** Set up Python environment
 
 ```bash
 cd your-project
-cd auto-build
+cd auto-claude
 
 # Using uv (recommended)
 uv venv && uv pip install -r requirements.txt
@@ -69,13 +69,13 @@ claude setup-token
 
 ```bash
 # Activate the virtual environment
-source auto-build/.venv/bin/activate
+source auto-claude/.venv/bin/activate
 
 # Create a spec interactively
-python auto-build/spec_runner.py --interactive
+python auto-claude/spec_runner.py --interactive
 
 # Or with a task description
-python auto-build/spec_runner.py --task "Add user authentication with OAuth"
+python auto-claude/spec_runner.py --task "Add user authentication with OAuth"
 ```
 
 The spec orchestrator will:
@@ -91,25 +91,25 @@ The spec orchestrator will:
 **Step 5:** Run the autonomous build
 
 ```bash
-python auto-build/run.py --spec 001
+python auto-claude/run.py --spec 001
 ```
 
 ### Managing Specs
 
 ```bash
 # List all specs and their status
-python auto-build/run.py --list
+python auto-claude/run.py --list
 
 # Run a specific spec
-python auto-build/run.py --spec 001
-python auto-build/run.py --spec 001-feature-name
+python auto-claude/run.py --spec 001
+python auto-claude/run.py --spec 001-feature-name
 
 # Run with parallel workers (2-3x speedup for independent phases)
-python auto-build/run.py --spec 001 --parallel 2
-python auto-build/run.py --spec 001 --parallel 3
+python auto-claude/run.py --spec 001 --parallel 2
+python auto-claude/run.py --spec 001 --parallel 3
 
 # Limit iterations for testing
-python auto-build/run.py --spec 001 --max-iterations 5
+python auto-claude/run.py --spec 001 --max-iterations 5
 ```
 
 ### QA Validation
@@ -119,13 +119,13 @@ After all chunks are complete, QA validation runs automatically:
 ```bash
 # QA runs automatically after build completes
 # To skip automatic QA:
-python auto-build/run.py --spec 001 --skip-qa
+python auto-claude/run.py --spec 001 --skip-qa
 
 # Run QA validation manually on a completed build
-python auto-build/run.py --spec 001 --qa
+python auto-claude/run.py --spec 001 --qa
 
 # Check QA status
-python auto-build/run.py --spec 001 --qa-status
+python auto-claude/run.py --spec 001 --qa-status
 ```
 
 The QA validation loop:
@@ -141,19 +141,19 @@ The `spec_runner.py` orchestrator **automatically assesses task complexity** and
 
 ```bash
 # Simple task (auto-detected) - runs 3 phases
-python auto-build/spec_runner.py --task "Fix button color in Header"
+python auto-claude/spec_runner.py --task "Fix button color in Header"
 
 # Complex task (auto-detected) - runs 8 phases
-python auto-build/spec_runner.py --task "Add Graphiti memory integration with FalkorDB"
+python auto-claude/spec_runner.py --task "Add Graphiti memory integration with FalkorDB"
 
 # Force a specific complexity level
-python auto-build/spec_runner.py --task "Update text" --complexity simple
+python auto-claude/spec_runner.py --task "Update text" --complexity simple
 
 # Interactive mode
-python auto-build/spec_runner.py --interactive
+python auto-claude/spec_runner.py --interactive
 
 # Continue an interrupted spec
-python auto-build/spec_runner.py --continue 001-feature
+python auto-claude/spec_runner.py --continue 001-feature
 ```
 
 **Complexity Tiers:**
@@ -185,17 +185,17 @@ python auto-build/spec_runner.py --continue 001-feature
 
 **Manual validation:**
 ```bash
-python auto-build/validate_spec.py --spec-dir auto-build/specs/001-feature --checkpoint all
+python auto-claude/validate_spec.py --spec-dir auto-claude/specs/001-feature --checkpoint all
 ```
 
 ### Isolated Worktrees (Safe by Default)
 
-Auto-Build uses Git worktrees to keep your work completely safe. All AI-generated code is built in a separate workspace (`.worktrees/auto-build/`) - your current files are never touched until you explicitly merge.
+Auto Claude uses Git worktrees to keep your work completely safe. All AI-generated code is built in a separate workspace (`.worktrees/auto-claude/`) - your current files are never touched until you explicitly merge.
 
 **How it works:**
 
-1. When you run auto-build, it creates an isolated workspace
-2. All coding happens in `.worktrees/auto-build/` on its own branch
+1. When you run auto-claude, it creates an isolated workspace
+2. All coding happens in `.worktrees/auto-claude/` on its own branch
 3. You can `cd` into the worktree to test the feature before accepting
 4. Only when you're satisfied, merge the changes into your project
 
@@ -203,27 +203,27 @@ Auto-Build uses Git worktrees to keep your work completely safe. All AI-generate
 
 ```bash
 # Test the feature in the isolated workspace
-cd .worktrees/auto-build/
+cd .worktrees/auto-claude/
 npm run dev  # or your project's run command
 
 # See what was changed
-python auto-build/run.py --spec 001 --review
+python auto-claude/run.py --spec 001 --review
 
 # Add changes to your project
-python auto-build/run.py --spec 001 --merge
+python auto-claude/run.py --spec 001 --merge
 
 # Discard if you don't like it (requires confirmation)
-python auto-build/run.py --spec 001 --discard
+python auto-claude/run.py --spec 001 --discard
 ```
 
 **Key benefits:**
 
-- **Safety**: Your uncommitted work is protected - auto-build won't touch it
+- **Safety**: Your uncommitted work is protected - auto-claude won't touch it
 - **Testability**: Run and test the feature before committing to it
 - **Easy rollback**: Don't like it? Just discard the worktree
 - **Parallel-safe**: Multiple workers can build without conflicts
 
-If you have uncommitted changes, auto-build automatically uses isolated mode. With a clean working directory, you can choose between isolated (recommended) or direct mode.
+If you have uncommitted changes, auto-claude automatically uses isolated mode. With a clean working directory, you can choose between isolated (recommended) or direct mode.
 
 ### Interactive Controls
 
@@ -243,10 +243,10 @@ Ctrl+C (twice)
 **Alternative (file-based):**
 ```bash
 # Create PAUSE file to pause after current session
-touch auto-build/specs/001-name/PAUSE
+touch auto-claude/specs/001-name/PAUSE
 
 # Manually edit instructions file
-echo "Focus on fixing the login bug first" > auto-build/specs/001-name/HUMAN_INPUT.md
+echo "Focus on fixing the login bug first" > auto-claude/specs/001-name/HUMAN_INPUT.md
 ```
 
 ## Project Structure
@@ -254,8 +254,8 @@ echo "Focus on fixing the login bug first" > auto-build/specs/001-name/HUMAN_INP
 ```
 your-project/
 ├── .worktrees/              # Created during build (git-ignored)
-│   └── auto-build/          # Isolated workspace for AI coding
-├── auto-build/
+│   └── auto-claude/          # Isolated workspace for AI coding
+├── auto-claude/
 │   ├── run.py               # Build entry point
 │   ├── spec_runner.py       # Spec creation orchestrator (8-phase pipeline)
 │   ├── validate_spec.py     # Spec validation with JSON schemas
@@ -312,7 +312,7 @@ your-project/
 
 ## Graphiti Memory Integration (Optional)
 
-Auto-Build includes an optional **Graphiti-based persistent memory layer** that enables context retention across coding sessions. This uses FalkorDB as a graph database to store codebase patterns, session insights, and cross-session learnings.
+Auto Claude includes an optional **Graphiti-based persistent memory layer** that enables context retention across coding sessions. This uses FalkorDB as a graph database to store codebase patterns, session insights, and cross-session learnings.
 
 ### Why Use Graphiti Memory?
 
@@ -350,13 +350,13 @@ OPENAI_API_KEY=sk-your-openai-key-here
 **Step 4:** Verify it's working
 
 ```bash
-python auto-build/run.py --list
+python auto-claude/run.py --list
 # Should show: "Graphiti memory: ENABLED"
 ```
 
 ### When Disabled
 
-When `GRAPHITI_ENABLED` is not set (default), Auto-Build uses file-based memory only. This is the zero-dependency default that works out of the box.
+When `GRAPHITI_ENABLED` is not set (default), Auto Claude uses file-based memory only. This is the zero-dependency default that works out of the box.
 
 ## Environment Variables
 
@@ -375,7 +375,7 @@ For parallel execution details:
 - Best practices
 - Troubleshooting
 
-See [auto-build/PARALLEL_EXECUTION.md](auto-build/PARALLEL_EXECUTION.md)
+See [auto-claude/PARALLEL_EXECUTION.md](auto-claude/PARALLEL_EXECUTION.md)
 
 ## Acknowledgments
 

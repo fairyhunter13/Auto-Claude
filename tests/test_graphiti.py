@@ -4,9 +4,9 @@ import pytest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-# Add auto-build to path
+# Add auto-claude to path
 import sys
-sys.path.insert(0, str(Path(__file__).parent.parent / "auto-build"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "auto-claude"))
 
 from graphiti_config import is_graphiti_enabled, get_graphiti_status, GraphitiConfig
 

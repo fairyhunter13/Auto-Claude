@@ -4,61 +4,61 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Auto-Build is a multi-agent autonomous coding framework that builds software through coordinated AI agent sessions. It uses the Claude Code SDK to run agents in isolated workspaces with security controls.
+Auto Claude is a multi-agent autonomous coding framework that builds software through coordinated AI agent sessions. It uses the Claude Code SDK to run agents in isolated workspaces with security controls.
 
 ## Commands
 
 ### Setup
 ```bash
-# Install dependencies (from auto-build/)
+# Install dependencies (from auto-claude/)
 uv venv && uv pip install -r requirements.txt
 # Or: python3 -m venv .venv && source .venv/bin/activate && pip install -r requirements.txt
 
 # Set up OAuth token
 claude setup-token
-# Add to auto-build/.env: CLAUDE_CODE_OAUTH_TOKEN=your-token
+# Add to auto-claude/.env: CLAUDE_CODE_OAUTH_TOKEN=your-token
 ```
 
 ### Creating and Running Specs
 ```bash
 # Create a spec interactively
-python auto-build/spec_runner.py --interactive
+python auto-claude/spec_runner.py --interactive
 
 # Create spec from task description
-python auto-build/spec_runner.py --task "Add user authentication"
+python auto-claude/spec_runner.py --task "Add user authentication"
 
 # Force complexity level (simple/standard/complex)
-python auto-build/spec_runner.py --task "Fix button" --complexity simple
+python auto-claude/spec_runner.py --task "Fix button" --complexity simple
 
 # Run autonomous build
-python auto-build/run.py --spec 001
+python auto-claude/run.py --spec 001
 
 # Run with parallel workers
-python auto-build/run.py --spec 001 --parallel 2
+python auto-claude/run.py --spec 001 --parallel 2
 
 # List all specs
-python auto-build/run.py --list
+python auto-claude/run.py --list
 ```
 
 ### Workspace Management
 ```bash
 # Review changes in isolated worktree
-python auto-build/run.py --spec 001 --review
+python auto-claude/run.py --spec 001 --review
 
 # Merge completed build into project
-python auto-build/run.py --spec 001 --merge
+python auto-claude/run.py --spec 001 --merge
 
 # Discard build
-python auto-build/run.py --spec 001 --discard
+python auto-claude/run.py --spec 001 --discard
 ```
 
 ### QA Validation
 ```bash
 # Run QA manually
-python auto-build/run.py --spec 001 --qa
+python auto-claude/run.py --spec 001 --qa
 
 # Check QA status
-python auto-build/run.py --spec 001 --qa-status
+python auto-claude/run.py --spec 001 --qa-status
 ```
 
 ### Testing
@@ -78,7 +78,7 @@ pytest tests/ -m "not slow"
 
 ### Spec Validation
 ```bash
-python auto-build/validate_spec.py --spec-dir auto-build/specs/001-feature --checkpoint all
+python auto-claude/validate_spec.py --spec-dir auto-claude/specs/001-feature --checkpoint all
 ```
 
 ## Architecture
@@ -106,7 +106,7 @@ python auto-build/validate_spec.py --spec-dir auto-build/specs/001-feature --che
 - **graphiti_memory.py** - Optional graph-based cross-session memory (requires FalkorDB)
 - **linear_updater.py** - Optional Linear integration for progress tracking
 
-### Agent Prompts (auto-build/prompts/)
+### Agent Prompts (auto-claude/prompts/)
 
 | Prompt | Purpose |
 |--------|---------|
@@ -123,7 +123,7 @@ python auto-build/validate_spec.py --spec-dir auto-build/specs/001-feature --che
 
 ### Spec Directory Structure
 
-Each spec in `auto-build/specs/XXX-name/` contains:
+Each spec in `auto-claude/specs/XXX-name/` contains:
 - `spec.md` - Feature specification
 - `requirements.json` - Structured user requirements
 - `context.json` - Discovered codebase context
@@ -138,12 +138,12 @@ Three-layer defense:
 2. **Filesystem Permissions** - Operations restricted to project directory
 3. **Command Allowlist** - Dynamic allowlist from project analysis (security.py + project_analyzer.py)
 
-Security profile cached in `.auto-build-security.json`.
+Security profile cached in `.auto-claude-security.json`.
 
 ## Development Mode
 
-Use `--dev` flag to work in `dev/auto-build/specs/` (gitignored) when developing the framework itself:
+Use `--dev` flag to work in `dev/auto-claude/specs/` (gitignored) when developing the framework itself:
 ```bash
-python auto-build/spec_runner.py --dev --task "Test feature"
-python auto-build/run.py --dev --spec 001
+python auto-claude/spec_runner.py --dev --task "Test feature"
+python auto-claude/run.py --dev --spec 001
 ```

@@ -12,7 +12,7 @@ import shutil
 from pathlib import Path
 
 # Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / "auto-build"))
+sys.path.insert(0, str(Path(__file__).parent.parent / "auto-claude"))
 
 from coordinator import SwarmCoordinator, ParallelGroup, WorkerAssignment, WorkerStatus
 from implementation_plan import (

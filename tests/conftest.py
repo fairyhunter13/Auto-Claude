@@ -17,8 +17,8 @@ from typing import Generator
 
 import pytest
 
-# Add auto-build directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent / "auto-build"))
+# Add auto-claude directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent / "auto-claude"))
 
 
 # =============================================================================
