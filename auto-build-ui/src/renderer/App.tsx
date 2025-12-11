@@ -1,10 +1,18 @@
 import { useState, useEffect } from 'react';
+import { Settings2 } from 'lucide-react';
 import { TooltipProvider } from './components/ui/tooltip';
+import { Button } from './components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger
+} from './components/ui/tooltip';
 import { Sidebar } from './components/Sidebar';
 import { KanbanBoard } from './components/KanbanBoard';
 import { TaskDetailPanel } from './components/TaskDetailPanel';
 import { TaskCreationWizard } from './components/TaskCreationWizard';
 import { AppSettingsDialog } from './components/AppSettings';
+import { ProjectSettings } from './components/ProjectSettings';
 import { useProjectStore, loadProjects } from './stores/project-store';
 import { useTaskStore, loadTasks } from './stores/task-store';
 import { useSettingsStore, loadSettings } from './stores/settings-store';
@@ -25,6 +33,7 @@ export function App() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isNewTaskDialogOpen, setIsNewTaskDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
+  const [isProjectSettingsOpen, setIsProjectSettingsOpen] = useState(false);
 
   // Get selected project
   const selectedProject = projects.find((p) => p.id === selectedProjectId);
@@ -125,6 +134,22 @@ export function App() {
                 </div>
               )}
             </div>
+            {selectedProject && (
+              <div className="electron-no-drag">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setIsProjectSettingsOpen(true)}
+                    >
+                      <Settings2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Project Settings</TooltipContent>
+                </Tooltip>
+              </div>
+            )}
           </header>
 
           {/* Kanban board */}
@@ -162,6 +187,14 @@ export function App() {
           open={isSettingsDialogOpen}
           onOpenChange={setIsSettingsDialogOpen}
         />
+
+        {selectedProject && (
+          <ProjectSettings
+            project={selectedProject}
+            open={isProjectSettingsOpen}
+            onOpenChange={setIsProjectSettingsOpen}
+          />
+        )}
       </div>
     </TooltipProvider>
   );

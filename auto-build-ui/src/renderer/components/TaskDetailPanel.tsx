@@ -16,7 +16,7 @@ import { Progress } from './ui/progress';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
 import { Textarea } from './ui/textarea';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@radix-ui/react-tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { cn, calculateProgress, formatRelativeTime } from '../lib/utils';
 import { CHUNK_STATUS_COLORS, TASK_STATUS_LABELS } from '../../shared/constants';
 import { startTask, stopTask, submitReview } from '../stores/task-store';
@@ -106,44 +106,29 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
 
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-        <TabsList className="flex border-b px-4">
+        <TabsList className="w-full justify-start rounded-none border-b bg-transparent p-0 h-auto">
           <TabsTrigger
             value="overview"
-            className={cn(
-              'px-3 py-2 text-sm border-b-2 -mb-px transition-colors',
-              activeTab === 'overview'
-                ? 'border-primary text-foreground'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            )}
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none px-4 py-2"
           >
             Overview
           </TabsTrigger>
           <TabsTrigger
             value="chunks"
-            className={cn(
-              'px-3 py-2 text-sm border-b-2 -mb-px transition-colors',
-              activeTab === 'chunks'
-                ? 'border-primary text-foreground'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            )}
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none px-4 py-2"
           >
             Chunks ({task.chunks.length})
           </TabsTrigger>
           <TabsTrigger
             value="logs"
-            className={cn(
-              'px-3 py-2 text-sm border-b-2 -mb-px transition-colors',
-              activeTab === 'logs'
-                ? 'border-primary text-foreground'
-                : 'border-transparent text-muted-foreground hover:text-foreground'
-            )}
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:shadow-none px-4 py-2"
           >
             Logs
           </TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
-        <TabsContent value="overview" className="flex-1 overflow-hidden">
+        <TabsContent value="overview" className="flex-1 overflow-hidden mt-0">
           <ScrollArea className="h-full">
             <div className="p-4 space-y-4">
               {/* Progress */}
@@ -219,7 +204,7 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
         </TabsContent>
 
         {/* Chunks Tab */}
-        <TabsContent value="chunks" className="flex-1 overflow-hidden">
+        <TabsContent value="chunks" className="flex-1 overflow-hidden mt-0">
           <ScrollArea className="h-full">
             <div className="p-4 space-y-2">
               {task.chunks.length === 0 ? (
@@ -275,7 +260,7 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
         </TabsContent>
 
         {/* Logs Tab */}
-        <TabsContent value="logs" className="flex-1 overflow-hidden">
+        <TabsContent value="logs" className="flex-1 overflow-hidden mt-0">
           <ScrollArea className="h-full">
             <div className="p-4">
               {task.logs && task.logs.length > 0 ? (
