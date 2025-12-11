@@ -754,16 +754,86 @@ class SpecOrchestrator:
 
         return PhaseResult("discovery", False, [], errors, retries)
 
+    def _open_editor_for_input(self, field_name: str) -> str:
+        """Open the user's editor for long-form text input."""
+        import shlex
+        import tempfile
+        
+        editor = os.environ.get("EDITOR", os.environ.get("VISUAL", "nano"))
+        
+        # Create temp file with helpful instructions
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False) as f:
+            f.write(f"# Enter your {field_name.replace('_', ' ')} below\n")
+            f.write("# Lines starting with # will be ignored\n")
+            f.write("# Save and close the editor when done\n\n")
+            temp_path = f.name
+        
+        try:
+            # Parse editor command (handles "code --wait" etc.)
+            editor_cmd = shlex.split(editor)
+            editor_cmd.append(temp_path)
+            
+            # Open editor
+            result = subprocess.run(editor_cmd)
+            
+            if result.returncode != 0:
+                print(f"     {muted('Editor exited with error, using empty input')}")
+                return ""
+            
+            # Read the content
+            with open(temp_path) as f:
+                lines = f.readlines()
+            
+            # Filter out comment lines and join
+            content_lines = [
+                line.rstrip() for line in lines 
+                if not line.strip().startswith("#")
+            ]
+            return "\n".join(content_lines).strip()
+            
+        finally:
+            # Clean up temp file
+            try:
+                os.unlink(temp_path)
+            except OSError:
+                pass
+
     def _interactive_requirements_gathering(self) -> dict:
         """Gather requirements interactively from the user via CLI prompts."""
         print()
         print(f"  {muted('Answer the following questions to define your task:')}")
         print()
 
-        # Task description
+        # Task description - multi-line support with editor option
         print(f"  {bold('1. What do you want to build or fix?')}")
         print(f"     {muted('(Describe the feature, bug fix, or change)')}")
-        task = input("     > ").strip()
+        print(f"     {muted('Type \"edit\" to open in your editor, or enter text below')}")
+        print(f"     {muted('(Press Enter often for new lines, blank line = done)')}")
+        
+        task = ""
+        task_lines = []
+        while True:
+            try:
+                line = input("     > " if not task_lines else "       ")
+                
+                # Check for editor command on first line
+                if not task_lines and line.strip().lower() == "edit":
+                    task = self._open_editor_for_input("task_description")
+                    if task:
+                        print(f"     {muted(f'Got {len(task)} chars from editor')}")
+                    break
+                
+                if not line and task_lines:  # Blank line and we have content = done
+                    break
+                if line:
+                    task_lines.append(line)
+            except EOFError:
+                break
+        
+        # If we collected lines (not from editor)
+        if task_lines:
+            task = " ".join(task_lines).strip()
+        
         if not task:
             task = "No task description provided"
         print()
@@ -786,10 +856,21 @@ class SpecOrchestrator:
         workflow_type = workflow_map.get(workflow_choice.lower(), "feature")
         print()
 
-        # Additional context (optional)
+        # Additional context (optional) - multi-line support
         print(f"  {bold('3. Any additional context or constraints?')}")
-        print(f"     {muted('(Press Enter to skip)')}")
-        additional_context = input("     > ").strip()
+        print(f"     {muted('(Press Enter to skip, or enter a blank line when done)')}")
+        
+        context_lines = []
+        while True:
+            try:
+                line = input("     > " if not context_lines else "       ")
+                if not line:  # Blank line = done (allows skip on first empty)
+                    break
+                context_lines.append(line)
+            except EOFError:
+                break
+        
+        additional_context = " ".join(context_lines).strip()
         print()
 
         return {
