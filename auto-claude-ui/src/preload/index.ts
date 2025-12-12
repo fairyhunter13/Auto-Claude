@@ -152,8 +152,8 @@ const electronAPI: ElectronAPI = {
   getWorktreeDiff: (taskId: string): Promise<IPCResult<import('../shared/types').WorktreeDiff>> =>
     ipcRenderer.invoke(IPC_CHANNELS.TASK_WORKTREE_DIFF, taskId),
 
-  mergeWorktree: (taskId: string): Promise<IPCResult<import('../shared/types').WorktreeMergeResult>> =>
-    ipcRenderer.invoke(IPC_CHANNELS.TASK_WORKTREE_MERGE, taskId),
+  mergeWorktree: (taskId: string, options?: { noCommit?: boolean }): Promise<IPCResult<import('../shared/types').WorktreeMergeResult>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.TASK_WORKTREE_MERGE, taskId, options),
 
   discardWorktree: (taskId: string): Promise<IPCResult<import('../shared/types').WorktreeDiscardResult>> =>
     ipcRenderer.invoke(IPC_CHANNELS.TASK_WORKTREE_DISCARD, taskId),

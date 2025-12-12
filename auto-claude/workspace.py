@@ -538,7 +538,7 @@ def handle_workspace_choice(
         print()
 
 
-def merge_existing_build(project_dir: Path, spec_name: str) -> bool:
+def merge_existing_build(project_dir: Path, spec_name: str, no_commit: bool = False) -> bool:
     """
     Merge an existing build into the project.
 
@@ -547,6 +547,7 @@ def merge_existing_build(project_dir: Path, spec_name: str) -> bool:
     Args:
         project_dir: The project directory
         spec_name: Name of the spec
+        no_commit: If True, merge changes but don't commit (stage only for review in IDE)
 
     Returns:
         True if merge succeeded
@@ -561,9 +562,17 @@ def merge_existing_build(project_dir: Path, spec_name: str) -> bool:
         print(highlight(f"  python auto-claude/run.py --spec {spec_name}"))
         return False
 
-    content = [
-        bold(f"{icon(Icons.SUCCESS)} ADDING BUILD TO YOUR PROJECT"),
-    ]
+    if no_commit:
+        content = [
+            bold(f"{icon(Icons.SUCCESS)} STAGING BUILD FOR REVIEW"),
+            "",
+            muted("Changes will be staged but NOT committed."),
+            muted("Review in your IDE, then commit when ready."),
+        ]
+    else:
+        content = [
+            bold(f"{icon(Icons.SUCCESS)} ADDING BUILD TO YOUR PROJECT"),
+        ]
     print()
     print(box(content, width=60, style="heavy"))
 
@@ -572,11 +581,20 @@ def merge_existing_build(project_dir: Path, spec_name: str) -> bool:
     show_build_summary(manager, spec_name)
     print()
 
-    success_result = manager.merge_worktree(spec_name, delete_after=True)
+    success_result = manager.merge_worktree(spec_name, delete_after=True, no_commit=no_commit)
 
     if success_result:
         print()
-        print_status("Your feature has been added to your project.", "success")
+        if no_commit:
+            print_status("Changes are staged in your working directory.", "success")
+            print()
+            print("Review the changes in your IDE, then commit:")
+            print(highlight("  git commit -m 'your commit message'"))
+            print()
+            print("Or discard if not satisfied:")
+            print(muted("  git reset --hard HEAD"))
+        else:
+            print_status("Your feature has been added to your project.", "success")
         return True
     else:
         print()

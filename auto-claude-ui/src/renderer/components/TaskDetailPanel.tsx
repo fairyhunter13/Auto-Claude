@@ -119,6 +119,7 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
   const [showDiscardDialog, setShowDiscardDialog] = useState(false);
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
   const [showDiffDialog, setShowDiffDialog] = useState(false);
+  const [stageOnly, setStageOnly] = useState(false); // When true, merge stages changes but doesn't commit
   // Phase logs state
   const [phaseLogs, setPhaseLogs] = useState<TaskLogs | null>(null);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
@@ -314,7 +315,7 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
   const handleMerge = async () => {
     setIsMerging(true);
     setWorkspaceError(null);
-    const result = await window.electronAPI.mergeWorktree(task.id);
+    const result = await window.electronAPI.mergeWorktree(task.id, { noCommit: stageOnly });
     if (result.success && result.data?.success) {
       // Task will be moved to 'done' by the IPC handler
       onClose();
@@ -875,6 +876,17 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
                         )}
                       </div>
 
+                      {/* Stage Only Option */}
+                      <label className="flex items-center gap-2 text-sm text-muted-foreground cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={stageOnly}
+                          onChange={(e) => setStageOnly(e.target.checked)}
+                          className="rounded border-border"
+                        />
+                        <span>Stage only (review in IDE before committing)</span>
+                      </label>
+
                       {/* Primary Actions */}
                       <div className="flex gap-2">
                         <Button
@@ -886,12 +898,12 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
                           {isMerging ? (
                             <>
                               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Merging...
+                              {stageOnly ? 'Staging...' : 'Merging...'}
                             </>
                           ) : (
                             <>
                               <GitMerge className="mr-2 h-4 w-4" />
-                              Merge to Main
+                              {stageOnly ? 'Stage Changes' : 'Merge to Main'}
                             </>
                           )}
                         </Button>

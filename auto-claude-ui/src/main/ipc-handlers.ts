@@ -1441,10 +1441,12 @@ export function setupIpcHandlers(
 
   /**
    * Merge the worktree changes into the main branch
+   * @param taskId - The task ID to merge
+   * @param options - Merge options { noCommit?: boolean }
    */
   ipcMain.handle(
     IPC_CHANNELS.TASK_WORKTREE_MERGE,
-    async (_, taskId: string): Promise<IPCResult<import('../shared/types').WorktreeMergeResult>> => {
+    async (_, taskId: string, options?: { noCommit?: boolean }): Promise<IPCResult<import('../shared/types').WorktreeMergeResult>> => {
       try {
         const { task, project } = findTaskAndProject(taskId);
         if (!task || !project) {
@@ -1464,13 +1466,20 @@ export function setupIpcHandlers(
           return { success: false, error: 'Spec directory not found' };
         }
 
+        const args = [
+          runScript,
+          '--spec', task.specId,
+          '--project-dir', project.path,
+          '--merge'
+        ];
+
+        // Add --no-commit flag if requested (stage changes without committing)
+        if (options?.noCommit) {
+          args.push('--no-commit');
+        }
+
         return new Promise((resolve) => {
-          const mergeProcess = spawn('python3', [
-            runScript,
-            '--spec', task.specId,
-            '--project-dir', project.path,
-            '--merge'
-          ], {
+          const mergeProcess = spawn('python3', args, {
             cwd: sourcePath,
             env: {
               ...process.env,
@@ -1491,6 +1500,21 @@ export function setupIpcHandlers(
 
           mergeProcess.on('close', (code: number) => {
             if (code === 0) {
+              // Persist the status change to implementation_plan.json
+              const planPath = path.join(specDir, AUTO_BUILD_PATHS.IMPLEMENTATION_PLAN);
+              try {
+                if (existsSync(planPath)) {
+                  const planContent = readFileSync(planPath, 'utf-8');
+                  const plan = JSON.parse(planContent);
+                  plan.status = 'done';
+                  plan.planStatus = 'completed';
+                  plan.updated_at = new Date().toISOString();
+                  writeFileSync(planPath, JSON.stringify(plan, null, 2));
+                }
+              } catch (persistError) {
+                console.error('Failed to persist task status:', persistError);
+              }
+
               const mainWindow = getMainWindow();
               if (mainWindow) {
                 mainWindow.webContents.send(IPC_CHANNELS.TASK_STATUS_CHANGE, taskId, 'done');

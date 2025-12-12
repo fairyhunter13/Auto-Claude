@@ -391,6 +391,13 @@ Environment Variables:
         help="Discard an existing build (requires confirmation)",
     )
 
+    # Merge options
+    parser.add_argument(
+        "--no-commit",
+        action="store_true",
+        help="With --merge: stage changes but don't commit (review in IDE first)",
+    )
+
     # QA options
     parser.add_argument(
         "--qa",
@@ -610,7 +617,7 @@ def main() -> None:
 
     # Handle build management commands
     if args.merge:
-        merge_existing_build(project_dir, spec_dir.name)
+        merge_existing_build(project_dir, spec_dir.name, no_commit=args.no_commit)
         return
 
     if args.review:

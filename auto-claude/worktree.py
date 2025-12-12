@@ -242,13 +242,14 @@ class WorktreeManager:
 
         self._run_git(["worktree", "prune"])
 
-    def merge_worktree(self, spec_name: str, delete_after: bool = False) -> bool:
+    def merge_worktree(self, spec_name: str, delete_after: bool = False, no_commit: bool = False) -> bool:
         """
         Merge a spec's worktree branch back to base branch.
 
         Args:
             spec_name: The spec folder name
             delete_after: Whether to remove worktree and branch after merge
+            no_commit: If True, merge changes but don't commit (stage only for review)
 
         Returns:
             True if merge succeeded
@@ -258,7 +259,10 @@ class WorktreeManager:
             print(f"No worktree found for spec: {spec_name}")
             return False
 
-        print(f"Merging {info.branch} into {self.base_branch}...")
+        if no_commit:
+            print(f"Merging {info.branch} into {self.base_branch} (staged, not committed)...")
+        else:
+            print(f"Merging {info.branch} into {self.base_branch}...")
 
         # Switch to base branch in main project
         result = self._run_git(["checkout", self.base_branch])
@@ -267,17 +271,26 @@ class WorktreeManager:
             return False
 
         # Merge the spec branch
-        result = self._run_git([
-            "merge", "--no-ff", info.branch,
-            "-m", f"auto-claude: Merge {info.branch}"
-        ])
+        merge_args = ["merge", "--no-ff", info.branch]
+        if no_commit:
+            # --no-commit stages the merge but doesn't create the commit
+            merge_args.append("--no-commit")
+        else:
+            merge_args.extend(["-m", f"auto-claude: Merge {info.branch}"])
+
+        result = self._run_git(merge_args)
 
         if result.returncode != 0:
             print(f"Merge conflict! Aborting merge...")
             self._run_git(["merge", "--abort"])
             return False
 
-        print(f"Successfully merged {info.branch}")
+        if no_commit:
+            print(f"Changes from {info.branch} are now staged in your working directory.")
+            print("Review the changes, then commit when ready:")
+            print(f"  git commit -m 'your commit message'")
+        else:
+            print(f"Successfully merged {info.branch}")
 
         if delete_after:
             self.remove_worktree(spec_name, delete_branch=True)
