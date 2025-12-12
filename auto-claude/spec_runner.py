@@ -1786,6 +1786,11 @@ Examples:
         action="store_true",
         help="Don't automatically start the build after spec creation (default: auto-start build)",
     )
+    parser.add_argument(
+        "--auto-approve",
+        action="store_true",
+        help="Skip human review checkpoint and automatically approve spec for building",
+    )
 
     args = parser.parse_args()
 

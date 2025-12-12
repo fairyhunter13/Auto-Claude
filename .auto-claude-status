@@ -1,25 +1,25 @@
 {
   "active": true,
-  "spec": "005-auto-electron-product-requirements",
-  "state": "complete",
+  "spec": "005-incoporate-human-review-before-coding",
+  "state": "building",
   "chunks": {
-    "completed": 5,
-    "total": 5,
-    "in_progress": 0,
+    "completed": 3,
+    "total": 14,
+    "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Polish",
-    "id": 4,
-    "total": 2
+    "current": "Spec Runner Integration",
+    "id": 2,
+    "total": 3
   },
   "workers": {
     "active": 0,
     "max": 1
   },
   "session": {
-    "number": 5,
-    "started_at": "2025-12-11T11:10:36.896177"
+    "number": 4,
+    "started_at": "2025-12-12T14:58:40.561262"
   },
-  "last_update": "2025-12-11T11:28:02.574839"
+  "last_update": "2025-12-12T15:08:40.112580"
 }
