@@ -90,7 +90,8 @@
             "type": "command",
             "run": "python -c \"from spec_runner import SpecOrchestrator; print('SpecOrchestrator imported')\""
           },
-          "status": "pending",
+          "status": "completed",
+          "completed_at": "2025-12-12T18:30:00.000000",
           "implementation_details": "In SpecOrchestrator.run() method, after phase_validation() completes successfully (around line 1580), add call to review checkpoint. Import from review module. If --auto-approve is set, skip review and auto-create approved state. Otherwise, call run_review_checkpoint(). If user rejects, return False. If user requests edit, open editor and loop back. Save ReviewState after approval."
         },
         {
