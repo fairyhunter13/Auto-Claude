@@ -1,0 +1,71 @@
+{
+  "feature": "Fix Manual Task Status Transition Bug",
+  "workflow_type": "simple",
+  "services_involved": [],
+  "phases": [
+    {
+      "phase": 1,
+      "name": "Fix Status Transition Logic",
+      "type": "implementation",
+      "chunks": [
+        {
+          "id": "chunk-1-1",
+          "description": "Update determineTaskStatus in project-store.ts to accept metadata parameter and return 'human_review' for manual tasks when all chunks completed",
+          "status": "pending",
+          "service": "auto-claude-ui",
+          "files_to_modify": [
+            "auto-claude-ui/src/main/project-store.ts"
+          ],
+          "verification": {
+            "type": "manual",
+            "run": "Check that determineTaskStatus accepts metadata and returns 'human_review' for manual tasks"
+          },
+          "qa_note": "QA Session 1 REJECTED: Implementation was not actually done. The actual_output described changes but git diff shows no modifications to auto-claude-ui/src/main/project-store.ts. Must implement the 3 changes: (1) add metadata parameter, (2) pass metadata at call site, (3) check sourceType when returning status.",
+          "started_at": "2025-12-12T13:21:22.804524",
+          "completed_at": null
+        },
+        {
+          "id": "chunk-1-2",
+          "description": "Update updateTaskFromPlan in task-store.ts to check metadata.sourceType and use 'human_review' for manual tasks",
+          "status": "completed",
+          "service": "auto-claude-ui",
+          "files_to_modify": [
+            "auto-claude-ui/src/renderer/stores/task-store.ts"
+          ],
+          "verification": {
+            "type": "manual",
+            "run": "Check that updateTaskFromPlan uses 'human_review' for manual tasks when all completed"
+          },
+          "actual_output": "Updated line 80-82 in updateTaskFromPlan to check t.metadata?.sourceType === 'manual' and return 'human_review' instead of 'ai_review' when all chunks are completed.",
+          "started_at": "2025-12-12T13:21:22.991236",
+          "completed_at": "2025-12-12T13:35:00.000000"
+        }
+      ]
+    }
+  ],
+  "final_acceptance": [
+    "Manual tasks go to human_review when all chunks completed",
+    "Ideation/imported tasks still go to ai_review when completed",
+    "No TypeScript compilation errors"
+  ],
+  "created_at": "2025-12-12T11:15:00Z",
+  "updated_at": "2025-12-12T13:40:00.000Z",
+  "spec_file": null,
+  "status": "in_progress",
+  "planStatus": "pending",
+  "qa_signoff": {
+    "status": "rejected",
+    "timestamp": "2025-12-12T13:40:00.000Z",
+    "qa_session": 1,
+    "issues_found": [
+      {
+        "type": "critical",
+        "title": "Missing implementation in main/project-store.ts",
+        "location": "auto-claude-ui/src/main/project-store.ts:253-318",
+        "fix_required": "Add metadata parameter to determineTaskStatus, pass it at call site (line 216), and check sourceType when all chunks completed (lines 307-310)"
+      }
+    ],
+    "fix_request_file": "QA_FIX_REQUEST.md"
+  },
+  "recoveryNote": "Task recovered from stuck state at 2025-12-12T12:34:02.467Z"
+}
