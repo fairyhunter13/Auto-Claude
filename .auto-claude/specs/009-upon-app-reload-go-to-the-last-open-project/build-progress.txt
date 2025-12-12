@@ -1,0 +1,33 @@
+# Build Progress: 009-upon-app-reload-go-to-the-last-open-project
+
+## Status: COMPLETED
+
+## Completed Chunks
+
+### chunk-1-1: Update project-store.ts to persist selectedProjectId (COMPLETED)
+- Added localStorage key constant `LAST_SELECTED_PROJECT_KEY`
+- Updated `selectProject()` to persist projectId to localStorage
+- Updated `loadProjects()` to restore from localStorage with validation
+- Falls back to first project if stored project no longer exists
+- Committed: 43290a6
+
+## Implementation Summary
+
+The feature adds localStorage persistence for the last selected project:
+
+1. **Persistence on Selection**: When `selectProject()` is called:
+   - If projectId is provided, saves it to `lastSelectedProjectId` in localStorage
+   - If projectId is null, removes the key from localStorage
+
+2. **Restoration on Load**: When `loadProjects()` runs:
+   - Reads `lastSelectedProjectId` from localStorage
+   - Validates that the stored project ID exists in the loaded projects
+   - If valid, selects the stored project
+   - Otherwise, falls back to selecting the first project
+
+## Manual Verification Steps
+1. Open the app, select a project
+2. Reload the app
+3. Verify the same project is still selected
+4. Select a different project, reload, verify new selection is preserved
+5. If last project was removed, first project should be selected instead
