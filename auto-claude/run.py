@@ -112,140 +112,176 @@ from review import ReviewState, display_review_status
 DEFAULT_MODEL = "claude-opus-4-5-20251101"
 
 
-def collect_followup_task(spec_dir: Path) -> str | None:
+def collect_followup_task(spec_dir: Path, max_retries: int = 3) -> str | None:
     """
     Collect a follow-up task description from the user.
 
     Provides multiple input methods (type, paste, file) similar to the
-    HUMAN_INPUT.md pattern used during build interrupts.
+    HUMAN_INPUT.md pattern used during build interrupts. Includes retry
+    logic for empty input.
 
     Args:
         spec_dir: The spec directory where FOLLOWUP_REQUEST.md will be saved
+        max_retries: Maximum number of times to prompt on empty input (default: 3)
 
     Returns:
         The collected task description, or None if cancelled
     """
-    # Present options menu
-    options = [
-        MenuOption(
-            key="type",
-            label="Type follow-up task",
-            icon=Icons.EDIT,
-            description="Enter a description of additional work needed",
-        ),
-        MenuOption(
-            key="paste",
-            label="Paste from clipboard",
-            icon=Icons.CLIPBOARD,
-            description="Paste text you've copied (Cmd+V / Ctrl+Shift+V)",
-        ),
-        MenuOption(
-            key="file",
-            label="Read from file",
-            icon=Icons.DOCUMENT,
-            description="Load task description from a text file",
-        ),
-        MenuOption(
-            key="quit",
-            label="Cancel",
-            icon=Icons.DOOR,
-            description="Exit without adding follow-up",
-        ),
-    ]
+    retry_count = 0
 
-    choice = select_menu(
-        title="How would you like to provide your follow-up task?",
-        options=options,
-        subtitle="Describe the additional work you want to add to this spec.",
-        allow_quit=False,  # We have explicit quit option
-    )
+    while retry_count < max_retries:
+        # Present options menu
+        options = [
+            MenuOption(
+                key="type",
+                label="Type follow-up task",
+                icon=Icons.EDIT,
+                description="Enter a description of additional work needed",
+            ),
+            MenuOption(
+                key="paste",
+                label="Paste from clipboard",
+                icon=Icons.CLIPBOARD,
+                description="Paste text you've copied (Cmd+V / Ctrl+Shift+V)",
+            ),
+            MenuOption(
+                key="file",
+                label="Read from file",
+                icon=Icons.DOCUMENT,
+                description="Load task description from a text file",
+            ),
+            MenuOption(
+                key="quit",
+                label="Cancel",
+                icon=Icons.DOOR,
+                description="Exit without adding follow-up",
+            ),
+        ]
 
-    if choice == 'quit' or choice is None:
-        return None
+        # Show retry message if this is a retry
+        subtitle = "Describe the additional work you want to add to this spec."
+        if retry_count > 0:
+            subtitle = warning(f"Empty input received. Please try again. ({max_retries - retry_count} attempts remaining)")
 
-    followup_task = ""
+        choice = select_menu(
+            title="How would you like to provide your follow-up task?",
+            options=options,
+            subtitle=subtitle,
+            allow_quit=False,  # We have explicit quit option
+        )
 
-    if choice == 'file':
-        # Read from file
-        print()
-        print(f"{icon(Icons.DOCUMENT)} Enter the path to your task description file:")
-        try:
-            file_path = input(f"  {icon(Icons.POINTER)} ").strip()
-        except (KeyboardInterrupt, EOFError):
-            print()
-            print_status("Cancelled.", "warning")
+        if choice == 'quit' or choice is None:
             return None
 
-        if file_path:
-            try:
-                # Expand ~ and resolve path
-                file_path = Path(file_path).expanduser().resolve()
-                if file_path.exists():
-                    followup_task = file_path.read_text().strip()
-                    print_status(f"Loaded {len(followup_task)} characters from file", "success")
-                else:
-                    print_status(f"File not found: {file_path}", "error")
-                    return None
-            except Exception as e:
-                print_status(f"Error reading file: {e}", "error")
-                return None
+        followup_task = ""
 
-    elif choice in ['type', 'paste']:
-        print()
-        content = [
-            "Enter/paste your follow-up task description below.",
-            "",
-            muted("Describe what additional work you want to add."),
-            muted("The planner will create new chunks based on this."),
-            "",
-            muted("Press Enter on an empty line when done."),
-        ]
-        print(box(content, width=60, style="light"))
-        print()
-
-        lines = []
-        empty_count = 0
-        while True:
+        if choice == 'file':
+            # Read from file
+            print()
+            print(f"{icon(Icons.DOCUMENT)} Enter the path to your task description file:")
             try:
-                line = input()
-                if line == "":
-                    empty_count += 1
-                    if empty_count >= 1:  # Stop on first empty line
-                        break
-                else:
-                    empty_count = 0
-                    lines.append(line)
-            except KeyboardInterrupt:
+                file_path_str = input(f"  {icon(Icons.POINTER)} ").strip()
+            except (KeyboardInterrupt, EOFError):
                 print()
                 print_status("Cancelled.", "warning")
                 return None
-            except EOFError:
-                break
 
-        followup_task = "\n".join(lines).strip()
+            # Handle empty file path
+            if not file_path_str:
+                print()
+                print_status("No file path provided.", "warning")
+                retry_count += 1
+                continue
 
-    # Validate that we have content
-    if not followup_task:
+            try:
+                # Expand ~ and resolve path
+                file_path = Path(file_path_str).expanduser().resolve()
+                if file_path.exists():
+                    followup_task = file_path.read_text().strip()
+                    if followup_task:
+                        print_status(f"Loaded {len(followup_task)} characters from file", "success")
+                    else:
+                        print()
+                        print_status("File is empty. Please provide a file with task description.", "error")
+                        retry_count += 1
+                        continue
+                else:
+                    print_status(f"File not found: {file_path}", "error")
+                    print(muted(f"  Check that the path is correct and the file exists."))
+                    retry_count += 1
+                    continue
+            except PermissionError:
+                print_status(f"Permission denied: cannot read {file_path_str}", "error")
+                print(muted(f"  Check file permissions and try again."))
+                retry_count += 1
+                continue
+            except Exception as e:
+                print_status(f"Error reading file: {e}", "error")
+                retry_count += 1
+                continue
+
+        elif choice in ['type', 'paste']:
+            print()
+            content = [
+                "Enter/paste your follow-up task description below.",
+                "",
+                muted("Describe what additional work you want to add."),
+                muted("The planner will create new chunks based on this."),
+                "",
+                muted("Press Enter on an empty line when done."),
+            ]
+            print(box(content, width=60, style="light"))
+            print()
+
+            lines = []
+            empty_count = 0
+            while True:
+                try:
+                    line = input()
+                    if line == "":
+                        empty_count += 1
+                        if empty_count >= 1:  # Stop on first empty line
+                            break
+                    else:
+                        empty_count = 0
+                        lines.append(line)
+                except KeyboardInterrupt:
+                    print()
+                    print_status("Cancelled.", "warning")
+                    return None
+                except EOFError:
+                    break
+
+            followup_task = "\n".join(lines).strip()
+
+        # Validate that we have content
+        if not followup_task:
+            print()
+            print_status("No task description provided.", "warning")
+            retry_count += 1
+            continue
+
+        # Save to FOLLOWUP_REQUEST.md
+        request_file = spec_dir / "FOLLOWUP_REQUEST.md"
+        request_file.write_text(followup_task)
+
+        # Show confirmation
+        content = [
+            success(f"{icon(Icons.SUCCESS)} FOLLOW-UP TASK SAVED"),
+            "",
+            f"Saved to: {highlight(str(request_file.name))}",
+            "",
+            muted("The planner will create new chunks based on this task."),
+        ]
         print()
-        print_status("No task description provided.", "warning")
-        return None
+        print(box(content, width=70, style="heavy"))
 
-    # Save to FOLLOWUP_REQUEST.md
-    request_file = spec_dir / "FOLLOWUP_REQUEST.md"
-    request_file.write_text(followup_task)
+        return followup_task
 
-    # Show confirmation
-    content = [
-        success(f"{icon(Icons.SUCCESS)} FOLLOW-UP TASK SAVED"),
-        "",
-        f"Saved to: {highlight(str(request_file.name))}",
-        "",
-        muted("The planner will create new chunks based on this task."),
-    ]
+    # Max retries exceeded
     print()
-    print(box(content, width=70, style="heavy"))
-
-    return followup_task
+    print_status("Maximum retry attempts reached. Follow-up cancelled.", "error")
+    return None
 
 
 def get_specs_dir(project_dir: Path, dev_mode: bool = False) -> Path:
@@ -841,24 +877,59 @@ def main() -> None:
             print()
             print(error(f"{icon(Icons.ERROR)} No implementation plan found."))
             print()
-            print("This spec has not been built yet. Run a regular build first:")
-            print(f"  python auto-claude/run.py --spec {spec_dir.name}")
+            content = [
+                "This spec has not been built yet.",
+                "",
+                "Follow-up tasks can only be added to specs that have been",
+                "built at least once. Run a regular build first:",
+                "",
+                highlight(f"  python auto-claude/run.py --spec {spec_dir.name}"),
+                "",
+                muted("After the build completes, you can add follow-up tasks."),
+            ]
+            print(box(content, width=70, style="light"))
             sys.exit(1)
 
         # Check if build is complete
         if not is_build_complete(spec_dir):
             completed, total = count_chunks(spec_dir)
+            pending = total - completed
             print()
             print(error(f"{icon(Icons.ERROR)} Build not complete ({completed}/{total} chunks)."))
             print()
-            print("Follow-up tasks can only be added to completed specs.")
-            print("Complete the current build first:")
-            print(f"  python auto-claude/run.py --spec {spec_dir.name}")
+            content = [
+                f"There are still {pending} pending chunk(s) to complete.",
+                "",
+                "Follow-up tasks can only be added after all current chunks",
+                "are finished. Complete the current build first:",
+                "",
+                highlight(f"  python auto-claude/run.py --spec {spec_dir.name}"),
+                "",
+                muted("The build will continue from where it left off."),
+            ]
+            print(box(content, width=70, style="light"))
             sys.exit(1)
+
+        # Check for prior follow-ups (for sequential follow-up context)
+        prior_followup_count = 0
+        try:
+            with open(plan_file, "r") as f:
+                plan_data = json.load(f)
+            phases = plan_data.get("phases", [])
+            # Count phases that look like follow-up phases (name contains "Follow" or high phase number)
+            for phase in phases:
+                phase_name = phase.get("name", "")
+                if "follow" in phase_name.lower() or "followup" in phase_name.lower():
+                    prior_followup_count += 1
+        except (json.JSONDecodeError, KeyError):
+            pass  # If plan parsing fails, just continue without prior count
 
         # Build is complete - proceed to follow-up workflow
         print()
-        print(success(f"{icon(Icons.SUCCESS)} Build is complete. Ready for follow-up tasks."))
+        if prior_followup_count > 0:
+            print(success(f"{icon(Icons.SUCCESS)} Build is complete ({prior_followup_count} prior follow-up(s)). Ready for more follow-up tasks."))
+        else:
+            print(success(f"{icon(Icons.SUCCESS)} Build is complete. Ready for follow-up tasks."))
 
         # Collect follow-up task from user
         followup_task = collect_followup_task(spec_dir)
