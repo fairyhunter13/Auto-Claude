@@ -64,9 +64,15 @@ Usage:
     append_pattern(spec_dir, "Use try/except with specific exceptions, log errors with context")
 
 Graphiti Integration:
-    When GRAPHITI_ENABLED=true and OPENAI_API_KEY is set, session insights
+    When GRAPHITI_ENABLED=true and a valid provider is configured, session insights
     and discoveries are also saved to the Graphiti knowledge graph.
     This enables semantic search and cross-session context retrieval.
+
+    Supported providers:
+    - LLM: OpenAI, Anthropic, Azure OpenAI, Ollama
+    - Embedder: OpenAI, Voyage AI, Azure OpenAI, Ollama
+
+    See graphiti_config.py for provider configuration details.
 
     # Check if Graphiti is enabled
     from memory import is_graphiti_memory_enabled
@@ -96,7 +102,10 @@ def is_graphiti_memory_enabled() -> bool:
 
     Returns True if:
     - GRAPHITI_ENABLED is set to true/1/yes
-    - OPENAI_API_KEY is set (required for embeddings)
+    - A valid LLM provider is configured (OpenAI, Anthropic, Azure, or Ollama)
+    - A valid embedder provider is configured (OpenAI, Voyage, Azure, or Ollama)
+
+    See graphiti_config.py for detailed provider requirements.
     """
     try:
         from graphiti_config import is_graphiti_enabled
