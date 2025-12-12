@@ -30,10 +30,25 @@ Usage:
 
 import hashlib
 import json
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
+
+from ui import (
+    Icons,
+    icon,
+    box,
+    bold,
+    muted,
+    highlight,
+    success,
+    warning,
+    info,
+    print_status,
+    print_header,
+)
 
 
 # State file name
@@ -248,3 +263,356 @@ def get_review_status_summary(spec_dir: Path) -> dict:
         "feedback_count": len(state.feedback),
         "spec_changed": state.spec_hash != current_hash if state.spec_hash else False,
     }
+
+
+# =============================================================================
+# Display Functions
+# =============================================================================
+
+def _extract_section(content: str, header: str, next_header_pattern: str = r"^## ") -> str:
+    """
+    Extract content from a markdown section.
+
+    Args:
+        content: Full markdown content
+        header: Header to find (e.g., "## Overview")
+        next_header_pattern: Regex pattern for next section header
+
+    Returns:
+        Content of the section (without the header), or empty string if not found
+    """
+    # Find the header
+    header_pattern = rf"^{re.escape(header)}\s*$"
+    match = re.search(header_pattern, content, re.MULTILINE)
+    if not match:
+        return ""
+
+    # Get content from after the header
+    start = match.end()
+    remaining = content[start:]
+
+    # Find the next section header
+    next_match = re.search(next_header_pattern, remaining, re.MULTILINE)
+    if next_match:
+        section = remaining[:next_match.start()]
+    else:
+        section = remaining
+
+    return section.strip()
+
+
+def _truncate_text(text: str, max_lines: int = 5, max_chars: int = 300) -> str:
+    """Truncate text to fit display constraints."""
+    lines = text.split("\n")
+    truncated_lines = lines[:max_lines]
+    result = "\n".join(truncated_lines)
+
+    if len(result) > max_chars:
+        result = result[:max_chars - 3] + "..."
+    elif len(lines) > max_lines:
+        result += "\n..."
+
+    return result
+
+
+def _extract_table_rows(content: str, table_header: str) -> list[tuple[str, str, str]]:
+    """
+    Extract rows from a markdown table.
+
+    Returns list of tuples with table cell values.
+    """
+    rows = []
+    in_table = False
+    header_found = False
+
+    for line in content.split("\n"):
+        line = line.strip()
+
+        # Look for table header row containing the specified text
+        if table_header.lower() in line.lower() and "|" in line:
+            in_table = True
+            header_found = True
+            continue
+
+        # Skip separator line
+        if in_table and header_found and re.match(r"^\|[\s\-:|]+\|$", line):
+            header_found = False
+            continue
+
+        # Parse table rows
+        if in_table and line.startswith("|") and line.endswith("|"):
+            cells = [c.strip() for c in line.split("|")[1:-1]]
+            if len(cells) >= 2:
+                rows.append(tuple(cells[:3]) if len(cells) >= 3 else (*cells, ""))
+
+        # End of table
+        elif in_table and not line.startswith("|") and line:
+            break
+
+    return rows
+
+
+def display_spec_summary(spec_dir: Path) -> None:
+    """
+    Display key sections of spec.md for human review.
+
+    Extracts and displays:
+    - Overview
+    - Workflow Type
+    - Files to Modify
+    - Success Criteria
+
+    Uses formatted boxes for readability.
+
+    Args:
+        spec_dir: Path to the spec directory
+    """
+    spec_file = Path(spec_dir) / "spec.md"
+
+    if not spec_file.exists():
+        print_status("spec.md not found", "error")
+        return
+
+    try:
+        content = spec_file.read_text(encoding="utf-8")
+    except (IOError, UnicodeDecodeError) as e:
+        print_status(f"Could not read spec.md: {e}", "error")
+        return
+
+    # Extract the title from first H1
+    title_match = re.search(r"^#\s+(.+)$", content, re.MULTILINE)
+    title = title_match.group(1) if title_match else "Specification"
+
+    # Build summary content
+    summary_lines = []
+
+    # Title
+    summary_lines.append(bold(f"{icon(Icons.DOCUMENT)} {title}"))
+    summary_lines.append("")
+
+    # Overview
+    overview = _extract_section(content, "## Overview")
+    if overview:
+        summary_lines.append(highlight("Overview:"))
+        truncated = _truncate_text(overview, max_lines=4, max_chars=250)
+        for line in truncated.split("\n"):
+            summary_lines.append(f"  {line}")
+        summary_lines.append("")
+
+    # Workflow Type
+    workflow_section = _extract_section(content, "## Workflow Type")
+    if workflow_section:
+        # Extract just the type value
+        type_match = re.search(r"\*\*Type\*\*:\s*(\w+)", workflow_section)
+        if type_match:
+            summary_lines.append(f"{muted('Workflow:')} {type_match.group(1)}")
+
+    # Files to Modify
+    files_section = _extract_section(content, "## Files to Modify")
+    if files_section:
+        files = _extract_table_rows(files_section, "File")
+        if files:
+            summary_lines.append("")
+            summary_lines.append(highlight("Files to Modify:"))
+            for row in files[:6]:  # Show max 6 files
+                filename = row[0] if row else ""
+                # Strip markdown formatting
+                filename = re.sub(r"`([^`]+)`", r"\1", filename)
+                if filename:
+                    summary_lines.append(f"  {icon(Icons.FILE)} {filename}")
+            if len(files) > 6:
+                summary_lines.append(f"  {muted(f'... and {len(files) - 6} more')}")
+
+    # Files to Create
+    create_section = _extract_section(content, "## Files to Create")
+    if create_section:
+        files = _extract_table_rows(create_section, "File")
+        if files:
+            summary_lines.append("")
+            summary_lines.append(highlight("Files to Create:"))
+            for row in files[:4]:
+                filename = row[0] if row else ""
+                filename = re.sub(r"`([^`]+)`", r"\1", filename)
+                if filename:
+                    summary_lines.append(success(f"  + {filename}"))
+
+    # Success Criteria
+    criteria = _extract_section(content, "## Success Criteria")
+    if criteria:
+        summary_lines.append("")
+        summary_lines.append(highlight("Success Criteria:"))
+        # Extract checkbox items
+        checkboxes = re.findall(r"^\s*[-*]\s*\[[ x]\]\s*(.+)$", criteria, re.MULTILINE)
+        for item in checkboxes[:5]:
+            summary_lines.append(f"  {icon(Icons.PENDING)} {item[:60]}{'...' if len(item) > 60 else ''}")
+        if len(checkboxes) > 5:
+            summary_lines.append(f"  {muted(f'... and {len(checkboxes) - 5} more')}")
+
+    # Print the summary box
+    print()
+    print(box(summary_lines, width=80, style="heavy"))
+
+
+def display_plan_summary(spec_dir: Path) -> None:
+    """
+    Display summary of implementation_plan.json for human review.
+
+    Shows:
+    - Phase count and names
+    - Chunk count per phase
+    - Total work estimate
+    - Services involved
+
+    Args:
+        spec_dir: Path to the spec directory
+    """
+    plan_file = Path(spec_dir) / "implementation_plan.json"
+
+    if not plan_file.exists():
+        print_status("implementation_plan.json not found", "error")
+        return
+
+    try:
+        with open(plan_file, "r") as f:
+            plan = json.load(f)
+    except (json.JSONDecodeError, IOError) as e:
+        print_status(f"Could not read implementation_plan.json: {e}", "error")
+        return
+
+    # Build summary content
+    summary_lines = []
+
+    feature_name = plan.get("feature", "Implementation Plan")
+    summary_lines.append(bold(f"{icon(Icons.GEAR)} {feature_name}"))
+    summary_lines.append("")
+
+    # Overall stats
+    phases = plan.get("phases", [])
+    total_chunks = sum(len(p.get("chunks", [])) for p in phases)
+    completed_chunks = sum(
+        1 for p in phases
+        for c in p.get("chunks", [])
+        if c.get("status") == "completed"
+    )
+    services = plan.get("services_involved", [])
+
+    summary_lines.append(f"{muted('Phases:')} {len(phases)}")
+    summary_lines.append(f"{muted('Chunks:')} {completed_chunks}/{total_chunks} completed")
+    if services:
+        summary_lines.append(f"{muted('Services:')} {', '.join(services)}")
+
+    # Phases breakdown
+    if phases:
+        summary_lines.append("")
+        summary_lines.append(highlight("Implementation Phases:"))
+
+        for phase in phases:
+            phase_num = phase.get("phase", "?")
+            phase_name = phase.get("name", "Unknown")
+            chunks = phase.get("chunks", [])
+            chunk_count = len(chunks)
+            completed = sum(1 for c in chunks if c.get("status") == "completed")
+
+            # Determine phase status icon
+            if completed == chunk_count and chunk_count > 0:
+                status_icon = icon(Icons.SUCCESS)
+                phase_display = success(f"Phase {phase_num}: {phase_name}")
+            elif completed > 0:
+                status_icon = icon(Icons.IN_PROGRESS)
+                phase_display = info(f"Phase {phase_num}: {phase_name}")
+            else:
+                status_icon = icon(Icons.PENDING)
+                phase_display = f"Phase {phase_num}: {phase_name}"
+
+            summary_lines.append(f"  {status_icon} {phase_display} ({completed}/{chunk_count} chunks)")
+
+            # Show chunk details for non-completed phases
+            if completed < chunk_count:
+                for chunk in chunks[:3]:  # Show max 3 chunks
+                    chunk_id = chunk.get("id", "")
+                    chunk_desc = chunk.get("description", "")
+                    chunk_status = chunk.get("status", "pending")
+
+                    if chunk_status == "completed":
+                        status_str = success(icon(Icons.SUCCESS))
+                    elif chunk_status == "in_progress":
+                        status_str = info(icon(Icons.IN_PROGRESS))
+                    else:
+                        status_str = muted(icon(Icons.PENDING))
+
+                    # Truncate description
+                    desc_short = chunk_desc[:50] + "..." if len(chunk_desc) > 50 else chunk_desc
+                    summary_lines.append(f"      {status_str} {muted(chunk_id)}: {desc_short}")
+
+                if len(chunks) > 3:
+                    remaining = len(chunks) - 3
+                    summary_lines.append(f"      {muted(f'... {remaining} more chunks')}")
+
+    # Parallelism info
+    summary_section = plan.get("summary", {})
+    parallelism = summary_section.get("parallelism", {})
+    if parallelism:
+        recommended_workers = parallelism.get("recommended_workers", 1)
+        if recommended_workers > 1:
+            summary_lines.append("")
+            summary_lines.append(
+                f"{icon(Icons.LIGHTNING)} {highlight('Parallel execution supported:')} "
+                f"{recommended_workers} workers recommended"
+            )
+
+    # Print the summary box
+    print()
+    print(box(summary_lines, width=80, style="light"))
+
+
+def display_review_status(spec_dir: Path) -> None:
+    """
+    Display the current review/approval status.
+
+    Shows whether spec is approved, by whom, and if changes have been detected.
+
+    Args:
+        spec_dir: Path to the spec directory
+    """
+    status = get_review_status_summary(spec_dir)
+    state = ReviewState.load(spec_dir)
+
+    content = []
+
+    if status["approved"]:
+        if status["valid"]:
+            content.append(success(f"{icon(Icons.SUCCESS)} APPROVED"))
+            content.append("")
+            content.append(f"{muted('Approved by:')} {status['approved_by']}")
+            if status["approved_at"]:
+                # Format the timestamp nicely
+                try:
+                    dt = datetime.fromisoformat(status["approved_at"])
+                    formatted = dt.strftime("%Y-%m-%d %H:%M")
+                    content.append(f"{muted('Approved at:')} {formatted}")
+                except ValueError:
+                    content.append(f"{muted('Approved at:')} {status['approved_at']}")
+        else:
+            content.append(warning(f"{icon(Icons.WARNING)} APPROVAL STALE"))
+            content.append("")
+            content.append("The spec has been modified since approval.")
+            content.append("Re-approval is required before building.")
+    else:
+        content.append(info(f"{icon(Icons.INFO)} NOT YET APPROVED"))
+        content.append("")
+        content.append("This spec requires human review before building.")
+
+    # Show review history
+    if status["review_count"] > 0:
+        content.append("")
+        content.append(f"{muted('Review sessions:')} {status['review_count']}")
+
+    # Show feedback if any
+    if state.feedback:
+        content.append("")
+        content.append(highlight("Recent Feedback:"))
+        for fb in state.feedback[-3:]:  # Show last 3 feedback items
+            content.append(f"  {muted('•')} {fb[:60]}{'...' if len(fb) > 60 else ''}")
+
+    print()
+    print(box(content, width=60, style="light"))
