@@ -79,6 +79,17 @@ export interface QAIssue {
   line?: number;
 }
 
+// Image attachment types for task creation
+export interface ImageAttachment {
+  id: string;           // Unique identifier (UUID)
+  filename: string;     // Original filename
+  mimeType: string;     // e.g., 'image/png'
+  size: number;         // Size in bytes
+  data?: string;        // Base64 data (for transport)
+  path?: string;        // Relative path after storage
+  thumbnail?: string;   // Base64 thumbnail for preview
+}
+
 // Task metadata from ideation or manual entry
 export type TaskComplexity = 'trivial' | 'small' | 'medium' | 'large' | 'complex';
 export type TaskImpact = 'low' | 'medium' | 'high' | 'critical';
@@ -124,6 +135,9 @@ export interface TaskMetadata {
   performanceCategory?: string;
   uiuxCategory?: string;
   codeQualitySeverity?: 'suggestion' | 'minor' | 'major' | 'critical';
+
+  // Image attachments (screenshots, mockups, diagrams)
+  attachedImages?: ImageAttachment[];
 }
 
 export interface Task {
@@ -491,6 +505,41 @@ export interface GraphitiMemoryStatus {
   reason?: string;
 }
 
+// Graphiti Provider Types (Memory System V2)
+export type GraphitiProviderType = 'openai' | 'anthropic' | 'google' | 'groq';
+export type GraphitiEmbeddingProvider = 'openai' | 'voyage' | 'google' | 'huggingface';
+
+export interface GraphitiProviderConfig {
+  // LLM Provider
+  llmProvider: GraphitiProviderType;
+  llmModel?: string;  // Model name, uses provider default if not specified
+
+  // Embedding Provider
+  embeddingProvider: GraphitiEmbeddingProvider;
+  embeddingModel?: string;  // Embedding model, uses provider default if not specified
+
+  // Provider-specific API keys (stored securely)
+  openaiApiKey?: string;
+  anthropicApiKey?: string;
+  googleApiKey?: string;
+  groqApiKey?: string;
+  voyageApiKey?: string;
+
+  // FalkorDB connection (required for all providers)
+  falkorDbHost?: string;
+  falkorDbPort?: number;
+  falkorDbPassword?: string;
+}
+
+export interface GraphitiProviderInfo {
+  id: GraphitiProviderType;
+  name: string;
+  description: string;
+  requiresApiKey: boolean;
+  defaultModel: string;
+  supportedModels: string[];
+}
+
 export interface GraphitiMemoryState {
   initialized: boolean;
   database?: string;
@@ -705,8 +754,10 @@ export interface ProjectEnvConfig {
   githubRepo?: string; // Format: owner/repo
   githubAutoSync?: boolean; // Auto-sync issues on project load
 
-  // Graphiti Memory Integration
+  // Graphiti Memory Integration (V2 - Multi-provider support)
   graphitiEnabled: boolean;
+  graphitiProviderConfig?: GraphitiProviderConfig;  // New V2 provider configuration
+  // Legacy fields (still supported for backward compatibility)
   openaiApiKey?: string;
   // Indicates if the OpenAI key is from global settings (not project-specific)
   openaiKeyIsGlobal?: boolean;
@@ -1050,6 +1101,7 @@ export interface ElectronAPI {
   getTasks: (projectId: string) => Promise<IPCResult<Task[]>>;
   createTask: (projectId: string, title: string, description: string, metadata?: TaskMetadata) => Promise<IPCResult<Task>>;
   deleteTask: (taskId: string) => Promise<IPCResult>;
+  updateTask: (taskId: string, updates: { title?: string; description?: string }) => Promise<IPCResult<Task>>;
   startTask: (taskId: string, options?: TaskStartOptions) => void;
   stopTask: (taskId: string) => void;
   submitReview: (taskId: string, approved: boolean, feedback?: string) => Promise<IPCResult>;

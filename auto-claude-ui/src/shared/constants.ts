@@ -131,6 +131,7 @@ export const IPC_CHANNELS = {
   TASK_LIST: 'task:list',
   TASK_CREATE: 'task:create',
   TASK_DELETE: 'task:delete',
+  TASK_UPDATE: 'task:update',
   TASK_START: 'task:start',
   TASK_STOP: 'task:stop',
   TASK_REVIEW: 'task:review',
@@ -644,3 +645,32 @@ export const CHANGELOG_STAGE_LABELS: Record<string, string> = {
 
 // Default changelog file path
 export const DEFAULT_CHANGELOG_PATH = 'CHANGELOG.md';
+
+// ============================================
+// Image Upload Constants
+// ============================================
+
+// Maximum image file size (10 MB)
+export const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
+
+// Maximum number of images per task
+export const MAX_IMAGES_PER_TASK = 10;
+
+// Allowed image MIME types
+export const ALLOWED_IMAGE_TYPES = [
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
+  'image/gif',
+  'image/webp',
+  'image/svg+xml'
+] as const;
+
+// Allowed image file extensions (for display)
+export const ALLOWED_IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'] as const;
+
+// Human-readable allowed types for error messages
+export const ALLOWED_IMAGE_TYPES_DISPLAY = 'PNG, JPEG, GIF, WebP, SVG';
+
+// Attachments directory name within spec folder
+export const ATTACHMENTS_DIR = 'attachments';

@@ -60,6 +60,7 @@ elif dev_env_file.exists():
 from client import create_client
 from validate_spec import SpecValidator, auto_fix_plan
 from linear_updater import is_linear_enabled, create_linear_task
+from review import ReviewState, run_review_checkpoint
 from ui import (
     Icons,
     icon,
@@ -86,6 +87,7 @@ from debug import (
     debug_warning,
     debug_section,
 )
+from graphiti_providers import get_graph_hints, is_graphiti_enabled
 
 
 # Configuration
@@ -145,19 +147,21 @@ class ComplexityAssessment:
         # If AI provided recommended phases, use those
         if self.recommended_phases:
             return self.recommended_phases
-        
+
         # Otherwise fall back to default phase sets
+        # Note: historical_context runs early (after discovery) if Graphiti is enabled
+        # It's included by default but gracefully skips if not configured
         if self.complexity == Complexity.SIMPLE:
-            return ["discovery", "quick_spec", "validation"]
+            return ["discovery", "historical_context", "quick_spec", "validation"]
         elif self.complexity == Complexity.STANDARD:
             # Standard can optionally include research if flagged
-            phases = ["discovery", "requirements"]
+            phases = ["discovery", "historical_context", "requirements"]
             if self.needs_research:
                 phases.append("research")
             phases.extend(["context", "spec_writing", "planning", "validation"])
             return phases
         else:  # COMPLEX
-            return ["discovery", "requirements", "research", "context", "spec_writing", "self_critique", "planning", "validation"]
+            return ["discovery", "historical_context", "requirements", "research", "context", "spec_writing", "self_critique", "planning", "validation"]
 
 
 class ComplexityAnalyzer:
@@ -773,6 +777,101 @@ class SpecOrchestrator:
             print_status(f"Attempt {attempt + 1} failed: {output[:200]}", "error")
 
         return PhaseResult("discovery", False, [], errors, retries)
+
+    async def phase_historical_context(self) -> PhaseResult:
+        """Retrieve historical context from Graphiti knowledge graph (if enabled).
+
+        This phase runs early in the pipeline to gather hints from past sessions
+        and similar tasks that can inform requirements and spec creation.
+        """
+        hints_file = self.spec_dir / "graph_hints.json"
+
+        # Check if hints already exist
+        if hints_file.exists():
+            print_status("graph_hints.json already exists", "success")
+            return PhaseResult("historical_context", True, [str(hints_file)], [], 0)
+
+        # Check if Graphiti is enabled
+        if not is_graphiti_enabled():
+            print_status("Graphiti not enabled, skipping historical context", "info")
+            # Create empty hints file
+            with open(hints_file, "w") as f:
+                json.dump({
+                    "enabled": False,
+                    "reason": "Graphiti not configured",
+                    "hints": [],
+                    "created_at": datetime.now().isoformat(),
+                }, f, indent=2)
+            return PhaseResult("historical_context", True, [str(hints_file)], [], 0)
+
+        # Get graph hints for this task
+        task_query = self.task_description or ""
+
+        # If we have requirements, use the full task description
+        requirements_file = self.spec_dir / "requirements.json"
+        if requirements_file.exists():
+            try:
+                with open(requirements_file) as f:
+                    req = json.load(f)
+                    task_query = req.get("task_description", task_query)
+            except (json.JSONDecodeError, IOError):
+                pass
+
+        if not task_query:
+            print_status("No task description for graph query, skipping", "warning")
+            with open(hints_file, "w") as f:
+                json.dump({
+                    "enabled": True,
+                    "reason": "No task description available",
+                    "hints": [],
+                    "created_at": datetime.now().isoformat(),
+                }, f, indent=2)
+            return PhaseResult("historical_context", True, [str(hints_file)], [], 0)
+
+        print_status("Querying Graphiti knowledge graph...", "progress")
+
+        try:
+            hints = await get_graph_hints(
+                query=task_query,
+                project_id=str(self.project_dir),
+                max_results=10,
+            )
+
+            # Save hints to file
+            with open(hints_file, "w") as f:
+                json.dump({
+                    "enabled": True,
+                    "query": task_query,
+                    "hints": hints,
+                    "hint_count": len(hints),
+                    "created_at": datetime.now().isoformat(),
+                }, f, indent=2)
+
+            if hints:
+                print_status(f"Retrieved {len(hints)} graph hints", "success")
+                # Show a preview of what was found
+                hint_types = {}
+                for h in hints:
+                    ht = h.get("type", "unknown")
+                    hint_types[ht] = hint_types.get(ht, 0) + 1
+                for ht, count in hint_types.items():
+                    print(f"  {muted(f'• {ht}:')} {count}")
+            else:
+                print_status("No relevant graph hints found", "info")
+
+            return PhaseResult("historical_context", True, [str(hints_file)], [], 0)
+
+        except Exception as e:
+            print_status(f"Graph query failed: {e}", "warning")
+            # Create error hints file but don't fail the phase
+            with open(hints_file, "w") as f:
+                json.dump({
+                    "enabled": True,
+                    "error": str(e),
+                    "hints": [],
+                    "created_at": datetime.now().isoformat(),
+                }, f, indent=2)
+            return PhaseResult("historical_context", True, [str(hints_file)], [str(e)], 0)
 
     def _open_editor_for_input(self, field_name: str) -> str:
         """Open the user's editor for long-form text input."""
@@ -1458,8 +1557,16 @@ Read the failed files, understand the errors, and fix them.
 
     # === Main Orchestration ===
 
-    async def run(self, interactive: bool = True) -> bool:
-        """Run the spec creation process with dynamic phase selection."""
+    async def run(self, interactive: bool = True, auto_approve: bool = False) -> bool:
+        """Run the spec creation process with dynamic phase selection.
+
+        Args:
+            interactive: Whether to run in interactive mode for requirements gathering
+            auto_approve: Whether to skip human review checkpoint and auto-approve
+
+        Returns:
+            True if spec creation and review completed successfully, False otherwise
+        """
         debug_section("spec_runner", "Starting Spec Creation")
         debug("spec_runner", "Configuration",
               spec_dir=str(self.spec_dir),
@@ -1482,6 +1589,7 @@ Read the failed files, understand the errors, and fix them.
         # Phase display names and icons
         phase_display = {
             "discovery": ("PROJECT DISCOVERY", Icons.FOLDER),
+            "historical_context": ("HISTORICAL CONTEXT", Icons.SEARCH),
             "requirements": ("REQUIREMENTS GATHERING", Icons.FILE),
             "complexity_assessment": ("COMPLEXITY ASSESSMENT", Icons.GEAR),
             "research": ("INTEGRATION RESEARCH", Icons.SEARCH),
@@ -1540,6 +1648,7 @@ Read the failed files, understand the errors, and fix them.
 
         # Map of all available phases (remaining after discovery/requirements/complexity)
         all_phases = {
+            "historical_context": self.phase_historical_context,
             "research": self.phase_research,
             "context": self.phase_context,
             "spec_writing": self.phase_spec_writing,
@@ -1593,6 +1702,36 @@ Read the failed files, understand the errors, and fix them.
             title=f"{icon(Icons.SUCCESS)} SPEC CREATION COMPLETE",
             style="heavy"
         ))
+
+        # === HUMAN REVIEW CHECKPOINT ===
+        # Pause before build to allow human to review spec and implementation plan
+        print()
+        print_section("HUMAN REVIEW CHECKPOINT", Icons.SEARCH)
+
+        try:
+            review_state = run_review_checkpoint(
+                spec_dir=self.spec_dir,
+                auto_approve=auto_approve,
+            )
+
+            if not review_state.is_approved():
+                # User rejected or exited without approval
+                print()
+                print_status("Build will not proceed without approval.", "warning")
+                return False
+
+            debug_success("spec_runner", "Review checkpoint passed - spec approved")
+
+        except SystemExit as e:
+            # run_review_checkpoint may call sys.exit() on reject or Ctrl+C
+            if e.code != 0:
+                return False
+            # Code 0 means graceful exit (e.g., Ctrl+C with saved feedback)
+            return False
+        except KeyboardInterrupt:
+            print()
+            print_status("Review interrupted. Run again to continue.", "info")
+            return False
 
         return True
 
@@ -1683,6 +1822,11 @@ Examples:
         type=Path,
         help="Use existing spec directory instead of creating a new one (for UI integration)",
     )
+    parser.add_argument(
+        "--auto-approve",
+        action="store_true",
+        help="Skip human review checkpoint and automatically approve spec for building",
+    )
 
     args = parser.parse_args()
 
@@ -1736,13 +1880,29 @@ Examples:
     )
 
     try:
-        success = asyncio.run(orchestrator.run(interactive=args.interactive or not task_description))
+        success = asyncio.run(orchestrator.run(
+            interactive=args.interactive or not task_description,
+            auto_approve=args.auto_approve,
+        ))
 
         if not success:
             sys.exit(1)
 
         # Auto-start build unless --no-build is specified
         if not args.no_build:
+            # Verify spec is approved before starting build (defensive check)
+            review_state = ReviewState.load(orchestrator.spec_dir)
+            if not review_state.is_approved():
+                print()
+                print_status("Build cannot start: spec not approved.", "error")
+                print()
+                print(f"  {muted('To approve the spec, run:')}")
+                print(f"  {highlight(f'python auto-claude/review.py --spec-dir {orchestrator.spec_dir}')}")
+                print()
+                print(f"  {muted('Or re-run spec_runner with --auto-approve to skip review:')}")
+                print(f"  {highlight(f'python auto-claude/spec_runner.py --task \"...\" --auto-approve')}")
+                sys.exit(1)
+
             print()
             print_section("STARTING BUILD", Icons.LIGHTNING)
             print()

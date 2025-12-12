@@ -105,6 +105,7 @@ from qa_loop import (
     is_qa_approved,
     print_qa_status,
 )
+from review import ReviewState, display_review_status
 
 
 # Configuration
@@ -297,6 +298,10 @@ Examples:
   python auto-claude/run.py --spec 001 --direct       # Skip workspace isolation
   python auto-claude/run.py --spec 001 --isolated     # Force workspace isolation
 
+  # Status checks
+  python auto-claude/run.py --spec 001 --review-status  # Check human review status
+  python auto-claude/run.py --spec 001 --qa-status      # Check QA validation status
+
 Prerequisites:
   1. Create a spec first: claude /spec
   2. Run 'claude setup-token' and set CLAUDE_CODE_OAUTH_TOKEN
@@ -403,6 +408,13 @@ Environment Variables:
         help="Skip automatic QA validation after build completes",
     )
 
+    # Review options
+    parser.add_argument(
+        "--review-status",
+        action="store_true",
+        help="Show human review/approval status for a spec",
+    )
+
     # Dev mode
     parser.add_argument(
         "--dev",
@@ -427,6 +439,13 @@ Environment Variables:
         "--cleanup-worktrees",
         action="store_true",
         help="Remove all spec worktrees and their branches (with confirmation)",
+    )
+
+    # Force bypass
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip approval check and start build anyway (for debugging)",
     )
 
     return parser.parse_args()
@@ -609,6 +628,23 @@ def main() -> None:
         print_qa_status(spec_dir)
         return
 
+    # Handle review status command
+    if args.review_status:
+        print_banner()
+        print(f"\nSpec: {spec_dir.name}\n")
+        display_review_status(spec_dir)
+        # Also show if approval is valid for build
+        review_state = ReviewState.load(spec_dir)
+        print()
+        if review_state.is_approval_valid(spec_dir):
+            print(success(f"{icon(Icons.SUCCESS)} Ready to build - approval is valid."))
+        elif review_state.approved:
+            print(warning(f"{icon(Icons.WARNING)} Spec changed since approval - re-review required."))
+        else:
+            print(info(f"{icon(Icons.INFO)} Review required before building."))
+        print()
+        return
+
     if args.qa:
         # Run QA validation loop directly
         print_banner()
@@ -665,6 +701,42 @@ def main() -> None:
     # Validate environment
     if not validate_environment(spec_dir):
         sys.exit(1)
+
+    # Check human review approval
+    review_state = ReviewState.load(spec_dir)
+    if not review_state.is_approval_valid(spec_dir):
+        if args.force:
+            # User explicitly bypassed approval check
+            print()
+            print(warning(f"{icon(Icons.WARNING)} WARNING: Bypassing approval check with --force"))
+            print(muted("This spec has not been approved for building."))
+            print()
+        else:
+            print()
+            content = [
+                bold(f"{icon(Icons.WARNING)} BUILD BLOCKED - REVIEW REQUIRED"),
+                "",
+                "This spec requires human approval before building.",
+            ]
+
+            if review_state.approved and not review_state.is_approval_valid(spec_dir):
+                # Spec changed after approval
+                content.append("")
+                content.append(warning("The spec has been modified since approval."))
+                content.append("Please re-review and re-approve.")
+
+            content.extend([
+                "",
+                highlight("To review and approve:"),
+                f"  python auto-claude/review.py --spec-dir {spec_dir}",
+                "",
+                muted("Or use --force to bypass this check (not recommended)."),
+            ])
+            print(box(content, width=70, style="heavy"))
+            print()
+            sys.exit(1)
+    else:
+        debug_success("run.py", "Review approval validated", approved_by=review_state.approved_by)
 
     # Check for existing build
     if get_existing_build_worktree(project_dir, spec_dir.name):

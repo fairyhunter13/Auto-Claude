@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Loader2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronUp, Image as ImageIcon } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -19,9 +19,10 @@ import {
   SelectTrigger,
   SelectValue
 } from './ui/select';
+import { ImageUpload } from './ImageUpload';
 import { createTask } from '../stores/task-store';
 import { cn } from '../lib/utils';
-import type { TaskCategory, TaskPriority, TaskComplexity, TaskImpact, TaskMetadata } from '../../shared/types';
+import type { TaskCategory, TaskPriority, TaskComplexity, TaskImpact, TaskMetadata, ImageAttachment } from '../../shared/types';
 import {
   TASK_CATEGORY_LABELS,
   TASK_PRIORITY_LABELS,
@@ -45,12 +46,16 @@ export function TaskCreationWizard({
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [showImages, setShowImages] = useState(false);
 
   // Metadata fields
   const [category, setCategory] = useState<TaskCategory | ''>('');
   const [priority, setPriority] = useState<TaskPriority | ''>('');
   const [complexity, setComplexity] = useState<TaskComplexity | ''>('');
   const [impact, setImpact] = useState<TaskImpact | ''>('');
+
+  // Image attachments
+  const [images, setImages] = useState<ImageAttachment[]>([]);
 
   const handleCreate = async () => {
     if (!title.trim() || !description.trim()) {
@@ -71,6 +76,7 @@ export function TaskCreationWizard({
       if (priority) metadata.priority = priority;
       if (complexity) metadata.complexity = complexity;
       if (impact) metadata.impact = impact;
+      if (images.length > 0) metadata.attachedImages = images;
 
       const task = await createTask(projectId, title.trim(), description.trim(), metadata);
       if (task) {
@@ -94,8 +100,10 @@ export function TaskCreationWizard({
     setPriority('');
     setComplexity('');
     setImpact('');
+    setImages([]);
     setError(null);
     setShowAdvanced(false);
+    setShowImages(false);
   };
 
   const handleClose = () => {
@@ -107,7 +115,7 @@ export function TaskCreationWizard({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-foreground">Create New Task</DialogTitle>
           <DialogDescription>
@@ -268,6 +276,46 @@ export function TaskCreationWizard({
               <p className="text-xs text-muted-foreground">
                 These labels help organize and prioritize tasks. They&apos;re optional but useful for filtering.
               </p>
+            </div>
+          )}
+
+          {/* Images Toggle */}
+          <button
+            type="button"
+            onClick={() => setShowImages(!showImages)}
+            className={cn(
+              'flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors',
+              'w-full justify-between py-2 px-3 rounded-md hover:bg-muted/50'
+            )}
+            disabled={isCreating}
+          >
+            <span className="flex items-center gap-2">
+              <ImageIcon className="h-4 w-4" />
+              Reference Images (optional)
+              {images.length > 0 && (
+                <span className="text-xs bg-primary/10 text-primary px-1.5 py-0.5 rounded">
+                  {images.length}
+                </span>
+              )}
+            </span>
+            {showImages ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </button>
+
+          {/* Image Upload Section */}
+          {showImages && (
+            <div className="space-y-3 p-4 rounded-lg border border-border bg-muted/30">
+              <p className="text-xs text-muted-foreground">
+                Attach screenshots, mockups, or diagrams to provide visual context for the AI.
+              </p>
+              <ImageUpload
+                images={images}
+                onImagesChange={setImages}
+                disabled={isCreating}
+              />
             </div>
           )}
 

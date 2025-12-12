@@ -219,7 +219,7 @@ export class ProjectStore {
         }
 
         // Determine task status and review reason from plan
-        const { status, reviewReason } = this.determineTaskStatusAndReason(plan, specPath);
+        const { status, reviewReason } = this.determineTaskStatusAndReason(plan, specPath, metadata);
 
         // Extract chunks from plan
         const chunks = plan?.phases.flatMap((phase) =>
@@ -267,7 +267,8 @@ export class ProjectStore {
    */
   private determineTaskStatusAndReason(
     plan: ImplementationPlan | null,
-    specPath: string
+    specPath: string,
+    metadata?: TaskMetadata
   ): { status: TaskStatus; reviewReason?: ReviewReason } {
     const allChunks = plan?.phases?.flatMap((p) => p.chunks) || [];
 
@@ -286,7 +287,11 @@ export class ProjectStore {
           calculatedStatus = 'human_review';
           reviewReason = 'completed';
         } else {
-          calculatedStatus = 'ai_review';
+          // Manual tasks skip AI review and go directly to human review
+          calculatedStatus = metadata?.sourceType === 'manual' ? 'human_review' : 'ai_review';
+          if (metadata?.sourceType === 'manual') {
+            reviewReason = 'completed';
+          }
         }
       } else if (failed > 0) {
         // Some chunks failed - needs human attention

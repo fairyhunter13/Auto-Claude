@@ -82,9 +82,13 @@ export const useTaskStore = create<TaskState>((set, get) => ({
         let reviewReason: ReviewReason | undefined = t.reviewReason;
 
         if (allCompleted) {
-          // All chunks done - waiting for QA review
-          status = 'ai_review';
-          reviewReason = undefined;
+          // Manual tasks skip AI review and go directly to human review
+          status = t.metadata?.sourceType === 'manual' ? 'human_review' : 'ai_review';
+          if (t.metadata?.sourceType === 'manual') {
+            reviewReason = 'completed';
+          } else {
+            reviewReason = undefined;
+          }
         } else if (anyFailed) {
           // Some chunks failed - needs human attention
           status = 'human_review';
@@ -263,6 +267,37 @@ export async function persistTaskStatus(
     return true;
   } catch (error) {
     console.error('Error persisting task status:', error);
+    return false;
+  }
+}
+
+/**
+ * Update task title/description and persist to file
+ */
+export async function persistUpdateTask(
+  taskId: string,
+  updates: { title?: string; description?: string }
+): Promise<boolean> {
+  const store = useTaskStore.getState();
+
+  try {
+    // Call the IPC to persist changes to spec files
+    const result = await window.electronAPI.updateTask(taskId, updates);
+
+    if (result.success && result.data) {
+      // Update local state with the returned task data
+      store.updateTask(taskId, {
+        title: result.data.title,
+        description: result.data.description,
+        updatedAt: new Date()
+      });
+      return true;
+    }
+
+    console.error('Failed to persist task update:', result.error);
+    return false;
+  } catch (error) {
+    console.error('Error persisting task update:', error);
     return false;
   }
 }
