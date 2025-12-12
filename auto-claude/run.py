@@ -103,6 +103,7 @@ from qa_loop import (
     is_qa_approved,
     print_qa_status,
 )
+from review import ReviewState, display_review_status
 
 
 # Configuration
@@ -626,6 +627,35 @@ def main() -> None:
     # Validate environment
     if not validate_environment(spec_dir):
         sys.exit(1)
+
+    # Check human review approval
+    review_state = ReviewState.load(spec_dir)
+    if not review_state.is_approval_valid(spec_dir):
+        print()
+        content = [
+            bold(f"{icon(Icons.WARNING)} BUILD BLOCKED - REVIEW REQUIRED"),
+            "",
+            "This spec requires human approval before building.",
+        ]
+
+        if review_state.approved and not review_state.is_approval_valid(spec_dir):
+            # Spec changed after approval
+            content.append("")
+            content.append(warning("The spec has been modified since approval."))
+            content.append("Please re-review and re-approve.")
+
+        content.extend([
+            "",
+            highlight("To review and approve:"),
+            f"  python auto-claude/review.py --spec-dir {spec_dir}",
+            "",
+            muted("Or use --force to bypass this check (not recommended)."),
+        ])
+        print(box(content, width=70, style="heavy"))
+        print()
+        sys.exit(1)
+
+    debug_success("run.py", "Review approval validated", approved_by=review_state.approved_by)
 
     # Check for existing build
     if get_existing_build_worktree(project_dir, spec_dir.name):
