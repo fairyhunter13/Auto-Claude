@@ -103,6 +103,12 @@ const electronAPI: ElectronAPI = {
   ): Promise<IPCResult<Task>> =>
     ipcRenderer.invoke(IPC_CHANNELS.TASK_CREATE, projectId, title, description, metadata),
 
+  updateTask: (
+    taskId: string,
+    updates: { title?: string; description?: string }
+  ): Promise<IPCResult<Task>> =>
+    ipcRenderer.invoke(IPC_CHANNELS.TASK_UPDATE, taskId, updates),
+
   startTask: (taskId: string, options?: TaskStartOptions): void =>
     ipcRenderer.send(IPC_CHANNELS.TASK_START, taskId, options),
 

@@ -129,6 +129,7 @@ export const IPC_CHANNELS = {
   // Task operations
   TASK_LIST: 'task:list',
   TASK_CREATE: 'task:create',
+  TASK_UPDATE: 'task:update',
   TASK_START: 'task:start',
   TASK_STOP: 'task:stop',
   TASK_REVIEW: 'task:review',
