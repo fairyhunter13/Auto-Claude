@@ -17,6 +17,7 @@ Enhanced with Graphiti memory for cross-session context retrieval.
 import asyncio
 import json
 import logging
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Optional
@@ -298,6 +299,48 @@ def find_phase_for_chunk(plan: dict, chunk_id: str) -> Optional[dict]:
     return None
 
 
+def sync_plan_to_source(spec_dir: Path, source_spec_dir: Optional[Path]) -> bool:
+    """
+    Sync implementation_plan.json from worktree back to source spec directory.
+    
+    When running in isolated mode (worktrees), the agent updates the implementation
+    plan inside the worktree. This function syncs those changes back to the main
+    project's spec directory so the frontend/UI can see the progress.
+    
+    Args:
+        spec_dir: Current spec directory (may be inside worktree)
+        source_spec_dir: Original spec directory in main project (outside worktree)
+        
+    Returns:
+        True if sync was performed, False if not needed or failed
+    """
+    # Skip if no source specified or same path (not in worktree mode)
+    if not source_spec_dir:
+        return False
+    
+    # Resolve paths and check if they're different
+    spec_dir_resolved = spec_dir.resolve()
+    source_spec_dir_resolved = source_spec_dir.resolve()
+    
+    if spec_dir_resolved == source_spec_dir_resolved:
+        return False  # Same directory, no sync needed
+    
+    # Sync the implementation plan
+    plan_file = spec_dir / "implementation_plan.json"
+    if not plan_file.exists():
+        return False
+    
+    source_plan_file = source_spec_dir / "implementation_plan.json"
+    
+    try:
+        shutil.copy2(plan_file, source_plan_file)
+        logger.debug(f"Synced implementation plan to source: {source_plan_file}")
+        return True
+    except Exception as e:
+        logger.warning(f"Failed to sync implementation plan to source: {e}")
+        return False
+
+
 async def post_session_processing(
     spec_dir: Path,
     project_dir: Path,
@@ -308,6 +351,7 @@ async def post_session_processing(
     recovery_manager: RecoveryManager,
     linear_enabled: bool = False,
     status_manager: Optional[StatusManager] = None,
+    source_spec_dir: Optional[Path] = None,
 ) -> bool:
     """
     Process session results and update memory automatically.
@@ -324,12 +368,17 @@ async def post_session_processing(
         recovery_manager: Recovery manager instance
         linear_enabled: Whether Linear integration is enabled
         status_manager: Optional status manager for ccstatusline
+        source_spec_dir: Original spec directory (for syncing back from worktree)
 
     Returns:
         True if chunk was completed successfully
     """
     print()
     print(muted("--- Post-Session Processing ---"))
+    
+    # Sync implementation plan back to source (for worktree mode)
+    if sync_plan_to_source(spec_dir, source_spec_dir):
+        print_status("Implementation plan synced to main project", "success")
 
     # Check if implementation plan was updated
     plan = load_implementation_plan(spec_dir)
@@ -604,6 +653,7 @@ async def run_autonomous_agent(
     model: str,
     max_iterations: Optional[int] = None,
     verbose: bool = False,
+    source_spec_dir: Optional[Path] = None,
 ) -> None:
     """
     Run the autonomous agent loop with automatic memory management.
@@ -614,6 +664,7 @@ async def run_autonomous_agent(
         model: Claude model to use
         max_iterations: Maximum number of iterations (None for unlimited)
         verbose: Whether to show detailed output
+        source_spec_dir: Original spec directory in main project (for syncing from worktree)
     """
     # Initialize recovery manager (handles memory persistence)
     recovery_manager = RecoveryManager(spec_dir, project_dir)
@@ -846,6 +897,7 @@ async def run_autonomous_agent(
                 recovery_manager=recovery_manager,
                 linear_enabled=linear_is_enabled,
                 status_manager=status_manager,
+                source_spec_dir=source_spec_dir,
             )
 
             # Check for stuck chunks
@@ -867,6 +919,10 @@ async def run_autonomous_agent(
                         attempt_count=attempt_count,
                     )
                     print_status("Linear notified of stuck chunk", "info")
+        elif is_planning_phase and source_spec_dir:
+            # After planning phase, sync the newly created implementation plan back to source
+            if sync_plan_to_source(spec_dir, source_spec_dir):
+                print_status("Implementation plan synced to main project", "success")
 
         # Handle session status
         if status == "complete":

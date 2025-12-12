@@ -763,6 +763,7 @@ def main() -> None:
     # Choose workspace (skip for parallel mode - it always uses worktrees)
     working_dir = project_dir
     worktree_manager = None
+    source_spec_dir = None  # Track original spec dir for syncing back from worktree
 
     if args.parallel > 1:
         # Parallel mode always uses worktrees (managed by coordinator)
@@ -779,6 +780,9 @@ def main() -> None:
         )
 
         if workspace_mode == WorkspaceMode.ISOLATED:
+            # Keep reference to original spec directory for syncing progress back
+            source_spec_dir = spec_dir
+            
             working_dir, worktree_manager, localized_spec_dir = setup_workspace(
                 project_dir, spec_dir.name, workspace_mode, source_spec_dir=spec_dir
             )
@@ -826,6 +830,7 @@ def main() -> None:
                     model=args.model,
                     max_iterations=args.max_iterations,
                     verbose=args.verbose,
+                    source_spec_dir=source_spec_dir,  # For syncing progress back to main project
                 )
             )
             debug_success("run.py", "Sequential execution completed")
