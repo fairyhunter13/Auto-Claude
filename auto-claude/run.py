@@ -50,7 +50,7 @@ elif dev_env_file.exists():
 
 from agent import run_autonomous_agent
 from coordinator import SwarmCoordinator
-from progress import count_chunks, print_paused_banner
+from progress import count_chunks, print_paused_banner, is_build_complete
 from linear_updater import is_linear_enabled, LinearTaskState
 from linear_integration import LinearManager
 from graphiti_config import is_graphiti_enabled, get_graphiti_status
@@ -692,6 +692,40 @@ def main() -> None:
         except KeyboardInterrupt:
             print("\n\nQA validation paused.")
             print(f"Resume with: python auto-claude/run.py --spec {spec_dir.name} --qa")
+        return
+
+    # Handle --followup command
+    if args.followup:
+        print_banner()
+        print(f"\nFollow-up request for: {spec_dir.name}")
+
+        # Check if implementation_plan.json exists
+        plan_file = spec_dir / "implementation_plan.json"
+        if not plan_file.exists():
+            print()
+            print(error(f"{icon(Icons.ERROR)} No implementation plan found."))
+            print()
+            print("This spec has not been built yet. Run a regular build first:")
+            print(f"  python auto-claude/run.py --spec {spec_dir.name}")
+            sys.exit(1)
+
+        # Check if build is complete
+        if not is_build_complete(spec_dir):
+            completed, total = count_chunks(spec_dir)
+            print()
+            print(error(f"{icon(Icons.ERROR)} Build not complete ({completed}/{total} chunks)."))
+            print()
+            print("Follow-up tasks can only be added to completed specs.")
+            print("Complete the current build first:")
+            print(f"  python auto-claude/run.py --spec {spec_dir.name}")
+            sys.exit(1)
+
+        # Build is complete - proceed to follow-up workflow
+        print()
+        print(success(f"{icon(Icons.SUCCESS)} Build is complete. Ready for follow-up tasks."))
+        print()
+        # TODO: Next chunk will implement collect_followup_task() and wire it up here
+        print(info("Follow-up task collection will be implemented in the next chunk."))
         return
 
     # Normal build flow
