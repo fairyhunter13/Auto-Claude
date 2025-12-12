@@ -1899,6 +1899,19 @@ Examples:
 
         # Auto-start build unless --no-build is specified
         if not args.no_build:
+            # Verify spec is approved before starting build (defensive check)
+            review_state = ReviewState.load(orchestrator.spec_dir)
+            if not review_state.is_approved():
+                print()
+                print_status("Build cannot start: spec not approved.", "error")
+                print()
+                print(f"  {muted('To approve the spec, run:')}")
+                print(f"  {highlight(f'python auto-claude/review.py --spec-dir {orchestrator.spec_dir}')}")
+                print()
+                print(f"  {muted('Or re-run spec_runner with --auto-approve to skip review:')}")
+                print(f"  {highlight(f'python auto-claude/spec_runner.py --task \"...\" --auto-approve')}")
+                sys.exit(1)
+
             print()
             print_section("STARTING BUILD", Icons.LIGHTNING)
             print()
