@@ -213,7 +213,7 @@ export class ProjectStore {
         }
 
         // Determine task status from plan
-        const status = this.determineTaskStatus(plan, specPath);
+        const status = this.determineTaskStatus(plan, specPath, metadata);
 
         // Extract chunks from plan
         const chunks = plan?.phases.flatMap((phase) =>
@@ -252,7 +252,8 @@ export class ProjectStore {
    */
   private determineTaskStatus(
     plan: ImplementationPlan | null,
-    specPath: string
+    specPath: string,
+    metadata?: TaskMetadata
   ): TaskStatus {
     // First, check if plan has an explicit status field (set by UI)
     // This is the primary source of truth for persisted status
@@ -306,7 +307,8 @@ export class ProjectStore {
 
     // All completed
     if (completed === allChunks.length) {
-      return 'ai_review';
+      // Manual tasks skip AI review and go directly to human review
+      return metadata?.sourceType === 'manual' ? 'human_review' : 'ai_review';
     }
 
     // Any in progress or some completed
