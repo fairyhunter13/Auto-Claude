@@ -77,6 +77,45 @@ class WorktreeManager:
             text=True,
         )
 
+    def _unstage_gitignored_files(self) -> None:
+        """
+        Unstage any staged files that are gitignored in the current branch.
+
+        This is needed after a --no-commit merge because files that exist in the
+        source branch (like spec files in auto-claude/specs/) get staged even if
+        they're gitignored in the target branch.
+        """
+        # Get list of staged files
+        result = self._run_git(["diff", "--cached", "--name-only"])
+        if result.returncode != 0 or not result.stdout.strip():
+            return
+
+        staged_files = result.stdout.strip().split("\n")
+
+        # Check which staged files are gitignored
+        # git check-ignore returns the files that ARE ignored
+        result = self._run_git(["check-ignore", "--stdin"], cwd=self.project_dir)
+        # We need to pass the files via stdin
+        result = subprocess.run(
+            ["git", "check-ignore", "--stdin"],
+            cwd=self.project_dir,
+            input="\n".join(staged_files),
+            capture_output=True,
+            text=True,
+        )
+
+        if not result.stdout.strip():
+            return
+
+        ignored_files = result.stdout.strip().split("\n")
+
+        if ignored_files:
+            print(f"Unstaging {len(ignored_files)} gitignored file(s)...")
+            # Unstage each ignored file
+            for file in ignored_files:
+                if file.strip():
+                    self._run_git(["reset", "HEAD", "--", file.strip()])
+
     def setup(self) -> None:
         """Create worktrees directory if needed."""
         self.worktrees_dir.mkdir(exist_ok=True)
@@ -286,6 +325,9 @@ class WorktreeManager:
             return False
 
         if no_commit:
+            # Unstage any files that are gitignored in the main branch
+            # These get staged during merge because they exist in the worktree branch
+            self._unstage_gitignored_files()
             print(f"Changes from {info.branch} are now staged in your working directory.")
             print("Review the changes, then commit when ready:")
             print(f"  git commit -m 'your commit message'")
