@@ -164,6 +164,10 @@ export class AgentManager extends EventEmitter {
       args.push('--spec-dir', specDir);
     }
 
+    // Auto-approve: When user starts a task from the UI, that IS their approval
+    // No need for interactive review checkpoint - user explicitly clicked "Start"
+    args.push('--auto-approve');
+
     // Pass --dev flag for framework development mode
     if (devMode) {
       args.push('--dev');
@@ -209,6 +213,11 @@ export class AgentManager extends EventEmitter {
 
     // Always use auto-continue when running from UI (non-interactive)
     args.push('--auto-continue');
+
+    // Force: When user starts a task from the UI, that IS their approval
+    // The review checkpoint is for CLI users who need to review before building
+    // UI users have already seen the spec in the interface before clicking "Start"
+    args.push('--force');
 
     if (options.parallel && options.workers) {
       args.push('--parallel', options.workers.toString());

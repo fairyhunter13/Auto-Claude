@@ -54,6 +54,7 @@ from ui import (
     StatusManager,
     BuildState,
 )
+from task_logger import get_task_logger, LogPhase
 
 
 class WorkerStatus(Enum):
@@ -317,6 +318,11 @@ class SwarmCoordinator:
         print(box(content, width=70, style="heavy"))
         print()
 
+        # Initialize task logger and start planning phase
+        task_logger = get_task_logger(self.spec_dir)
+        if task_logger:
+            task_logger.start_phase(LogPhase.PLANNING, "Starting implementation planning...")
+
         # Update status
         self.status_manager.set_active(self.spec_dir.name, BuildState.PLANNING)
 
@@ -341,9 +347,15 @@ class SwarmCoordinator:
         plan_file = self.spec_dir / "implementation_plan.json"
         if not plan_file.exists():
             print_status("Planner did not create implementation_plan.json", "error")
+            if task_logger:
+                task_logger.end_phase(LogPhase.PLANNING, success=False, message="Failed to create implementation plan")
             return False
 
         print_status("Implementation plan created successfully", "success")
+
+        # End planning phase in task logger
+        if task_logger:
+            task_logger.end_phase(LogPhase.PLANNING, success=True, message="Implementation plan created")
 
         # Note: Linear task creation now happens in spec_runner.py after requirements gathering
         # Linear status updates happen via linear_updater.py mini-agents
@@ -602,6 +614,11 @@ class SwarmCoordinator:
         print(box(content, width=70, style="heavy"))
         print()
 
+        # Initialize task logger and start coding phase
+        task_logger = get_task_logger(self.spec_dir)
+        if task_logger:
+            task_logger.start_phase(LogPhase.CODING, "Starting parallel implementation...")
+
         # Initialize status
         self.status_manager.set_active(self.spec_dir.name, BuildState.BUILDING)
         self.status_manager.update_workers(0, self.max_workers)
@@ -709,6 +726,11 @@ class SwarmCoordinator:
             content.append(warning(f"{icon(Icons.WARNING)} Failed chunks: {progress['failed_chunks']}"))
         print()
         print(box(content, width=70, style="heavy"))
+
+        # End coding phase in task logger
+        if task_logger:
+            success_msg = "All chunks completed successfully" if progress['failed_chunks'] == 0 else f"Completed with {progress['failed_chunks']} failed chunks"
+            task_logger.end_phase(LogPhase.CODING, success=progress['failed_chunks'] == 0, message=success_msg)
 
         # Update status to complete
         self.status_manager.update(state=BuildState.COMPLETE)
