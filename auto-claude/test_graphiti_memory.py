@@ -1,18 +1,44 @@
 #!/usr/bin/env python3
 """
-Test Script for Graphiti Memory Integration
-============================================
+Test Script for Graphiti Memory Integration V2
+==============================================
 
 This script tests the hybrid memory layer (graph + semantic search) to verify
 data is being saved and retrieved correctly from FalkorDB.
 
+V2 supports multiple LLM and embedding providers. Set up your preferred provider:
+
 Usage:
     # Set environment variables first (or in .env file):
     export GRAPHITI_ENABLED=true
+    export GRAPHITI_LLM_PROVIDER=openai  # or: anthropic, azure_openai, ollama
+    export GRAPHITI_EMBEDDER_PROVIDER=openai  # or: voyage, azure_openai, ollama
+
+    # Provider-specific credentials (set based on your chosen providers):
+    # OpenAI:
     export OPENAI_API_KEY=sk-...
+
+    # Anthropic (LLM only, needs separate embedder):
+    export ANTHROPIC_API_KEY=sk-ant-...
+
+    # Voyage AI (embeddings only):
+    export VOYAGE_API_KEY=...
+
+    # Azure OpenAI:
+    export AZURE_OPENAI_API_KEY=...
+    export AZURE_OPENAI_BASE_URL=https://...
+    export AZURE_OPENAI_LLM_DEPLOYMENT=gpt-4o
+    export AZURE_OPENAI_EMBEDDING_DEPLOYMENT=text-embedding-3-small
+
+    # Ollama (local):
+    export OLLAMA_LLM_MODEL=deepseek-r1:7b
+    export OLLAMA_EMBEDDING_MODEL=nomic-embed-text
+    export OLLAMA_EMBEDDING_DIM=768
+
+    # FalkorDB (optional - uses defaults localhost:6380):
     export GRAPHITI_FALKORDB_HOST=localhost
     export GRAPHITI_FALKORDB_PORT=6380
-    
+
     # Run the test:
     python auto-claude/test_graphiti_memory.py
 """
@@ -55,39 +81,64 @@ def print_result(label: str, value: str, success: bool = True):
 
 
 async def test_connection():
-    """Test basic FalkorDB connection."""
-    print_header("1. Testing FalkorDB Connection")
-    
+    """Test basic FalkorDB connection and provider configuration."""
+    print_header("1. Testing FalkorDB Connection & Providers")
+
     config = GraphitiConfig.from_env()
-    
+
     print(f"  Host: {config.falkordb_host}")
     print(f"  Port: {config.falkordb_port}")
     print(f"  Database: {config.database}")
+    print(f"  LLM Provider: {config.llm_provider}")
+    print(f"  Embedder Provider: {config.embedder_provider}")
     print()
-    
+
     try:
         from graphiti_core import Graphiti
         from graphiti_core.driver.falkordb_driver import FalkorDriver
-        
-        # Try to connect
+        from graphiti_providers import create_llm_client, create_embedder, ProviderError
+
+        # Test provider creation
+        print("  Creating LLM client...")
+        try:
+            llm_client = create_llm_client(config)
+            print_result("LLM Client", f"Created for {config.llm_provider}", True)
+        except ProviderError as e:
+            print_result("LLM Client", f"FAILED: {e}", False)
+            return False
+
+        print("  Creating embedder...")
+        try:
+            embedder = create_embedder(config)
+            print_result("Embedder", f"Created for {config.embedder_provider}", True)
+        except ProviderError as e:
+            print_result("Embedder", f"FAILED: {e}", False)
+            return False
+
+        # Try to connect to FalkorDB
+        print("  Connecting to FalkorDB...")
         driver = FalkorDriver(
             host=config.falkordb_host,
             port=config.falkordb_port,
             password=config.falkordb_password or None,
             database=config.database,
         )
-        
-        graphiti = Graphiti(graph_driver=driver)
-        
+
+        graphiti = Graphiti(
+            graph_driver=driver,
+            llm_client=llm_client,
+            embedder=embedder,
+        )
+
         # Try building indices
         print("  Building indices...")
         await graphiti.build_indices_and_constraints()
-        
+
         print_result("Connection", "SUCCESS", True)
-        
+
         await graphiti.close()
         return True
-        
+
     except Exception as e:
         print_result("Connection", f"FAILED: {e}", False)
         return False
@@ -96,14 +147,19 @@ async def test_connection():
 async def test_save_episode():
     """Test saving an episode to the graph."""
     print_header("2. Testing Episode Save")
-    
+
     config = GraphitiConfig.from_env()
-    
+
     try:
         from graphiti_core import Graphiti
         from graphiti_core.driver.falkordb_driver import FalkorDriver
         from graphiti_core.nodes import EpisodeType
-        
+        from graphiti_providers import create_llm_client, create_embedder
+
+        # Create providers using factory
+        llm_client = create_llm_client(config)
+        embedder = create_embedder(config)
+
         # Connect
         driver = FalkorDriver(
             host=config.falkordb_host,
@@ -111,8 +167,12 @@ async def test_save_episode():
             password=config.falkordb_password or None,
             database=config.database,
         )
-        
-        graphiti = Graphiti(graph_driver=driver)
+
+        graphiti = Graphiti(
+            graph_driver=driver,
+            llm_client=llm_client,
+            embedder=embedder,
+        )
         await graphiti.build_indices_and_constraints()
         
         # Create test episode
@@ -158,17 +218,22 @@ async def test_save_episode():
 async def test_search(group_id: str):
     """Test semantic search."""
     print_header("3. Testing Semantic Search")
-    
+
     if not group_id:
         print("  ⚠️  Skipping - no group_id from previous test")
         return
-    
+
     config = GraphitiConfig.from_env()
-    
+
     try:
         from graphiti_core import Graphiti
         from graphiti_core.driver.falkordb_driver import FalkorDriver
-        
+        from graphiti_providers import create_llm_client, create_embedder
+
+        # Create providers using factory
+        llm_client = create_llm_client(config)
+        embedder = create_embedder(config)
+
         # Connect
         driver = FalkorDriver(
             host=config.falkordb_host,
@@ -176,8 +241,12 @@ async def test_search(group_id: str):
             password=config.falkordb_password or None,
             database=config.database,
         )
-        
-        graphiti = Graphiti(graph_driver=driver)
+
+        graphiti = Graphiti(
+            graph_driver=driver,
+            llm_client=llm_client,
+            embedder=embedder,
+        )
         
         # Search for the test data
         query = "test episode hello"
@@ -401,20 +470,41 @@ async def main():
     status = get_graphiti_status()
     
     print_result("GRAPHITI_ENABLED", str(config.enabled), config.enabled)
-    print_result("OPENAI_API_KEY set", "Yes" if config.openai_api_key else "No", bool(config.openai_api_key))
+    print_result("LLM Provider", config.llm_provider, True)
+    print_result("Embedder Provider", config.embedder_provider, True)
     print_result("FalkorDB host", config.falkordb_host, True)
     print_result("FalkorDB port", str(config.falkordb_port), True)
     print_result("Database", config.database, True)
     print_result("is_graphiti_enabled()", str(is_graphiti_enabled()), is_graphiti_enabled())
-    
+
+    # Show provider-specific configuration
+    if config.llm_provider == "openai":
+        print_result("OPENAI_API_KEY set", "Yes" if config.openai_api_key else "No", bool(config.openai_api_key))
+    elif config.llm_provider == "anthropic":
+        print_result("ANTHROPIC_API_KEY set", "Yes" if config.anthropic_api_key else "No", bool(config.anthropic_api_key))
+    elif config.llm_provider == "ollama":
+        print_result("OLLAMA_LLM_MODEL", config.ollama_llm_model or "Not set", bool(config.ollama_llm_model))
+
+    if config.embedder_provider == "openai":
+        print_result("OPENAI_API_KEY set (embedder)", "Yes" if config.openai_api_key else "No", bool(config.openai_api_key))
+    elif config.embedder_provider == "voyage":
+        print_result("VOYAGE_API_KEY set", "Yes" if config.voyage_api_key else "No", bool(config.voyage_api_key))
+    elif config.embedder_provider == "ollama":
+        print_result("OLLAMA_EMBEDDING_MODEL", config.ollama_embedding_model or "Not set", bool(config.ollama_embedding_model))
+        print_result("OLLAMA_EMBEDDING_DIM", str(config.ollama_embedding_dim) if config.ollama_embedding_dim else "Not set", bool(config.ollama_embedding_dim))
+
     if not is_graphiti_enabled():
-        print("\n  ⚠️  Graphiti is not enabled!")
+        print("\n  ⚠️  Graphiti is not enabled or misconfigured!")
         print("  Make sure to set these environment variables:")
         print("    export GRAPHITI_ENABLED=true")
-        print("    export OPENAI_API_KEY=sk-...")
+        print("    export GRAPHITI_LLM_PROVIDER=openai  # or anthropic, azure_openai, ollama")
+        print("    export GRAPHITI_EMBEDDER_PROVIDER=openai  # or voyage, azure_openai, ollama")
+        print("    # Plus provider-specific credentials (see docstring for examples)")
         print()
         if status.get("reason"):
             print(f"  Reason: {status['reason']}")
+        if status.get("errors"):
+            print(f"  Errors: {status['errors']}")
         return
     
     # Run tests
