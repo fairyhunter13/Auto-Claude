@@ -366,6 +366,40 @@ export function setupIpcHandlers(
         ...metadata
       };
 
+      // Process and save attached images
+      if (taskMetadata.attachedImages && taskMetadata.attachedImages.length > 0) {
+        const attachmentsDir = path.join(specDir, 'attachments');
+        mkdirSync(attachmentsDir, { recursive: true });
+
+        const savedImages: typeof taskMetadata.attachedImages = [];
+
+        for (const image of taskMetadata.attachedImages) {
+          if (image.data) {
+            try {
+              // Decode base64 and save to file
+              const buffer = Buffer.from(image.data, 'base64');
+              const imagePath = path.join(attachmentsDir, image.filename);
+              writeFileSync(imagePath, buffer);
+
+              // Store relative path instead of base64 data
+              savedImages.push({
+                id: image.id,
+                filename: image.filename,
+                mimeType: image.mimeType,
+                size: image.size,
+                path: `attachments/${image.filename}`
+                // Don't include data or thumbnail to save space
+              });
+            } catch (err) {
+              console.error(`Failed to save image ${image.filename}:`, err);
+            }
+          }
+        }
+
+        // Update metadata with saved image paths (without base64 data)
+        taskMetadata.attachedImages = savedImages;
+      }
+
       // Create initial implementation_plan.json (task is created but not started)
       const now = new Date().toISOString();
       const implementationPlan = {
@@ -385,6 +419,24 @@ export function setupIpcHandlers(
         const metadataPath = path.join(specDir, 'task_metadata.json');
         writeFileSync(metadataPath, JSON.stringify(taskMetadata, null, 2));
       }
+
+      // Create requirements.json with attached images
+      const requirements: Record<string, unknown> = {
+        task_description: description,
+        workflow_type: taskMetadata.category || 'feature'
+      };
+
+      // Add attached images to requirements if present
+      if (taskMetadata.attachedImages && taskMetadata.attachedImages.length > 0) {
+        requirements.attached_images = taskMetadata.attachedImages.map(img => ({
+          filename: img.filename,
+          path: img.path,
+          description: '' // User can add descriptions later
+        }));
+      }
+
+      const requirementsPath = path.join(specDir, AUTO_BUILD_PATHS.REQUIREMENTS);
+      writeFileSync(requirementsPath, JSON.stringify(requirements, null, 2));
 
       // Create the task object
       const task: Task = {

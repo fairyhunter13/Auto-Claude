@@ -74,6 +74,17 @@ export interface QAIssue {
   line?: number;
 }
 
+// Image attachment types for task creation
+export interface ImageAttachment {
+  id: string;           // Unique identifier (UUID)
+  filename: string;     // Original filename
+  mimeType: string;     // e.g., 'image/png'
+  size: number;         // Size in bytes
+  data?: string;        // Base64 data (for transport)
+  path?: string;        // Relative path after storage
+  thumbnail?: string;   // Base64 thumbnail for preview
+}
+
 // Task metadata from ideation or manual entry
 export type TaskComplexity = 'trivial' | 'small' | 'medium' | 'large' | 'complex';
 export type TaskImpact = 'low' | 'medium' | 'high' | 'critical';
@@ -119,6 +130,9 @@ export interface TaskMetadata {
   performanceCategory?: string;
   uiuxCategory?: string;
   codeQualitySeverity?: 'suggestion' | 'minor' | 'major' | 'critical';
+
+  // Image attachments (screenshots, mockups, diagrams)
+  attachedImages?: ImageAttachment[];
 }
 
 export interface Task {
