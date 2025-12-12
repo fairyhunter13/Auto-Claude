@@ -88,7 +88,6 @@ export function TaskEditDialog({ task, open, onOpenChange, onSaved }: TaskEditDi
     }
   };
 
-  const hasChanges = title.trim() !== task.title || description.trim() !== task.description;
   const isValid = title.trim().length > 0 && description.trim().length > 0;
 
   return (
