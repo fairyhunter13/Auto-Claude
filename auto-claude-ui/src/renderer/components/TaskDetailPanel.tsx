@@ -21,7 +21,9 @@ import {
   GitBranch,
   ListChecks,
   Loader2,
-  RotateCcw
+  RotateCcw,
+  Pencil,
+  Save
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -29,6 +31,7 @@ import { Progress } from './ui/progress';
 import { ScrollArea } from './ui/scroll-area';
 import { Separator } from './ui/separator';
 import { Textarea } from './ui/textarea';
+import { Input } from './ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { cn, calculateProgress, formatRelativeTime } from '../lib/utils';
 import {
@@ -46,7 +49,7 @@ import {
   EXECUTION_PHASE_BADGE_COLORS,
   EXECUTION_PHASE_COLORS
 } from '../../shared/constants';
-import { startTask, stopTask, submitReview, checkTaskRunning, recoverStuckTask } from '../stores/task-store';
+import { startTask, stopTask, submitReview, checkTaskRunning, recoverStuckTask, persistUpdateTask } from '../stores/task-store';
 import type { Task, TaskCategory, ExecutionPhase } from '../../shared/types';
 
 // Category icon mapping
@@ -75,6 +78,10 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
   const [isStuck, setIsStuck] = useState(false);
   const [isRecovering, setIsRecovering] = useState(false);
   const [hasCheckedRunning, setHasCheckedRunning] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editTitle, setEditTitle] = useState(task.title);
+  const [editDescription, setEditDescription] = useState(task.description);
+  const [isSaving, setIsSaving] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
   const logsContainerRef = useRef<HTMLDivElement>(null);
 
@@ -83,6 +90,17 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
   const needsReview = task.status === 'human_review';
   const executionPhase = task.executionProgress?.phase;
   const hasActiveExecution = executionPhase && executionPhase !== 'idle' && executionPhase !== 'complete' && executionPhase !== 'failed';
+
+  // Disable editing when task is actively running
+  const canEdit = !isRunning || isStuck;
+
+  // Sync edit fields when task changes (e.g., from external updates)
+  useEffect(() => {
+    if (!isEditMode) {
+      setEditTitle(task.title);
+      setEditDescription(task.description);
+    }
+  }, [task.title, task.description, isEditMode]);
 
   // Check if task is stuck (status says in_progress but no actual process)
   useEffect(() => {
@@ -152,6 +170,42 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
     setFeedback('');
   };
 
+  const handleEditClick = () => {
+    setEditTitle(task.title);
+    setEditDescription(task.description);
+    setIsEditMode(true);
+  };
+
+  const handleCancelEdit = () => {
+    setEditTitle(task.title);
+    setEditDescription(task.description);
+    setIsEditMode(false);
+  };
+
+  const handleSaveEdit = async () => {
+    // Don't save if nothing changed
+    if (editTitle === task.title && editDescription === task.description) {
+      setIsEditMode(false);
+      return;
+    }
+
+    // Validate - title is required
+    if (!editTitle.trim()) {
+      return;
+    }
+
+    setIsSaving(true);
+    const result = await persistUpdateTask(task.id, {
+      title: editTitle.trim(),
+      description: editDescription.trim()
+    });
+
+    if (result) {
+      setIsEditMode(false);
+    }
+    setIsSaving(false);
+  };
+
   const getChunkStatusIcon = (status: string) => {
     switch (status) {
       case 'completed':
@@ -170,7 +224,17 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
       {/* Header */}
       <div className="flex items-start justify-between p-4">
         <div className="flex-1 min-w-0 pr-2">
-          <h2 className="font-semibold text-lg text-foreground truncate">{task.title}</h2>
+          {isEditMode ? (
+            <Input
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              className="font-semibold text-lg h-auto py-1"
+              placeholder="Task title"
+              autoFocus
+            />
+          ) : (
+            <h2 className="font-semibold text-lg text-foreground truncate">{task.title}</h2>
+          )}
           <div className="mt-1.5 flex items-center gap-2">
             <Badge variant="outline" className="text-xs">
               {task.specId}
@@ -187,9 +251,16 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
             )}
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          {!isEditMode && canEdit && (
+            <Button variant="ghost" size="icon" onClick={handleEditClick} title="Edit task">
+              <Pencil className="h-4 w-4" />
+            </Button>
+          )}
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <Separator />
@@ -408,12 +479,23 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
               )}
 
               {/* Description */}
-              {task.description && (
+              {isEditMode ? (
+                <div>
+                  <h3 className="text-sm font-medium text-foreground mb-2">Description</h3>
+                  <Textarea
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    className="text-sm min-h-[100px]"
+                    placeholder="Task description (optional)"
+                    rows={4}
+                  />
+                </div>
+              ) : task.description ? (
                 <div>
                   <h3 className="text-sm font-medium text-foreground mb-2">Description</h3>
                   <p className="text-sm text-muted-foreground">{task.description}</p>
                 </div>
-              )}
+              ) : null}
 
               {/* Metadata Details */}
               {task.metadata && (
@@ -512,8 +594,41 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
                 </div>
               </div>
 
+              {/* Edit Mode Save/Cancel Buttons */}
+              {isEditMode && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="default"
+                    onClick={handleSaveEdit}
+                    disabled={isSaving || !editTitle.trim()}
+                    className="flex-1"
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        Save Changes
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleCancelEdit}
+                    disabled={isSaving}
+                    className="flex-1"
+                  >
+                    <X className="mr-2 h-4 w-4" />
+                    Cancel
+                  </Button>
+                </div>
+              )}
+
               {/* Human Review Section */}
-              {needsReview && (
+              {needsReview && !isEditMode && (
                 <div className="rounded-xl border border-purple-500/30 bg-purple-500/10 p-4">
                   <h3 className="font-medium text-sm text-foreground mb-2 flex items-center gap-2">
                     <AlertCircle className="h-4 w-4 text-purple-400" />

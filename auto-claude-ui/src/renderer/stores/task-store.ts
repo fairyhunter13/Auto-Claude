@@ -258,6 +258,37 @@ export async function persistTaskStatus(
 }
 
 /**
+ * Update task title/description and persist to file
+ */
+export async function persistUpdateTask(
+  taskId: string,
+  updates: { title?: string; description?: string }
+): Promise<boolean> {
+  const store = useTaskStore.getState();
+
+  try {
+    // Call the IPC to persist changes to spec files
+    const result = await window.electronAPI.updateTask(taskId, updates);
+
+    if (result.success && result.data) {
+      // Update local state with the returned task data
+      store.updateTask(taskId, {
+        title: result.data.title,
+        description: result.data.description,
+        updatedAt: new Date()
+      });
+      return true;
+    }
+
+    console.error('Failed to persist task update:', result.error);
+    return false;
+  } catch (error) {
+    console.error('Error persisting task update:', error);
+    return false;
+  }
+}
+
+/**
  * Check if a task has an active running process
  */
 export async function checkTaskRunning(taskId: string): Promise<boolean> {
