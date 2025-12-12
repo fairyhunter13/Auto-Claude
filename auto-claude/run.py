@@ -112,6 +112,142 @@ from review import ReviewState, display_review_status
 DEFAULT_MODEL = "claude-opus-4-5-20251101"
 
 
+def collect_followup_task(spec_dir: Path) -> str | None:
+    """
+    Collect a follow-up task description from the user.
+
+    Provides multiple input methods (type, paste, file) similar to the
+    HUMAN_INPUT.md pattern used during build interrupts.
+
+    Args:
+        spec_dir: The spec directory where FOLLOWUP_REQUEST.md will be saved
+
+    Returns:
+        The collected task description, or None if cancelled
+    """
+    # Present options menu
+    options = [
+        MenuOption(
+            key="type",
+            label="Type follow-up task",
+            icon=Icons.EDIT,
+            description="Enter a description of additional work needed",
+        ),
+        MenuOption(
+            key="paste",
+            label="Paste from clipboard",
+            icon=Icons.CLIPBOARD,
+            description="Paste text you've copied (Cmd+V / Ctrl+Shift+V)",
+        ),
+        MenuOption(
+            key="file",
+            label="Read from file",
+            icon=Icons.DOCUMENT,
+            description="Load task description from a text file",
+        ),
+        MenuOption(
+            key="quit",
+            label="Cancel",
+            icon=Icons.DOOR,
+            description="Exit without adding follow-up",
+        ),
+    ]
+
+    choice = select_menu(
+        title="How would you like to provide your follow-up task?",
+        options=options,
+        subtitle="Describe the additional work you want to add to this spec.",
+        allow_quit=False,  # We have explicit quit option
+    )
+
+    if choice == 'quit' or choice is None:
+        return None
+
+    followup_task = ""
+
+    if choice == 'file':
+        # Read from file
+        print()
+        print(f"{icon(Icons.DOCUMENT)} Enter the path to your task description file:")
+        try:
+            file_path = input(f"  {icon(Icons.POINTER)} ").strip()
+        except (KeyboardInterrupt, EOFError):
+            print()
+            print_status("Cancelled.", "warning")
+            return None
+
+        if file_path:
+            try:
+                # Expand ~ and resolve path
+                file_path = Path(file_path).expanduser().resolve()
+                if file_path.exists():
+                    followup_task = file_path.read_text().strip()
+                    print_status(f"Loaded {len(followup_task)} characters from file", "success")
+                else:
+                    print_status(f"File not found: {file_path}", "error")
+                    return None
+            except Exception as e:
+                print_status(f"Error reading file: {e}", "error")
+                return None
+
+    elif choice in ['type', 'paste']:
+        print()
+        content = [
+            "Enter/paste your follow-up task description below.",
+            "",
+            muted("Describe what additional work you want to add."),
+            muted("The planner will create new chunks based on this."),
+            "",
+            muted("Press Enter on an empty line when done."),
+        ]
+        print(box(content, width=60, style="light"))
+        print()
+
+        lines = []
+        empty_count = 0
+        while True:
+            try:
+                line = input()
+                if line == "":
+                    empty_count += 1
+                    if empty_count >= 1:  # Stop on first empty line
+                        break
+                else:
+                    empty_count = 0
+                    lines.append(line)
+            except KeyboardInterrupt:
+                print()
+                print_status("Cancelled.", "warning")
+                return None
+            except EOFError:
+                break
+
+        followup_task = "\n".join(lines).strip()
+
+    # Validate that we have content
+    if not followup_task:
+        print()
+        print_status("No task description provided.", "warning")
+        return None
+
+    # Save to FOLLOWUP_REQUEST.md
+    request_file = spec_dir / "FOLLOWUP_REQUEST.md"
+    request_file.write_text(followup_task)
+
+    # Show confirmation
+    content = [
+        success(f"{icon(Icons.SUCCESS)} FOLLOW-UP TASK SAVED"),
+        "",
+        f"Saved to: {highlight(str(request_file.name))}",
+        "",
+        muted("The planner will create new chunks based on this task."),
+    ]
+    print()
+    print(box(content, width=70, style="heavy"))
+
+    return followup_task
+
+
 def get_specs_dir(project_dir: Path, dev_mode: bool = False) -> Path:
     """Get the specs directory path.
 
