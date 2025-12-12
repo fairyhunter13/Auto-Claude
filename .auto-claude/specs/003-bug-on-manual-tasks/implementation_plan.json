@@ -53,5 +53,22 @@
   "spec_file": null,
   "status": "completed",
   "planStatus": "completed",
-  "recoveryNote": "Task recovered from stuck state at 2025-12-12T13:50:30.410Z"
+  "recoveryNote": "Task recovered from stuck state at 2025-12-12T13:50:30.410Z",
+  "qa_signoff": {
+    "status": "approved",
+    "timestamp": "2025-12-12T14:30:00Z",
+    "qa_session": 1,
+    "report_file": "qa_report.md",
+    "tests_passed": {
+      "unit": "N/A (sandbox restricted)",
+      "integration": "N/A (sandbox restricted)",
+      "e2e": "N/A (sandbox restricted)"
+    },
+    "code_review": {
+      "type_safety": "passed",
+      "pattern_compliance": "passed",
+      "security_review": "passed"
+    },
+    "verified_by": "qa_agent"
+  }
 }
