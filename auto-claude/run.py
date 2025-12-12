@@ -420,6 +420,13 @@ Environment Variables:
         help="Dev mode: use specs from dev/auto-claude/specs/ (gitignored) for framework development",
     )
 
+    # Force bypass
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Skip approval check and start build anyway (for debugging)",
+    )
+
     return parser.parse_args()
 
 
@@ -631,31 +638,38 @@ def main() -> None:
     # Check human review approval
     review_state = ReviewState.load(spec_dir)
     if not review_state.is_approval_valid(spec_dir):
-        print()
-        content = [
-            bold(f"{icon(Icons.WARNING)} BUILD BLOCKED - REVIEW REQUIRED"),
-            "",
-            "This spec requires human approval before building.",
-        ]
+        if args.force:
+            # User explicitly bypassed approval check
+            print()
+            print(warning(f"{icon(Icons.WARNING)} WARNING: Bypassing approval check with --force"))
+            print(muted("This spec has not been approved for building."))
+            print()
+        else:
+            print()
+            content = [
+                bold(f"{icon(Icons.WARNING)} BUILD BLOCKED - REVIEW REQUIRED"),
+                "",
+                "This spec requires human approval before building.",
+            ]
 
-        if review_state.approved and not review_state.is_approval_valid(spec_dir):
-            # Spec changed after approval
-            content.append("")
-            content.append(warning("The spec has been modified since approval."))
-            content.append("Please re-review and re-approve.")
+            if review_state.approved and not review_state.is_approval_valid(spec_dir):
+                # Spec changed after approval
+                content.append("")
+                content.append(warning("The spec has been modified since approval."))
+                content.append("Please re-review and re-approve.")
 
-        content.extend([
-            "",
-            highlight("To review and approve:"),
-            f"  python auto-claude/review.py --spec-dir {spec_dir}",
-            "",
-            muted("Or use --force to bypass this check (not recommended)."),
-        ])
-        print(box(content, width=70, style="heavy"))
-        print()
-        sys.exit(1)
-
-    debug_success("run.py", "Review approval validated", approved_by=review_state.approved_by)
+            content.extend([
+                "",
+                highlight("To review and approve:"),
+                f"  python auto-claude/review.py --spec-dir {spec_dir}",
+                "",
+                muted("Or use --force to bypass this check (not recommended)."),
+            ])
+            print(box(content, width=70, style="heavy"))
+            print()
+            sys.exit(1)
+    else:
+        debug_success("run.py", "Review approval validated", approved_by=review_state.approved_by)
 
     # Check for existing build
     if get_existing_build_worktree(project_dir, spec_dir.name):
