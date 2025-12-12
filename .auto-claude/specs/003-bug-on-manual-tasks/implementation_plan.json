@@ -36,9 +36,9 @@
             "type": "manual",
             "run": "Check that updateTaskFromPlan uses 'human_review' for manual tasks when all completed"
           },
-          "actual_output": "Implementation already present in task-store.ts at lines 80-82. The code checks t.metadata?.sourceType === 'manual' and returns 'human_review' instead of 'ai_review' when all chunks are completed. This was previously committed in cdb88a7.",
+          "actual_output": "Implementation already present in task-store.ts at lines 80-82. The code correctly checks t.metadata?.sourceType === 'manual' and returns 'human_review' instead of 'ai_review' when all chunks are completed. Verified: lines 80-82 in updateTaskFromPlan contain the ternary expression for manual task handling.",
           "started_at": "2025-12-12T13:21:22.991236",
-          "completed_at": "2025-12-12T14:00:00.000000"
+          "completed_at": "2025-12-12T14:23:00.000000"
         }
       ]
     }
@@ -49,22 +49,9 @@
     "No TypeScript compilation errors"
   ],
   "created_at": "2025-12-12T11:15:00Z",
-  "updated_at": "2025-12-12T13:22:34.151Z",
+  "updated_at": "2025-12-12T13:50:30.410Z",
   "spec_file": null,
-  "status": "done",
+  "status": "completed",
   "planStatus": "completed",
-  "recoveryNote": "Task recovered from stuck state at 2025-12-12T13:22:34.151Z",
-  "qa_signoff": {
-    "status": "approved",
-    "timestamp": "2025-12-12T14:30:00Z",
-    "qa_session": 1,
-    "report_file": "qa_report.md",
-    "tests_passed": {
-      "code_review": "PASS",
-      "type_analysis": "PASS",
-      "logic_verification": "PASS",
-      "security_review": "PASS"
-    },
-    "verified_by": "qa_agent"
-  }
+  "recoveryNote": "Task recovered from stuck state at 2025-12-12T13:50:30.410Z"
 }
