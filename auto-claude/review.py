@@ -779,87 +779,96 @@ def run_review_checkpoint(
     print()
     print(box(content, width=70, style="heavy"))
 
-    # Main review loop
-    while True:
-        # Display spec and plan summaries
-        display_spec_summary(spec_dir)
-        display_plan_summary(spec_dir)
+    # Main review loop with graceful Ctrl+C handling
+    try:
+        while True:
+            # Display spec and plan summaries
+            display_spec_summary(spec_dir)
+            display_plan_summary(spec_dir)
 
-        # Show current review status
-        display_review_status(spec_dir)
+            # Show current review status
+            display_review_status(spec_dir)
 
-        # Show menu
-        options = get_review_menu_options()
-        choice = select_menu(
-            title="Review Implementation Plan",
-            options=options,
-            subtitle="What would you like to do?",
-            allow_quit=True,
-        )
+            # Show menu
+            options = get_review_menu_options()
+            choice = select_menu(
+                title="Review Implementation Plan",
+                options=options,
+                subtitle="What would you like to do?",
+                allow_quit=True,
+            )
 
-        # Handle quit (Ctrl+C or 'q')
-        if choice is None:
-            print()
-            print_status("Review paused. Your feedback has been saved.", "info")
-            print(muted("Run review again to continue."))
-            state.save(spec_dir)
-            sys.exit(0)
-
-        # Handle user choice
-        if choice == ReviewChoice.APPROVE.value:
-            state.approve(spec_dir, approved_by="user")
-            print()
-            print_status("Spec approved! Ready to start build.", "success")
-            return state
-
-        elif choice == ReviewChoice.EDIT_SPEC.value:
-            spec_file = spec_dir / "spec.md"
-            if not spec_file.exists():
-                print_status("spec.md not found", "error")
-                continue
-            open_file_in_editor(spec_file)
-            # After editing, invalidate any previous approval
-            if state.approved:
-                state.invalidate(spec_dir)
-            print()
-            print_status("spec.md updated. Please re-review.", "info")
-            continue
-
-        elif choice == ReviewChoice.EDIT_PLAN.value:
-            plan_file = spec_dir / "implementation_plan.json"
-            if not plan_file.exists():
-                print_status("implementation_plan.json not found", "error")
-                continue
-            open_file_in_editor(plan_file)
-            # After editing, invalidate any previous approval
-            if state.approved:
-                state.invalidate(spec_dir)
-            print()
-            print_status("Implementation plan updated. Please re-review.", "info")
-            continue
-
-        elif choice == ReviewChoice.FEEDBACK.value:
-            feedback = _prompt_feedback()
-            if feedback:
-                state.add_feedback(feedback, spec_dir)
+            # Handle quit (Ctrl+C or 'q')
+            if choice is None:
                 print()
-                print_status("Feedback saved.", "success")
-            else:
-                print()
-                print_status("No feedback added.", "info")
-            continue
+                print_status("Review paused. Your feedback has been saved.", "info")
+                print(muted("Run review again to continue."))
+                state.save(spec_dir)
+                sys.exit(0)
 
-        elif choice == ReviewChoice.REJECT.value:
-            state.reject(spec_dir)
-            print()
-            content = [
-                error(f"{icon(Icons.ERROR)} SPEC REJECTED"),
-                "",
-                "The build will not proceed.",
-                muted("You can edit the spec and try again later."),
-            ]
-            print(box(content, width=60, style="heavy"))
-            sys.exit(1)
+            # Handle user choice
+            if choice == ReviewChoice.APPROVE.value:
+                state.approve(spec_dir, approved_by="user")
+                print()
+                print_status("Spec approved! Ready to start build.", "success")
+                return state
+
+            elif choice == ReviewChoice.EDIT_SPEC.value:
+                spec_file = spec_dir / "spec.md"
+                if not spec_file.exists():
+                    print_status("spec.md not found", "error")
+                    continue
+                open_file_in_editor(spec_file)
+                # After editing, invalidate any previous approval
+                if state.approved:
+                    state.invalidate(spec_dir)
+                print()
+                print_status("spec.md updated. Please re-review.", "info")
+                continue
+
+            elif choice == ReviewChoice.EDIT_PLAN.value:
+                plan_file = spec_dir / "implementation_plan.json"
+                if not plan_file.exists():
+                    print_status("implementation_plan.json not found", "error")
+                    continue
+                open_file_in_editor(plan_file)
+                # After editing, invalidate any previous approval
+                if state.approved:
+                    state.invalidate(spec_dir)
+                print()
+                print_status("Implementation plan updated. Please re-review.", "info")
+                continue
+
+            elif choice == ReviewChoice.FEEDBACK.value:
+                feedback = _prompt_feedback()
+                if feedback:
+                    state.add_feedback(feedback, spec_dir)
+                    print()
+                    print_status("Feedback saved.", "success")
+                else:
+                    print()
+                    print_status("No feedback added.", "info")
+                continue
+
+            elif choice == ReviewChoice.REJECT.value:
+                state.reject(spec_dir)
+                print()
+                content = [
+                    error(f"{icon(Icons.ERROR)} SPEC REJECTED"),
+                    "",
+                    "The build will not proceed.",
+                    muted("You can edit the spec and try again later."),
+                ]
+                print(box(content, width=60, style="heavy"))
+                sys.exit(1)
+
+    except KeyboardInterrupt:
+        # Graceful Ctrl+C handling - save state and exit cleanly
+        print()
+        print_status("Review interrupted. Your feedback has been saved.", "info")
+        print(muted("Run review again to continue."))
+        state.save(spec_dir)
+        sys.exit(0)
 
 
 def open_file_in_editor(file_path: Path) -> bool:

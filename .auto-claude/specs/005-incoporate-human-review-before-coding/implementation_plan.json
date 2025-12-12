@@ -198,7 +198,8 @@
             "type": "command",
             "run": "python -c \"from review import open_file_in_editor; print('Editor function imported')\""
           },
-          "status": "pending",
+          "status": "completed",
+          "completed_at": "2025-12-12T22:00:00.000000",
           "implementation_details": "Add open_file_in_editor(filepath) function using os.environ.get('EDITOR', 'nano'). When user chooses EDIT_SPEC or EDIT_PLAN in review menu, open the appropriate file. After editor closes, re-display the summary and loop back to menu. Follow spec_runner.py _open_editor_for_input pattern (lines 777-819)."
         },
         {
