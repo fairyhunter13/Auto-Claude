@@ -307,6 +307,10 @@ Examples:
   python auto-claude/run.py --spec 001 --direct       # Skip workspace isolation
   python auto-claude/run.py --spec 001 --isolated     # Force workspace isolation
 
+  # Status checks
+  python auto-claude/run.py --spec 001 --review-status  # Check human review status
+  python auto-claude/run.py --spec 001 --qa-status      # Check QA validation status
+
 Prerequisites:
   1. Create a spec first: claude /spec
   2. Run 'claude setup-token' and set CLAUDE_CODE_OAUTH_TOKEN
@@ -411,6 +415,13 @@ Environment Variables:
         "--skip-qa",
         action="store_true",
         help="Skip automatic QA validation after build completes",
+    )
+
+    # Review options
+    parser.add_argument(
+        "--review-status",
+        action="store_true",
+        help="Show human review/approval status for a spec",
     )
 
     # Dev mode
@@ -576,6 +587,23 @@ def main() -> None:
         print_banner()
         print(f"\nSpec: {spec_dir.name}\n")
         print_qa_status(spec_dir)
+        return
+
+    # Handle review status command
+    if args.review_status:
+        print_banner()
+        print(f"\nSpec: {spec_dir.name}\n")
+        display_review_status(spec_dir)
+        # Also show if approval is valid for build
+        review_state = ReviewState.load(spec_dir)
+        print()
+        if review_state.is_approval_valid(spec_dir):
+            print(success(f"{icon(Icons.SUCCESS)} Ready to build - approval is valid."))
+        elif review_state.approved:
+            print(warning(f"{icon(Icons.WARNING)} Spec changed since approval - re-review required."))
+        else:
+            print(info(f"{icon(Icons.INFO)} Review required before building."))
+        print()
         return
 
     if args.qa:
