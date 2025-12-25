@@ -459,6 +459,158 @@ The GitHub Actions analysis confirms:
 
 ---
 
+### Subtask 2-3: Root Cause Statement and Fix Options
+
+#### Root Cause Statement
+
+**Summary:** The v2.7.1 release contains v2.7.0 artifacts because the git tag was created BEFORE the `package.json` version was updated.
+
+**Root Cause:** "Tag Before Version Bump" Error
+
+| Factor | Details |
+|--------|---------|
+| **What happened** | The `v2.7.1` git tag was placed on commit `772a5006` which still had `package.json` version `2.7.0` |
+| **Why it happened** | Incorrect release procedure: tag was created before version bump was committed |
+| **How it propagated** | The release workflow correctly built from the tagged commit, reading version `2.7.0` from `package.json` |
+| **Why it wasn't caught** | The `validate-version.yml` workflow detected the mismatch but runs in parallel with `release.yml` and cannot block it |
+
+**Evidence Chain:**
+1. `git show v2.7.1:auto-claude-ui/package.json` → version `2.7.0`
+2. Release workflow run #20433472030 → built from commit `772a5006` → success
+3. Validate-version workflow run #20433472034 → detected mismatch → **FAILED** (but couldn't stop release)
+4. All 7 artifacts named `Auto-Claude-2.7.0-*` instead of `Auto-Claude-2.7.1-*`
+
+**Contributing Factors:**
+- Lightweight tag (no metadata) - easier to create on wrong commit
+- No pre-tag validation hook or script
+- Independent parallel workflows with no blocking dependency
+- Version in `package.json` is the single source of truth for artifact naming
+
+---
+
+#### Fix Options
+
+##### Option A: Recreate v2.7.1 Tag and Release (RECOMMENDED)
+
+**Description:** Delete the current v2.7.1 tag and release, then create a new tag on a commit where `package.json` has version `2.7.1`.
+
+**Steps:**
+1. Delete the v2.7.1 GitHub release: `gh release delete v2.7.1 --cleanup-tag --yes`
+2. Identify correct commit: `git log --oneline | grep -A1 "Update version to 2.7.1"`
+3. Create new tag at correct commit: `git tag v2.7.1 8db71f3d && git push origin v2.7.1`
+4. Release workflow will trigger automatically with correct version
+5. Verify new artifacts have `2.7.1` in filenames
+
+**Pros:**
+- ✅ Users get the correct version they expect (v2.7.1)
+- ✅ Maintains clean version history
+- ✅ Checksums will match the correct filenames
+- ✅ Auto-update mechanisms will work correctly
+- ✅ No need to update documentation or links
+
+**Cons:**
+- ⚠️ Users who already downloaded v2.7.1 (v2.7.0 files) may be confused
+- ⚠️ Requires deleting and recreating the release
+- ⚠️ Brief window where v2.7.1 doesn't exist
+
+**Risk Level:** Medium - temporary unavailability, but correct outcome
+
+---
+
+##### Option B: Publish v2.7.2 with Correct Files
+
+**Description:** Leave v2.7.1 as-is (deprecated) and publish v2.7.2 with the correct build.
+
+**Steps:**
+1. Mark v2.7.1 as deprecated in release notes
+2. Bump package.json to 2.7.2
+3. Create and push v2.7.2 tag
+4. Publish v2.7.2 release with correct artifacts
+5. Update download links/documentation to point to v2.7.2
+
+**Pros:**
+- ✅ No disruption to existing v2.7.1 downloads
+- ✅ Preserves release history for audit trail
+- ✅ Clear indication that v2.7.2 supersedes v2.7.1
+
+**Cons:**
+- ❌ Version number gap in release history (no "real" 2.7.1)
+- ❌ Confusing version progression for users
+- ❌ Requires updating all download links and documentation
+- ❌ Users may still download deprecated v2.7.1
+
+**Risk Level:** Low - no deletion, but messy version history
+
+---
+
+##### Option C: Manual File Upload with --clobber
+
+**Description:** Build correct v2.7.1 artifacts locally and upload to replace existing files.
+
+**Steps:**
+1. Checkout commit with package.json version 2.7.1
+2. Build all platform artifacts locally (or trigger workflow to download)
+3. Delete existing assets: `gh release delete-asset v2.7.1 Auto-Claude-2.7.0-* --yes`
+4. Upload correct files: `gh release upload v2.7.1 ./dist/* --clobber`
+5. Update checksums file
+
+**Pros:**
+- ✅ Keeps same release and tag
+- ✅ No temporary unavailability window
+
+**Cons:**
+- ❌ Complex manual process prone to errors
+- ❌ Requires local build environment for all platforms (macOS, Windows, Linux)
+- ❌ May not match workflow-built artifacts exactly
+- ❌ Code signing could be different than CI
+- ❌ Does not address underlying tag/commit mismatch
+
+**Risk Level:** High - manual process, potential signing issues
+
+---
+
+#### Recommendation
+
+**Recommended Option: A - Recreate v2.7.1 Tag and Release**
+
+**Rationale:**
+1. **Correctness**: The tag should point to a commit where the codebase reflects v2.7.1
+2. **Automation**: Letting the release workflow rebuild ensures identical CI artifacts
+3. **User Experience**: Users expect v2.7.1 to contain 2.7.1 code and files
+4. **Maintainability**: Clean version history is easier to manage long-term
+5. **Auto-updates**: Electron auto-updater relies on version matching
+
+**Implementation Priority:**
+1. First: Fix v2.7.1 release (Option A)
+2. Then: Update workflow to prevent recurrence (make validation blocking)
+
+---
+
+#### Process Improvements Required
+
+Regardless of fix option chosen, these changes should be implemented to prevent recurrence:
+
+| Improvement | Priority | Description |
+|-------------|----------|-------------|
+| Make validation blocking | HIGH | Modify `release.yml` to depend on `validate-version.yml` passing |
+| Add pre-tag script | MEDIUM | Create script that validates version before allowing tag creation |
+| Use annotated tags | LOW | Annotated tags include metadata and require explicit message |
+| Document release procedure | MEDIUM | Create runbook for correct release process |
+
+**Workflow Architecture Change:**
+```yaml
+# Before (parallel, independent):
+Tag Push → release.yml (runs)
+         → validate-version.yml (runs, but can't block)
+
+# After (sequential, dependent):
+Tag Push → validate-version.yml (runs first)
+           ↓ success required
+         → release.yml (only runs if validation passes)
+```
+
+---
+
 ## Next Steps
 
 1. ~~**Subtask 1-1:** Verify v2.7.1 assets~~ ✅ Complete
@@ -466,13 +618,13 @@ The GitHub Actions analysis confirms:
 3. ~~**Subtask 1-3:** Check package.json version and git state~~ ✅ Complete - ROOT CAUSE IDENTIFIED
 4. ~~**Subtask 2-1:** Inspect v2.7.1 git tag and commit~~ ✅ Complete - TAG/COMMIT MISMATCH CONFIRMED
 5. ~~**Subtask 2-2:** Check release workflow runs~~ ✅ Complete - VALIDATION DETECTED BUT COULDN'T STOP RELEASE
-6. **Subtask 2-3:** Document fix options
+6. ~~**Subtask 2-3:** Document fix options~~ ✅ Complete - 3 OPTIONS DOCUMENTED, OPTION A RECOMMENDED
 7. **Phase 3:** Implement fix (re-upload correct files or publish v2.7.2)
 8. **Phase 4:** Add validation to prevent future occurrences
 
 ---
 
-## Status: Phase 2 In Progress - Subtask 2-2 Complete
+## Status: Phase 2 Complete ✅
 
 **Root Cause:** The v2.7.1 tag was created on commit `772a5006` which still had `package.json` version `2.7.0`. The validation workflow detected this but couldn't stop the release workflow.
 
@@ -481,11 +633,7 @@ The GitHub Actions analysis confirms:
 - Validate Version workflow (ID: 20433472034): ❌ Failed - correctly detected version mismatch
 - The workflows run in parallel with no dependency relationship
 
-**Recommended Fix:**
-1. Delete the v2.7.1 tag and release
-2. Move the tag to a commit where package.json has version 2.7.1
-3. Re-trigger the release workflow, OR
-4. Mark v2.7.1 as deprecated and release v2.7.2 with correct versioning
+**Recommended Fix:** Option A - Delete v2.7.1 tag and release, recreate tag at commit `8db71f3d` where `package.json` has version `2.7.1`, let workflow rebuild.
 
 **Process Improvement Needed:**
 - Version bump should ALWAYS happen BEFORE tagging
