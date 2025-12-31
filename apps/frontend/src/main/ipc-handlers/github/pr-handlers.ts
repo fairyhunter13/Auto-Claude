@@ -27,6 +27,7 @@ import {
   validateGitHubModule,
   buildRunnerArgs,
 } from './utils/subprocess-runner';
+import { syncPRLabel, markPRNeedsRereview } from './utils/pr-labels';
 
 /**
  * Sanitize network data before writing to file
@@ -697,6 +698,10 @@ export function registerPRHandlers(
           }
           debugLog('Review posted successfully', { prNumber, reviewId });
 
+          // Sync PR label based on review status
+          await syncPRLabel(config.token, config.repo, prNumber, overallStatus);
+          debugLog('PR label synced', { prNumber, status: overallStatus });
+
           // Update the stored review result with the review ID and posted findings
           const reviewPath = path.join(getGitHubDir(project), 'pr', `review_${prNumber}.json`);
           try {
@@ -857,6 +862,7 @@ export function registerPRHandlers(
             env: getAugmentedEnv(),
           });
           debugLog('PR merged successfully', { prNumber });
+
           return true;
         } catch (error) {
           debugLog('Failed to merge PR', { prNumber, error: error instanceof Error ? error.message : error });
@@ -991,9 +997,18 @@ export function registerPRHandlers(
             `/repos/${config.repo}/compare/${reviewedCommitSha}...${currentHeadSha}`
           )) as { ahead_by?: number; total_commits?: number };
 
+          const newCommitCount = comparison.ahead_by || comparison.total_commits || 1;
+
+          // Sync "Needs Re-review" label if review was posted and has new commits
+          const hasPostedFindings = review.hasPostedFindings || (review as any).has_posted_findings;
+          if (hasPostedFindings) {
+            await markPRNeedsRereview(config.token, config.repo, prNumber);
+            debugLog('Added needs re-review label', { prNumber, newCommitCount });
+          }
+
           return {
             hasNewCommits: true,
-            newCommitCount: comparison.ahead_by || comparison.total_commits || 1,
+            newCommitCount,
             lastReviewedCommit: reviewedCommitSha,
             currentHeadCommit: currentHeadSha,
           };
