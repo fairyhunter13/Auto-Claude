@@ -1766,8 +1766,15 @@ export function registerWorktreeHandlers(
                 }
               };
 
-              // Run async updates without blocking the response
-              updatePlans().catch(err => debug('Background plan update failed:', err));
+              // IMPORTANT: Wait for plan updates to complete before responding (fixes #243)
+              // Previously this was "fire and forget" which caused a race condition:
+              // resolve() would return before files were written, and UI refresh would read old status
+              try {
+                await updatePlans();
+              } catch (err) {
+                debug('Plan update failed:', err);
+                // Non-fatal: UI will still update, but status may not persist across refresh
+              }
 
               const mainWindow = getMainWindow();
               if (mainWindow) {
