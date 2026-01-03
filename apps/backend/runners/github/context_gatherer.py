@@ -204,6 +204,11 @@ class PRContext:
     # Commit SHAs for worktree creation (PR review isolation)
     head_sha: str = ""  # Commit SHA of PR head (headRefOid)
     base_sha: str = ""  # Commit SHA of PR base (baseRefOid)
+    # Merge conflict status
+    has_merge_conflicts: bool = False  # True if PR has conflicts with base branch
+    merge_state_status: str = (
+        ""  # BEHIND, BLOCKED, CLEAN, DIRTY, HAS_HOOKS, UNKNOWN, UNSTABLE
+    )
 
 
 class PRContextGatherer:
@@ -276,6 +281,17 @@ class PRContextGatherer:
         # Check if diff was truncated (empty diff but files were changed)
         diff_truncated = len(diff) == 0 and len(changed_files) > 0
 
+        # Check merge conflict status
+        mergeable = pr_data.get("mergeable", "UNKNOWN")
+        merge_state_status = pr_data.get("mergeStateStatus", "UNKNOWN")
+        has_merge_conflicts = mergeable == "CONFLICTING"
+
+        if has_merge_conflicts:
+            print(
+                f"[Context] ⚠️  PR has merge conflicts (mergeStateStatus: {merge_state_status})",
+                flush=True,
+            )
+
         return PRContext(
             pr_number=self.pr_number,
             title=pr_data["title"],
@@ -296,6 +312,8 @@ class PRContextGatherer:
             diff_truncated=diff_truncated,
             head_sha=pr_data.get("headRefOid", ""),
             base_sha=pr_data.get("baseRefOid", ""),
+            has_merge_conflicts=has_merge_conflicts,
+            merge_state_status=merge_state_status,
         )
 
     async def _fetch_pr_metadata(self) -> dict:
@@ -317,6 +335,8 @@ class PRContextGatherer:
                 "deletions",
                 "changedFiles",
                 "labels",
+                "mergeable",  # MERGEABLE, CONFLICTING, or UNKNOWN
+                "mergeStateStatus",  # BEHIND, BLOCKED, CLEAN, DIRTY, HAS_HOOKS, UNKNOWN, UNSTABLE
             ],
         )
 
@@ -1164,6 +1184,26 @@ class FollowupContextGatherer:
             flush=True,
         )
 
+        # Fetch current merge conflict status
+        has_merge_conflicts = False
+        merge_state_status = "UNKNOWN"
+        try:
+            pr_status = await self.gh_client.pr_get(
+                self.pr_number,
+                json_fields=["mergeable", "mergeStateStatus"],
+            )
+            mergeable = pr_status.get("mergeable", "UNKNOWN")
+            merge_state_status = pr_status.get("mergeStateStatus", "UNKNOWN")
+            has_merge_conflicts = mergeable == "CONFLICTING"
+
+            if has_merge_conflicts:
+                print(
+                    f"[Followup] ⚠️  PR has merge conflicts (mergeStateStatus: {merge_state_status})",
+                    flush=True,
+                )
+        except Exception as e:
+            print(f"[Followup] Could not fetch merge status: {e}", flush=True)
+
         return FollowupReviewContext(
             pr_number=self.pr_number,
             previous_review=self.previous_review,
@@ -1176,4 +1216,6 @@ class FollowupContextGatherer:
             + contributor_reviews,
             ai_bot_comments_since_review=ai_comments,
             pr_reviews_since_review=pr_reviews,
+            has_merge_conflicts=has_merge_conflicts,
+            merge_state_status=merge_state_status,
         )

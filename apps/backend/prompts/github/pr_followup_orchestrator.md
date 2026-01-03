@@ -31,6 +31,18 @@ Perform a focused, efficient follow-up review by:
 **Why this matters:**
 When authors merge the base branch into their feature branch, the commit range includes commits from other PRs. The context gathering system filters these out, but if any slip through, recognize them as out-of-scope.
 
+## Merge Conflicts
+
+**Check for merge conflicts in the follow-up context.** If `has_merge_conflicts` is `true`:
+
+1. **Report this prominently** - Merge conflicts block the PR from being merged
+2. **Add a CRITICAL finding** with category "merge_conflict" and severity "critical"
+3. **Include in verdict reasoning** - The PR cannot be merged until conflicts are resolved
+4. **This may be NEW since last review** - Base branch may have changed
+
+Note: GitHub's API tells us IF there are conflicts but not WHICH files. The finding should state:
+> "This PR has merge conflicts with the base branch that must be resolved before merging."
+
 ## Available Specialist Agents
 
 You have access to these specialist agents via the Task tool:

@@ -562,6 +562,12 @@ class FollowupReviewContext:
     # These are different from comments - they're full review submissions with body text
     pr_reviews_since_review: list[dict] = field(default_factory=list)
 
+    # Merge conflict status
+    has_merge_conflicts: bool = False  # True if PR has conflicts with base branch
+    merge_state_status: str = (
+        ""  # BEHIND, BLOCKED, CLEAN, DIRTY, HAS_HOOKS, UNKNOWN, UNSTABLE
+    )
+
     # Error flag - if set, context gathering failed and data may be incomplete
     error: str | None = None
 
