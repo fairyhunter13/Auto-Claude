@@ -61,6 +61,7 @@ export function GitHubPRs({ onOpenSettings, isActive = false }: GitHubPRsProps) 
     prs,
     isLoading,
     isLoadingMore,
+    isLoadingPRDetails,
     error,
     selectedPRNumber,
     reviewResult,
@@ -240,6 +241,7 @@ export function GitHubPRs({ onOpenSettings, isActive = false }: GitHubPRsProps) 
               isReviewing={isReviewing}
               initialNewCommitsCheck={storedNewCommitsCheck}
               isActive={isActive}
+              isLoadingFiles={isLoadingPRDetails}
               onRunReview={handleRunReview}
               onRunFollowupReview={handleRunFollowupReview}
               onCheckNewCommits={handleCheckNewCommits}

@@ -126,6 +126,26 @@ export interface AnalyzePreviewResult {
 }
 
 /**
+ * Workflow run awaiting approval (for fork PRs)
+ */
+export interface WorkflowAwaitingApproval {
+  id: number;
+  name: string;
+  html_url: string;
+  workflow_name: string;
+}
+
+/**
+ * Workflows awaiting approval result
+ */
+export interface WorkflowsAwaitingApprovalResult {
+  awaiting_approval: number;
+  workflow_runs: WorkflowAwaitingApproval[];
+  can_approve: boolean;
+  error?: string;
+}
+
+/**
  * GitHub Integration API operations
  */
 export interface GitHubAPI {
@@ -235,6 +255,7 @@ export interface GitHubAPI {
 
   // PR operations
   listPRs: (projectId: string, page?: number) => Promise<PRData[]>;
+  getPR: (projectId: string, prNumber: number) => Promise<PRData | null>;
   runPRReview: (projectId: string, prNumber: number) => void;
   cancelPRReview: (projectId: string, prNumber: number) => Promise<boolean>;
   postPRReview: (projectId: string, prNumber: number, selectedFindingIds?: string[], options?: { forceApprove?: boolean }) => Promise<boolean>;
@@ -243,6 +264,7 @@ export interface GitHubAPI {
   mergePR: (projectId: string, prNumber: number, mergeMethod?: 'merge' | 'squash' | 'rebase') => Promise<boolean>;
   assignPR: (projectId: string, prNumber: number, username: string) => Promise<boolean>;
   getPRReview: (projectId: string, prNumber: number) => Promise<PRReviewResult | null>;
+  getPRReviewsBatch: (projectId: string, prNumbers: number[]) => Promise<Record<number, PRReviewResult | null>>;
 
   // Follow-up review operations
   checkNewCommits: (projectId: string, prNumber: number) => Promise<NewCommitsCheck>;
@@ -250,6 +272,10 @@ export interface GitHubAPI {
 
   // PR logs
   getPRLogs: (projectId: string, prNumber: number) => Promise<PRLogs | null>;
+
+  // Workflow approval (for fork PRs)
+  getWorkflowsAwaitingApproval: (projectId: string, prNumber: number) => Promise<WorkflowsAwaitingApprovalResult>;
+  approveWorkflow: (projectId: string, runId: number) => Promise<boolean>;
 
   // PR event listeners
   onPRReviewProgress: (
@@ -589,6 +615,9 @@ export const createGitHubAPI = (): GitHubAPI => ({
   listPRs: (projectId: string, page: number = 1): Promise<PRData[]> =>
     invokeIpc(IPC_CHANNELS.GITHUB_PR_LIST, projectId, page),
 
+  getPR: (projectId: string, prNumber: number): Promise<PRData | null> =>
+    invokeIpc(IPC_CHANNELS.GITHUB_PR_GET, projectId, prNumber),
+
   runPRReview: (projectId: string, prNumber: number): void =>
     sendIpc(IPC_CHANNELS.GITHUB_PR_REVIEW, projectId, prNumber),
 
@@ -613,6 +642,9 @@ export const createGitHubAPI = (): GitHubAPI => ({
   getPRReview: (projectId: string, prNumber: number): Promise<PRReviewResult | null> =>
     invokeIpc(IPC_CHANNELS.GITHUB_PR_GET_REVIEW, projectId, prNumber),
 
+  getPRReviewsBatch: (projectId: string, prNumbers: number[]): Promise<Record<number, PRReviewResult | null>> =>
+    invokeIpc(IPC_CHANNELS.GITHUB_PR_GET_REVIEWS_BATCH, projectId, prNumbers),
+
   // Follow-up review operations
   checkNewCommits: (projectId: string, prNumber: number): Promise<NewCommitsCheck> =>
     invokeIpc(IPC_CHANNELS.GITHUB_PR_CHECK_NEW_COMMITS, projectId, prNumber),
@@ -623,6 +655,13 @@ export const createGitHubAPI = (): GitHubAPI => ({
   // PR logs
   getPRLogs: (projectId: string, prNumber: number): Promise<PRLogs | null> =>
     invokeIpc(IPC_CHANNELS.GITHUB_PR_GET_LOGS, projectId, prNumber),
+
+  // Workflow approval (for fork PRs)
+  getWorkflowsAwaitingApproval: (projectId: string, prNumber: number): Promise<WorkflowsAwaitingApprovalResult> =>
+    invokeIpc(IPC_CHANNELS.GITHUB_WORKFLOWS_AWAITING_APPROVAL, projectId, prNumber),
+
+  approveWorkflow: (projectId: string, runId: number): Promise<boolean> =>
+    invokeIpc(IPC_CHANNELS.GITHUB_WORKFLOW_APPROVE, projectId, runId),
 
   // PR event listeners
   onPRReviewProgress: (

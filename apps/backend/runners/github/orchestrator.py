@@ -516,6 +516,9 @@ class GitHubOrchestrator:
             # Save result
             await result.save(self.github_dir)
 
+            # Note: PR review memory is now saved by the Electron app after the review completes
+            # This ensures memory is saved to the embedded LadybugDB managed by the app
+
             # Mark as reviewed (head_sha already fetched above)
             if head_sha:
                 self.bot_detector.mark_reviewed(pr_number, head_sha)
@@ -759,6 +762,9 @@ class GitHubOrchestrator:
             # Save result
             await result.save(self.github_dir)
 
+            # Note: PR review memory is now saved by the Electron app after the review completes
+            # This ensures memory is saved to the embedded LadybugDB managed by the app
+
             # Mark as reviewed with new commit SHA
             if result.reviewed_commit_sha:
                 self.bot_detector.mark_reviewed(pr_number, result.reviewed_commit_sha)
@@ -836,6 +842,13 @@ class GitHubOrchestrator:
         for check_name in failed_checks:
             blockers.append(f"CI Failed: {check_name}")
 
+        # Workflows awaiting approval block merging (fork PRs)
+        awaiting_approval = ci_status.get("awaiting_approval", 0)
+        if awaiting_approval > 0:
+            blockers.append(
+                f"Workflows Pending: {awaiting_approval} workflow(s) awaiting maintainer approval"
+            )
+
         # NEW: Verification failures block merging
         for f in verification_failures:
             note = f" - {f.verification_note}" if f.verification_note else ""
@@ -876,6 +889,13 @@ class GitHubOrchestrator:
                 reasoning = (
                     f"Blocked: {len(failed_checks)} CI check(s) failing. "
                     "Fix CI before merge."
+                )
+            # Workflows awaiting approval block merging
+            elif awaiting_approval > 0:
+                verdict = MergeVerdict.BLOCKED
+                reasoning = (
+                    f"Blocked: {awaiting_approval} workflow(s) awaiting approval. "
+                    "Approve workflows on GitHub to run CI checks."
                 )
             # NEW: Prioritize verification failures
             elif verification_failures:

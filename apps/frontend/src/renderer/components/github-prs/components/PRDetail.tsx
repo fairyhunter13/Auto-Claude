@@ -14,6 +14,8 @@ import {
   MessageSquare,
   FileText,
   ExternalLink,
+  Play,
+  Clock,
 } from 'lucide-react';
 import { Badge } from '../../ui/badge';
 import { Button } from '../../ui/button';
@@ -30,7 +32,7 @@ import { ReviewFindings } from './ReviewFindings';
 import { PRLogs } from './PRLogs';
 
 import type { PRData, PRReviewResult, PRReviewProgress } from '../hooks/useGitHubPRs';
-import type { NewCommitsCheck, PRLogs as PRLogsType } from '../../../../preload/api/modules/github-api';
+import type { NewCommitsCheck, PRLogs as PRLogsType, WorkflowsAwaitingApprovalResult, WorkflowAwaitingApproval } from '../../../../preload/api/modules/github-api';
 
 interface PRDetailProps {
   pr: PRData;
@@ -40,6 +42,7 @@ interface PRDetailProps {
   isReviewing: boolean;
   initialNewCommitsCheck?: NewCommitsCheck | null;
   isActive?: boolean;
+  isLoadingFiles?: boolean;
   onRunReview: () => void;
   onRunFollowupReview: () => void;
   onCheckNewCommits: () => Promise<NewCommitsCheck>;
@@ -70,6 +73,7 @@ export function PRDetail({
   isReviewing,
   initialNewCommitsCheck,
   isActive = false,
+  isLoadingFiles = false,
   onRunReview,
   onRunFollowupReview,
   onCheckNewCommits,
@@ -99,6 +103,11 @@ export function PRDetail({
   const [prLogs, setPrLogs] = useState<PRLogsType | null>(null);
   const [isLoadingLogs, setIsLoadingLogs] = useState(false);
   const logsLoadedRef = useRef(false);
+
+  // Workflows awaiting approval state (for fork PRs)
+  const [workflowsAwaiting, setWorkflowsAwaiting] = useState<WorkflowsAwaitingApprovalResult | null>(null);
+  const [isApprovingWorkflow, setIsApprovingWorkflow] = useState<number | null>(null);
+  const [workflowsExpanded, setWorkflowsExpanded] = useState(true);
 
   // Sync with store's newCommitsCheck when it changes (e.g., when switching PRs or after refresh)
   // Always sync to keep local state in sync with store, including null values
@@ -242,6 +251,58 @@ export function PRDetail({
     setPrLogs(null);
     setLogsExpanded(false);
   }, [pr.number]);
+
+  // Check for workflows awaiting approval (fork PRs) when PR changes or review completes
+  useEffect(() => {
+    const checkWorkflows = async () => {
+      try {
+        const result = await window.electronAPI.github.getWorkflowsAwaitingApproval(
+          '', // projectId will be resolved from active project
+          pr.number
+        );
+        setWorkflowsAwaiting(result);
+      } catch {
+        setWorkflowsAwaiting(null);
+      }
+    };
+
+    checkWorkflows();
+    // Re-check when a review is completed (CI status might have changed)
+  }, [pr.number, reviewResult]);
+
+  // Handler to approve a workflow
+  const handleApproveWorkflow = useCallback(async (runId: number) => {
+    setIsApprovingWorkflow(runId);
+    try {
+      const success = await window.electronAPI.github.approveWorkflow('', runId);
+      if (success) {
+        // Refresh the workflows list after approval
+        const result = await window.electronAPI.github.getWorkflowsAwaitingApproval('', pr.number);
+        setWorkflowsAwaiting(result);
+      }
+    } finally {
+      setIsApprovingWorkflow(null);
+    }
+  }, [pr.number]);
+
+  // Handler to approve all workflows at once
+  const handleApproveAllWorkflows = useCallback(async () => {
+    if (!workflowsAwaiting?.workflow_runs.length) return;
+
+    for (const workflow of workflowsAwaiting.workflow_runs) {
+      setIsApprovingWorkflow(workflow.id);
+      try {
+        await window.electronAPI.github.approveWorkflow('', workflow.id);
+      } catch {
+        // Continue with other workflows even if one fails
+      }
+    }
+    setIsApprovingWorkflow(null);
+
+    // Refresh the workflows list
+    const result = await window.electronAPI.github.getWorkflowsAwaitingApproval('', pr.number);
+    setWorkflowsAwaiting(result);
+  }, [pr.number, workflowsAwaiting]);
 
   // Count selected findings by type for the button label
   const selectedCount = selectedFindingIds.size;
@@ -495,7 +556,7 @@ export function PRDetail({
       <div className="p-6 max-w-5xl mx-auto space-y-6">
 
         {/* Refactored Header */}
-        <PRHeader pr={pr} />
+        <PRHeader pr={pr} isLoadingFiles={isLoadingFiles} />
 
         {/* Review Status & Actions */}
         <ReviewStatusTree
@@ -531,7 +592,8 @@ export function PRDetail({
              )}
 
              {/* Approve button - consolidated logic to avoid duplicate buttons */}
-             {isCleanReview && !hasPostedFindings && (
+             {/* Don't show when overallStatus is 'request_changes' (e.g., workflows blocked, or other issues) */}
+             {isCleanReview && !hasPostedFindings && reviewResult?.overallStatus !== 'request_changes' && (
                 <Button
                   onClick={handleAutoApprove}
                   disabled={isPosting}
@@ -558,6 +620,7 @@ export function PRDetail({
              )}
 
              {/* Manual approve button - only show for non-clean reviews that are ready to merge */}
+             {/* isReadyToMerge already checks for 'approve' status, so no need for additional check */}
              {isReadyToMerge && !isCleanReview && !hasPostedFindings && (
                 <Button
                   onClick={handleApprove}
@@ -633,7 +696,7 @@ export function PRDetail({
             <div className="p-4 space-y-6">
               {/* Follow-up Review Resolution Status */}
               {reviewResult.isFollowupReview && (
-                <div className="flex flex-wrap gap-3 pb-4 border-b border-border/50">
+                <div className="flex flex-wrap items-center gap-3 pb-4 border-b border-border/50">
                   {(reviewResult.resolvedFindings?.length ?? 0) > 0 && (
                     <Badge variant="outline" className="bg-success/10 text-success border-success/30 px-3 py-1">
                       <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
@@ -652,6 +715,21 @@ export function PRDetail({
                       {t('prReview.newIssue', { count: reviewResult.newFindingsSinceLastReview?.length ?? 0 })}
                     </Badge>
                   )}
+                  {/* Re-run follow-up review button */}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 ml-auto text-muted-foreground hover:text-foreground"
+                    onClick={onRunFollowupReview}
+                    disabled={isReviewing}
+                    title={t('prReview.rerunFollowup')}
+                  >
+                    {isReviewing ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
                 </div>
               )}
 
@@ -683,6 +761,94 @@ export function PRDetail({
               </div>
             </CardContent>
           </Card>
+        )}
+
+        {/* Workflows Awaiting Approval - for fork PRs */}
+        {workflowsAwaiting && workflowsAwaiting.awaiting_approval > 0 && (
+          <CollapsibleCard
+            title={t('prReview.workflowsAwaitingApproval', { count: workflowsAwaiting.awaiting_approval })}
+            icon={<Clock className="h-4 w-4 text-warning" />}
+            badge={
+              <Badge variant="outline" className="text-xs bg-warning/10 text-warning border-warning/30">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                {t('prReview.blockedByWorkflows')}
+              </Badge>
+            }
+            open={workflowsExpanded}
+            onOpenChange={setWorkflowsExpanded}
+          >
+            <div className="p-4 space-y-4">
+              <p className="text-sm text-muted-foreground">
+                {t('prReview.workflowsAwaitingDescription')}
+              </p>
+
+              <div className="space-y-2">
+                {workflowsAwaiting.workflow_runs.map((workflow) => (
+                  <div
+                    key={workflow.id}
+                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50 border border-border/50"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Clock className="h-4 w-4 text-warning shrink-0" />
+                      <div className="min-w-0">
+                        <span className="text-sm font-medium truncate block">
+                          {workflow.workflow_name}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {workflow.name}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={() => window.open(workflow.html_url, '_blank')}
+                      >
+                        <ExternalLink className="h-3 w-3 mr-1" />
+                        {t('prReview.viewOnGitHub')}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="default"
+                        className="h-7 text-xs"
+                        onClick={() => handleApproveWorkflow(workflow.id)}
+                        disabled={isApprovingWorkflow !== null}
+                      >
+                        {isApprovingWorkflow === workflow.id ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : (
+                          <>
+                            <Play className="h-3 w-3 mr-1" />
+                            {t('prReview.approveWorkflow')}
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {workflowsAwaiting.workflow_runs.length > 1 && (
+                <div className="flex justify-end pt-2 border-t border-border/50">
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={handleApproveAllWorkflows}
+                    disabled={isApprovingWorkflow !== null}
+                  >
+                    {isApprovingWorkflow !== null ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Play className="h-4 w-4 mr-2" />
+                    )}
+                    {t('prReview.approveAllWorkflows')}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </CollapsibleCard>
         )}
 
         {/* Review Logs - show during review or after completion */}

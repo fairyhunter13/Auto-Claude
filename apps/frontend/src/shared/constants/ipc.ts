@@ -353,6 +353,7 @@ export const IPC_CHANNELS = {
   GITHUB_PR_REVIEW: 'github:pr:review',
   GITHUB_PR_REVIEW_CANCEL: 'github:pr:reviewCancel',
   GITHUB_PR_GET_REVIEW: 'github:pr:getReview',
+  GITHUB_PR_GET_REVIEWS_BATCH: 'github:pr:getReviewsBatch',  // Batch load reviews for multiple PRs
   GITHUB_PR_POST_REVIEW: 'github:pr:postReview',
   GITHUB_PR_DELETE_REVIEW: 'github:pr:deleteReview',
   GITHUB_PR_MERGE: 'github:pr:merge',
@@ -369,6 +370,14 @@ export const IPC_CHANNELS = {
 
   // GitHub PR Logs (for viewing AI review logs)
   GITHUB_PR_GET_LOGS: 'github:pr:getLogs',
+
+  // GitHub PR Memory operations (saves review insights to memory layer)
+  GITHUB_PR_MEMORY_GET: 'github:pr:memory:get',        // Get PR review memories
+  GITHUB_PR_MEMORY_SEARCH: 'github:pr:memory:search',  // Search PR review memories
+
+  // GitHub Workflow Approval (for fork PRs)
+  GITHUB_WORKFLOWS_AWAITING_APPROVAL: 'github:workflows:awaitingApproval',
+  GITHUB_WORKFLOW_APPROVE: 'github:workflow:approve',
 
   // GitHub Issue Triage operations
   GITHUB_TRIAGE_RUN: 'github:triage:run',

@@ -145,6 +145,9 @@
     "reviewStatus": "Review Status",
     "files": "files",
     "filesChanged": "{{count}} files changed",
+    "clickToViewFiles": "Click to view changed files",
+    "loadingFiles": "Loading files...",
+    "noFilesAvailable": "File list not available",
     "posting": "Posting...",
     "postingApproval": "Posting Approval...",
     "postFindings": "Post {{count}} Finding",
@@ -230,9 +233,17 @@
     "reviewLogs": "Review Logs",
     "followup": "Follow-up",
     "initial": "Initial",
+    "rerunFollowup": "Re-run follow-up review",
     "loadingMore": "Loading more PRs...",
     "scrollForMore": "Scroll for more",
-    "allPRsLoaded": "All PRs loaded"
+    "allPRsLoaded": "All PRs loaded",
+    "workflowsAwaitingApproval": "{{count}} Workflow Awaiting Approval",
+    "workflowsAwaitingApproval_plural": "{{count}} Workflows Awaiting Approval",
+    "blockedByWorkflows": "Blocked",
+    "workflowsAwaitingDescription": "This PR is from a fork and requires workflow approval before CI checks can run. Approve the workflows to continue.",
+    "viewOnGitHub": "View",
+    "approveWorkflow": "Approve",
+    "approveAllWorkflows": "Approve All Workflows"
   },
   "downloads": {
     "toggleExpand": "Toggle download details",

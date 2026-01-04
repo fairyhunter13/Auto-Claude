@@ -145,6 +145,9 @@
     "reviewStatus": "Statut de révision",
     "files": "fichiers",
     "filesChanged": "{{count}} fichiers modifiés",
+    "clickToViewFiles": "Cliquez pour voir les fichiers modifiés",
+    "loadingFiles": "Chargement des fichiers...",
+    "noFilesAvailable": "Liste des fichiers non disponible",
     "posting": "Publication...",
     "postingApproval": "Publication de l'approbation...",
     "postFindings": "Publier {{count}} résultat",
@@ -230,9 +233,17 @@
     "reviewLogs": "Journaux de révision",
     "followup": "Suivi",
     "initial": "Initial",
+    "rerunFollowup": "Relancer la revue de suivi",
     "loadingMore": "Chargement des PRs...",
     "scrollForMore": "Défiler pour plus",
-    "allPRsLoaded": "Tous les PRs chargés"
+    "allPRsLoaded": "Tous les PRs chargés",
+    "workflowsAwaitingApproval": "{{count}} workflow en attente d'approbation",
+    "workflowsAwaitingApproval_plural": "{{count}} workflows en attente d'approbation",
+    "blockedByWorkflows": "Bloqué",
+    "workflowsAwaitingDescription": "Cette PR provient d'un fork et nécessite l'approbation des workflows avant que les vérifications CI puissent s'exécuter. Approuvez les workflows pour continuer.",
+    "viewOnGitHub": "Voir",
+    "approveWorkflow": "Approuver",
+    "approveAllWorkflows": "Approuver tous les workflows"
   },
   "downloads": {
     "toggleExpand": "Afficher/masquer les détails",
