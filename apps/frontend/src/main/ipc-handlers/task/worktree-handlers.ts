@@ -7,7 +7,7 @@ import { execSync, execFileSync, spawn, spawnSync, exec, execFile } from 'child_
 import { minimatch } from 'minimatch';
 import { projectStore } from '../../project-store';
 import { getConfiguredPythonPath, PythonEnvManager, pythonEnvManager as pythonEnvManagerSingleton } from '../../python-env-manager';
-import { getEffectiveSourcePath } from '../../auto-claude-updater';
+import { getEffectiveSourcePath } from '../../updater/path-resolver';
 import { getProfileEnv } from '../../rate-limit-detector';
 import { findTaskAndProject } from './shared';
 import { parsePythonCommand } from '../../python-detector';
