@@ -16,7 +16,8 @@ import { AuthChoiceStep } from './AuthChoiceStep';
 import { OAuthStep } from './OAuthStep';
 import { ClaudeCodeStep } from './ClaudeCodeStep';
 import { DevToolsStep } from './DevToolsStep';
-import { MemoryStep } from './MemoryStep';
+import { PrivacyStep } from './PrivacyStep';
+import { GraphitiStep } from './GraphitiStep';
 import { CompletionStep } from './CompletionStep';
 import { useSettingsStore } from '../../stores/settings-store';
 
@@ -28,7 +29,7 @@ interface OnboardingWizardProps {
 }
 
 // Wizard step identifiers
-type WizardStepId = 'welcome' | 'auth-choice' | 'oauth' | 'claude-code' | 'devtools' | 'graphiti' | 'completion';
+type WizardStepId = 'welcome' | 'auth-choice' | 'oauth' | 'claude-code' | 'devtools' | 'privacy' | 'graphiti' | 'completion';
 
 // Step configuration with translation keys
 const WIZARD_STEPS: { id: WizardStepId; labelKey: string }[] = [
@@ -37,6 +38,7 @@ const WIZARD_STEPS: { id: WizardStepId; labelKey: string }[] = [
   { id: 'oauth', labelKey: 'steps.auth' },
   { id: 'claude-code', labelKey: 'steps.claudeCode' },
   { id: 'devtools', labelKey: 'steps.devtools' },
+  { id: 'privacy', labelKey: 'steps.privacy' },
   { id: 'graphiti', labelKey: 'steps.memory' },
   { id: 'completion', labelKey: 'steps.done' }
 ];
@@ -212,11 +214,19 @@ export function OnboardingWizard({
             onBack={goToPreviousStep}
           />
         );
-      case 'graphiti':
+      case 'privacy':
         return (
-          <MemoryStep
+          <PrivacyStep
             onNext={goToNextStep}
             onBack={goToPreviousStep}
+          />
+        );
+      case 'graphiti':
+        return (
+          <GraphitiStep
+            onNext={goToNextStep}
+            onBack={goToPreviousStep}
+            onSkip={skipWizard}
           />
         );
       case 'completion':

@@ -206,10 +206,8 @@ async function executeQuery(
     const proc = spawn(pythonExe, fullArgs, {
       stdio: ['ignore', 'pipe', 'pipe'],
       timeout,
-      env: {
-        ...process.env,
-        ...pythonEnv,  // Include site-packages path so real_ladybug can be found
-      },
+      // Use getMemoryPythonEnv() which combines sanitized env + site-packages for real_ladybug
+      env: getMemoryPythonEnv(),
     });
 
     let stdout = '';
@@ -285,7 +283,8 @@ async function executeSemanticQuery(
   const pythonEnv = getMemoryPythonEnv();
   
   // Build environment with embedder configuration
-  const env: Record<string, string | undefined> = { ...process.env, ...pythonEnv };
+  // Use getMemoryPythonEnv() which combines sanitized env + site-packages for real_ladybug
+  const env: Record<string, string | undefined> = { ...getMemoryPythonEnv() };
 
   // Set the embedder provider
   env.GRAPHITI_EMBEDDER_PROVIDER = embedderConfig.provider;
