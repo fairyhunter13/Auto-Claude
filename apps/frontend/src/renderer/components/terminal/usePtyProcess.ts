@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 import { useTerminalStore } from '../../stores/terminal-store';
 
 interface UsePtyProcessOptions {
@@ -25,6 +25,9 @@ export function usePtyProcess({
   const isCreatingRef = useRef(false);
   const isCreatedRef = useRef(false);
   const currentCwdRef = useRef(cwd);
+  // Trigger state to force re-creation after resetForRecreate()
+  // Refs don't trigger re-renders, so we need a state to ensure the effect runs
+  const [recreationTrigger, setRecreationTrigger] = useState(0);
   const setTerminalStatus = useTerminalStore((state) => state.setTerminalStatus);
   const updateTerminal = useTerminalStore((state) => state.updateTerminal);
 
@@ -45,6 +48,8 @@ export function usePtyProcess({
   }, [cwd]);
 
   // Create PTY process
+  // recreationTrigger is included to force the effect to run after resetForRecreate()
+  // since refs don't trigger re-renders
   useEffect(() => {
     // Skip creation if explicitly told to (waiting for dimensions)
     if (skipCreation) return;
@@ -111,7 +116,8 @@ export function usePtyProcess({
         isCreatingRef.current = false;
       });
     }
-  }, [terminalId, cwd, projectPath, cols, rows, skipCreation, setTerminalStatus, updateTerminal, onCreated, onError]);
+   
+  }, [terminalId, cwd, projectPath, cols, rows, skipCreation, recreationTrigger, setTerminalStatus, updateTerminal, onCreated, onError]);
 
   // Function to prepare for recreation by preventing the effect from running
   // Call this BEFORE updating the store cwd to avoid race condition
@@ -121,9 +127,12 @@ export function usePtyProcess({
 
   // Function to reset refs and allow recreation
   // Call this AFTER destroying the old terminal
+  // Increments recreationTrigger to force the effect to run since refs don't trigger re-renders
   const resetForRecreate = useCallback(() => {
     isCreatedRef.current = false;
     isCreatingRef.current = false;
+    // Increment trigger to force the creation effect to run
+    setRecreationTrigger((prev) => prev + 1);
   }, []);
 
   return {
