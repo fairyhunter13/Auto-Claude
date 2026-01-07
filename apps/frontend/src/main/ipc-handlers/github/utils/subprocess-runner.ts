@@ -16,6 +16,36 @@ import { parsePythonCommand } from '../../../python-detector';
 const execAsync = promisify(exec);
 
 /**
+ * Create a fallback environment for Python subprocesses when no env is provided.
+ * This is used for backwards compatibility when callers don't use getRunnerEnv().
+ *
+ * Includes:
+ * - Platform-specific vars needed for shell commands and CLI tools
+ * - CLAUDE_ and ANTHROPIC_ prefixed vars for authentication
+ */
+function createFallbackRunnerEnv(): Record<string, string> {
+  // Include platform-specific vars needed for shell commands and CLI tools
+  // Windows: SYSTEMROOT, COMSPEC, PATHEXT, WINDIR for shell; USERPROFILE, APPDATA, LOCALAPPDATA for gh CLI auth
+  const safeEnvVars = ['PATH', 'HOME', 'USER', 'SHELL', 'LANG', 'LC_ALL', 'TERM', 'TMPDIR', 'TMP', 'TEMP', 'DEBUG', 'SYSTEMROOT', 'COMSPEC', 'PATHEXT', 'WINDIR', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'HOMEDRIVE', 'HOMEPATH'];
+  const fallbackEnv: Record<string, string> = {};
+
+  for (const key of safeEnvVars) {
+    if (process.env[key]) {
+      fallbackEnv[key] = process.env[key]!;
+    }
+  }
+
+  // Also include any CLAUDE_ or ANTHROPIC_ prefixed vars needed for auth
+  for (const [key, value] of Object.entries(process.env)) {
+    if ((key.startsWith('CLAUDE_') || key.startsWith('ANTHROPIC_')) && value) {
+      fallbackEnv[key] = value;
+    }
+  }
+
+  return fallbackEnv;
+}
+
+/**
  * Options for running a Python subprocess
  */
 export interface SubprocessOptions {
@@ -70,21 +100,7 @@ export function runPythonSubprocess<T = unknown>(
     subprocessEnv = { ...options.env };
   } else {
     // Fallback: build a filtered environment for backwards compatibility
-    // Include platform-specific vars needed for shell commands and CLI tools
-    // Windows: SYSTEMROOT, COMSPEC, PATHEXT, WINDIR for shell; USERPROFILE, APPDATA, LOCALAPPDATA for gh CLI auth
-    const safeEnvVars = ['PATH', 'HOME', 'USER', 'SHELL', 'LANG', 'LC_ALL', 'TERM', 'TMPDIR', 'TMP', 'TEMP', 'DEBUG', 'SYSTEMROOT', 'COMSPEC', 'PATHEXT', 'WINDIR', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'HOMEDRIVE', 'HOMEPATH'];
-    subprocessEnv = {};
-    for (const key of safeEnvVars) {
-      if (process.env[key]) {
-        subprocessEnv[key] = process.env[key]!;
-      }
-    }
-    // Also include any CLAUDE_ or ANTHROPIC_ prefixed vars needed for auth
-    for (const [key, value] of Object.entries(process.env)) {
-      if ((key.startsWith('CLAUDE_') || key.startsWith('ANTHROPIC_')) && value) {
-        subprocessEnv[key] = value;
-      }
-    }
+    subprocessEnv = createFallbackRunnerEnv();
   }
 
   // Parse Python command to handle paths with spaces (e.g., ~/Library/Application Support/...)
