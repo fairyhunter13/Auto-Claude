@@ -159,8 +159,8 @@ playwright/.cache/
 
 # Development
 dev/
-_bmad/
-_bmad-output/
+# NOTE: _bmad/ is intentionally tracked - it's the BMAD Alpha framework shipped with this package
+# _bmad-output/ is also tracked for project artifacts
 .claude/
 /docs
 OPUS_ANALYSIS_AND_IDEAS.md
