@@ -598,6 +598,17 @@ def party(
         "-v",
         help="Model variant (e.g., 'max' for maximum thinking budget on Anthropic)",
     ),
+    profiles: str = typer.Option(
+        None,
+        "--profiles",
+        "-p",
+        help="Comma-separated OpenCode profiles for load balancing (e.g., 'personal,work')",
+    ),
+    load_balance: str = typer.Option(
+        "round_robin",
+        "--load-balance",
+        help="Load balancing strategy: round_robin, random, failover, least_used",
+    ),
 ):
     """
     Start a party mode session with collaborative AI agents.
@@ -606,12 +617,22 @@ def party(
     to discuss your project collaboratively, producing artifacts through natural
     conversation.
 
+    Load Balancing:
+        Use --profiles to distribute requests across multiple OpenCode accounts.
+        Available profiles: personal, work, default (matching ~/.bash_aliases)
+
     Examples:
         bmad-claude party "Task Management App"
-        bmad-claude party "E-commerce Platform" --model anthropic/claude-opus-4-5 --variant max
+        bmad-claude party "My Project" --profiles personal,work
+        bmad-claude party "My Project" --profiles personal,work --load-balance round_robin
         bmad-claude party "My Project" --resume party-2026-01-16-my-project
     """
     print_party_banner()
+
+    # Parse profiles
+    profile_list = None
+    if profiles:
+        profile_list = [p.strip() for p in profiles.split(",") if p.strip()]
 
     asyncio.run(
         _run_party_session(
@@ -620,6 +641,8 @@ def party(
             opencode_path=opencode_path,
             model=model,
             variant=variant,
+            profiles=profile_list,
+            load_balance_strategy=load_balance,
         )
     )
 
@@ -630,11 +653,26 @@ async def _run_party_session(
     opencode_path: str,
     model: str,
     variant: str,
+    profiles: list[str] | None = None,
+    load_balance_strategy: str = "round_robin",
 ):
     """Run the interactive party mode session."""
-    from bmad_claude.party import PartySession
+    from bmad_claude.party import PartySession, get_available_profiles
 
     try:
+        # Show load balancing info if profiles specified
+        if profiles:
+            console.print(f"[cyan]Load Balancing: {load_balance_strategy}[/cyan]")
+            console.print(f"[cyan]Profiles: {', '.join(profiles)}[/cyan]")
+
+            # Validate profiles
+            available = get_available_profiles()
+            for p in profiles:
+                if p not in available:
+                    console.print(
+                        f"[yellow]Warning: Unknown profile '{p}'. Available: {available}[/yellow]"
+                    )
+
         # Create or resume session
         if resume_session:
             console.print(f"[cyan]Resuming session: {resume_session}[/cyan]")
@@ -646,6 +684,8 @@ async def _run_party_session(
                 opencode_path=opencode_path,
                 model=model,
                 variant=variant,
+                profiles=profiles,
+                load_balance_strategy=load_balance_strategy,
             )
 
         # Display welcome
