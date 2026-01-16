@@ -1,9 +1,9 @@
 # BMAD-Claude: Product Requirements Document
 
-> **Version:** 1.0
-> **Status:** Draft
+> **Version:** 2.0
+> **Status:** Draft - Updated for Party Mode Pivot
 > **Author:** John (PM Agent) with BMAD Team
-> **Date:** 2026-01-15
+> **Date:** 2026-01-16
 > **Stakeholder:** Hafiz (Product Owner)
 
 ---
@@ -12,30 +12,46 @@
 
 ### 1.1 Product Vision
 
-**BMAD-Claude** is an autonomous development system that combines BMAD's expert-level software development methodology with automated workflow orchestration and OpenCode's execution capabilities. It transforms the manually-driven BMAD workflow experience into a fully autonomous AI-powered development pipeline.
+**BMAD-Claude** is a collaborative AI development system that brings together multiple expert AI agents in a "party mode" discussion environment to create high-quality software artifacts through natural collaboration. Instead of sequential handoffs between isolated agents, all agents participate together, maintaining shared context and producing artifacts through collective intelligence.
 
 ### 1.2 Problem Statement
 
-**Current Pain:**
-- BMAD provides excellent methodology for software development (PRD → Architecture → Stories → Dev)
-- However, BMAD requires manual driving—users must invoke commands, select options, and guide the workflow
-- This creates friction and reduces adoption despite BMAD's superior planning outcomes
-- Auto-Claude provides autonomous execution but lacks BMAD's expert methodology
-- No existing solution combines expert methodology with full automation
+**Current Pain (Sequential Model):**
+- BMAD's sequential workflow (PM → Architect → SM) loses context between agent handoffs
+- Each agent works in isolation, missing valuable cross-functional insights
+- Manual driving creates friction: users must invoke commands and guide each phase
+- Context window limitations compound as artifacts are passed between sessions
+- No single agent has visibility into decisions made by other agents
+
+**New Insight (Party Mode Solution):**
+- Human teams don't work sequentially—they discuss, debate, and collaborate
+- Real-world planning involves back-and-forth between PM, Architect, and others
+- Context is never lost when everyone participates in the same conversation
+- Cross-pollination of ideas produces higher quality artifacts
 
 **Target User:**
-- Developers and teams who want AI-assisted development with expert-level methodology
-- Users who value structured planning but don't want to manually drive every step
-- Organizations seeking consistent, high-quality development workflows
+- Developers and teams who want AI-assisted development with human-like collaboration
+- Users who value structured planning with rich, contextual discussions
+- Organizations seeking consistent, high-quality artifacts with full traceability
 
 ### 1.3 Solution
 
-BMAD-Claude automates the complete BMAD workflow lifecycle:
-1. **Autonomous Workflow Execution** — System drives workflows without manual intervention
-2. **Persona-Driven Agents** — 20 specialized agent personas for different development phases
-3. **Intelligent Orchestration** — Automatic workflow selection, phase transitions, and state management
-4. **Breakthrough Recovery** — Automatic stuck-state detection and recovery mechanisms
-5. **Persistent Memory** — Cross-session learning via Graphiti knowledge graph
+BMAD-Claude Party Mode transforms software planning into collaborative discussions:
+1. **Party Mode Sessions** — All relevant agents participate in shared discussions
+2. **Facilitator Pattern** — bmad-master orchestrates topic selection and agent involvement
+3. **Two-Layer Context** — Agent persona (static) + project context (dynamic)
+4. **Artifact-Centric Memory** — Discussions produce artifacts; artifacts become context
+5. **Phase Milestones** — Guided discussions through BMAD phases (Planning → Solutioning → Implementation)
+
+### 1.4 Architecture Comparison
+
+| Aspect | Sequential (Old) | Party Mode (New) |
+|--------|------------------|------------------|
+| **Agent Interaction** | PM → Architect → SM (isolated) | PM + Architect + SM (together) |
+| **Context Flow** | Passed via artifacts | Shared conversation |
+| **Decision Visibility** | Only in current agent | All agents see all decisions |
+| **Cross-Functional Insights** | Lost between handoffs | Naturally integrated |
+| **User Experience** | Multiple workflow invocations | Single conversation session |
 
 ---
 
@@ -45,31 +61,32 @@ BMAD-Claude automates the complete BMAD workflow lifecycle:
 
 | Goal | Description | Priority |
 |------|-------------|----------|
-| **G1** | Automate BMAD PRD-to-Architecture workflow | P0 (POC) |
-| **G2** | Preserve BMAD persona characteristics in autonomous mode | P0 |
-| **G3** | Integrate OpenCode.ai as execution layer | P0 |
-| **G4** | Achieve output quality parity with manual BMAD | P0 |
-| **G5** | Automate full lifecycle (PRD → Dev) | P1 (Post-POC) |
-| **G6** | Implement breakthrough recovery mechanisms | P1 |
-| **G7** | Enable multi-project memory sharing | P2 |
+| **G1** | Implement Party Mode collaborative discussions | P0 (POC) |
+| **G2** | Maintain agent persona characteristics in discussions | P0 |
+| **G3** | Integrate OpenCode as LLM execution layer | P0 |
+| **G4** | Produce PRD, Architecture, Epics from party sessions | P0 |
+| **G5** | Implement context persistence across discussion turns | P0 |
+| **G6** | Enable phase-guided discussions (Planning → Solutioning) | P1 |
+| **G7** | Support session save/resume for multi-day projects | P1 |
 
 ### 2.2 Success Metrics
 
 | Metric | Target | Measurement |
 |--------|--------|-------------|
-| **Automation Rate** | 100% | No manual intervention for standard workflows |
-| **Quality Score** | ≥90% | Blind comparison vs manually-driven BMAD outputs |
-| **Time Savings** | 5x | Time to complete PRD→Arch vs manual |
-| **Recovery Rate** | 100% | Successfully recover from all stuck states |
-| **User Satisfaction** | ≥4.5/5 | Post-usage survey |
+| **Context Retention** | 95%+ | Decision recall accuracy across session |
+| **Character Consistency** | Distinct | Agent personalities maintained throughout |
+| **Artifact Quality** | ≥Sequential | Comparable to sequential workflow outputs |
+| **User Engagement** | Higher | Subjective, compared to sequential |
+| **Token Efficiency** | < 2x | Token usage vs sequential for same output |
+| **Session Duration** | 30-60 min | Time to complete PRD + Architecture |
 
 ### 2.3 Non-Goals (Out of Scope for POC)
 
-- Full development cycle automation (Stories → Code)
-- Multi-user collaboration features
-- Cloud deployment / SaaS offering
-- Mobile interface
-- Real-time collaboration
+- Full development cycle automation (Sprint → Code)
+- Vector database memory (start with file-based)
+- Multi-user concurrent sessions
+- Web/mobile interface
+- Voice interaction (TTS deferred)
 
 ---
 
@@ -79,47 +96,48 @@ BMAD-Claude automates the complete BMAD workflow lifecycle:
 
 | Persona | Description | Key Needs |
 |---------|-------------|-----------|
-| **Solo Developer** | Individual building side projects | Fast, quality planning without ceremony |
-| **Tech Lead** | Leading small team, needs consistent methodology | Repeatable, high-quality specs |
-| **Startup Founder** | Non-technical, needs clear requirements | Expert guidance without expertise |
-| **Enterprise Architect** | Large org, needs compliance and traceability | Structured, auditable artifacts |
+| **Solo Developer** | Individual building side projects | Collaborative brainstorming, multiple perspectives |
+| **Tech Lead** | Leading small team, needs consistent methodology | Rich discussions that capture context |
+| **Startup Founder** | Non-technical, needs clear requirements | Expert team guiding decisions naturally |
+| **Enterprise Architect** | Large org, needs compliance and traceability | Full decision traceability in discussions |
 
 ### 3.2 User Stories
 
-**Epic 1: Autonomous PRD Creation**
+**Epic 1: Party Mode Sessions**
 
 | ID | User Story | Priority |
 |----|------------|----------|
-| US1.1 | As a developer, I want to describe my project idea and have a complete PRD generated automatically | P0 |
-| US1.2 | As a developer, I want the PRD to follow BMAD's expert structure and quality standards | P0 |
-| US1.3 | As a developer, I want to review and provide feedback on the PRD before finalization | P0 |
-| US1.4 | As a developer, I want the system to ask clarifying questions when my input is ambiguous | P1 |
+| US1.1 | As a developer, I want to start a party session with my project idea and have agents discuss it collaboratively | P0 |
+| US1.2 | As a developer, I want to see multiple expert perspectives on each topic in the discussion | P0 |
+| US1.3 | As a developer, I want to interject and guide the discussion when needed | P0 |
+| US1.4 | As a developer, I want agents to naturally build on each other's ideas | P1 |
 
-**Epic 2: Autonomous Architecture Creation**
-
-| ID | User Story | Priority |
-|----|------------|----------|
-| US2.1 | As a developer, I want the system to automatically generate architecture from my PRD | P0 |
-| US2.2 | As a developer, I want the architecture to reference and align with my PRD | P0 |
-| US2.3 | As a developer, I want architecture decisions explained with rationale | P0 |
-| US2.4 | As a developer, I want multiple architecture options presented for key decisions | P1 |
-
-**Epic 3: Persona-Driven Experience**
+**Epic 2: Artifact Creation from Discussions**
 
 | ID | User Story | Priority |
 |----|------------|----------|
-| US3.1 | As a developer, I want the PM persona (John) to drive PRD creation with appropriate expertise | P0 |
-| US3.2 | As a developer, I want the Architect persona (Winston) to drive architecture with appropriate expertise | P0 |
-| US3.3 | As a developer, I want persona communication style to be consistent and engaging | P1 |
+| US2.1 | As a developer, I want discussions to produce structured artifacts (PRD, Architecture) | P0 |
+| US2.2 | As a developer, I want artifacts to capture decisions made during discussions | P0 |
+| US2.3 | As a developer, I want the ability to refine artifacts through continued discussion | P0 |
+| US2.4 | As a developer, I want to see how specific artifact content emerged from discussions | P1 |
 
-**Epic 4: Workflow Orchestration**
+**Epic 3: Multi-Agent Collaboration**
 
 | ID | User Story | Priority |
 |----|------------|----------|
-| US4.1 | As a developer, I want workflows to automatically transition between phases | P0 |
-| US4.2 | As a developer, I want to see progress as the system works through workflows | P0 |
-| US4.3 | As a developer, I want the system to save progress and resume if interrupted | P1 |
-| US4.4 | As a developer, I want the ability to pause and provide input at checkpoints | P1 |
+| US3.1 | As a developer, I want PM (John), Architect (Winston), and others to discuss together | P0 |
+| US3.2 | As a developer, I want each agent to maintain their unique perspective and expertise | P0 |
+| US3.3 | As a developer, I want agents to respectfully disagree and work through differences | P1 |
+| US3.4 | As a developer, I want the facilitator to select relevant agents per topic | P0 |
+
+**Epic 4: Context & Memory Persistence**
+
+| ID | User Story | Priority |
+|----|------------|----------|
+| US4.1 | As a developer, I want context to persist throughout the entire session | P0 |
+| US4.2 | As a developer, I want to save and resume sessions across multiple days | P1 |
+| US4.3 | As a developer, I want decisions to be extractable and reviewable | P1 |
+| US4.4 | As a developer, I want session history for audit and learning | P2 |
 
 ---
 
@@ -127,67 +145,69 @@ BMAD-Claude automates the complete BMAD workflow lifecycle:
 
 ### 4.1 Core Features
 
-#### F1: Workflow Engine
+#### F1: Party Session Management
 
 | Requirement | Description | Priority |
 |-------------|-------------|----------|
-| F1.1 | Parse and execute BMAD workflow files (YAML and MD formats) | P0 |
-| F1.2 | Execute step-files in sequence following micro-file architecture | P0 |
-| F1.3 | Track workflow state in persistent storage | P0 |
-| F1.4 | Handle workflow transitions (PRD → Architecture → Stories) | P0 |
-| F1.5 | Support continuation from interrupted state | P1 |
-| F1.6 | Support parallel workflow execution | P2 |
+| F1.1 | Start party session with project name and description | P0 |
+| F1.2 | Manage discussion turns with user and agents | P0 |
+| F1.3 | Save session state for resume capability | P1 |
+| F1.4 | Support phase transitions within session | P0 |
+| F1.5 | Graceful exit with session summary | P0 |
+| F1.6 | Session history and audit trail | P2 |
 
-#### F2: Persona System
-
-| Requirement | Description | Priority |
-|-------------|-------------|----------|
-| F2.1 | Load agent personas from BMAD manifest | P0 |
-| F2.2 | Inject persona into LLM system prompt | P0 |
-| F2.3 | Maintain persona characteristics throughout session | P0 |
-| F2.4 | Support persona switching between workflow phases | P0 |
-| F2.5 | Persona-specific communication styles | P1 |
-| F2.6 | Persona memory (preferences, patterns) | P2 |
-
-#### F3: OpenCode Integration
+#### F2: Agent Orchestration (Facilitator)
 
 | Requirement | Description | Priority |
 |-------------|-------------|----------|
-| F3.1 | Use OpenCode SDK for LLM execution | P0 |
-| F3.2 | Support Claude and other LLM providers | P0 |
-| F3.3 | Handle session management | P0 |
-| F3.4 | Support Plan/Build mode toggling | P1 |
-| F3.5 | Multi-session for parallel workflows | P2 |
+| F2.1 | Load all agent personas from BMAD manifest | P0 |
+| F2.2 | Select 2-3 relevant agents per topic based on expertise | P0 |
+| F2.3 | Maintain agent personality consistency across turns | P0 |
+| F2.4 | Enable natural cross-talk between agents | P1 |
+| F2.5 | Handle user-directed agent requests | P0 |
+| F2.6 | Balance agent participation over time | P1 |
 
-#### F4: Output Management
-
-| Requirement | Description | Priority |
-|-------------|-------------|----------|
-| F4.1 | Generate Markdown documents matching BMAD templates | P0 |
-| F4.2 | Save outputs to configured locations | P0 |
-| F4.3 | Track document versions | P1 |
-| F4.4 | Support document validation | P1 |
-
-#### F5: User Interaction
+#### F3: Context & Memory System
 
 | Requirement | Description | Priority |
 |-------------|-------------|----------|
-| F5.1 | Accept initial project description input | P0 |
-| F5.2 | Display progress during workflow execution | P0 |
-| F5.3 | Support checkpoint review and feedback | P1 |
-| F5.4 | Handle clarifying questions | P1 |
-| F5.5 | Support manual override at any point | P1 |
+| F3.1 | Maintain conversation history within session | P0 |
+| F3.2 | Extract and store key decisions | P0 |
+| F3.3 | Progressive summarization for long sessions | P1 |
+| F3.4 | Artifact-centric context (PRD becomes context) | P0 |
+| F3.5 | File-based persistence for session save/resume | P1 |
+| F3.6 | Vector database integration (future) | P2 |
 
-### 4.2 Workflow Coverage (POC)
+#### F4: Artifact Generation
 
-| Workflow | Phase | Agent | POC Status |
-|----------|-------|-------|------------|
-| PRD | Planning | PM (John) | **In Scope** |
-| Architecture | Solutioning | Architect (Winston) | **In Scope** |
-| Epics/Stories | Solutioning | PM (John) | Post-POC |
-| Sprint Planning | Implementation | SM (Bob) | Post-POC |
-| Dev Story | Implementation | Dev (Amelia) | Post-POC |
-| Code Review | Implementation | Dev (Amelia) | Post-POC |
+| Requirement | Description | Priority |
+|-------------|-------------|----------|
+| F4.1 | Generate PRD from Planning phase discussions | P0 |
+| F4.2 | Generate Architecture from Solutioning discussions | P0 |
+| F4.3 | Draft artifacts during discussion, finalize after phase | P0 |
+| F4.4 | Update artifacts based on continued discussion | P1 |
+| F4.5 | Link artifact sections to discussion sources | P2 |
+
+#### F5: OpenCode Integration
+
+| Requirement | Description | Priority |
+|-------------|-------------|----------|
+| F5.1 | Use OpenCode CLI for LLM execution | P0 |
+| F5.2 | Support Claude Opus 4.5 with high variants | P0 |
+| F5.3 | Construct multi-agent prompts with personas | P0 |
+| F5.4 | Parse agent responses from LLM output | P0 |
+| F5.5 | Handle streaming for real-time display | P1 |
+
+### 4.2 Discussion Topics by Phase
+
+| Phase | Discussion Topics | Lead Agent | Output |
+|-------|------------------|------------|--------|
+| **Planning** | "What are we building?" | PM (John) | PRD.md |
+| **Planning** | "Who are the users?" | Analyst (Mary) | User personas |
+| **Solutioning** | "How should we build it?" | Architect (Winston) | Architecture.md |
+| **Solutioning** | "What are the work items?" | PM (John) | Epics/Stories |
+| **Solutioning** | "Is it ready to build?" | Architect (Winston) | Gate check |
+| **Implementation** | "What's in this sprint?" | SM (Bob) | Sprint plan |
 
 ---
 
@@ -197,16 +217,17 @@ BMAD-Claude automates the complete BMAD workflow lifecycle:
 
 | Requirement | Target |
 |-------------|--------|
-| PRD generation time | < 15 minutes |
-| Architecture generation time | < 15 minutes |
-| Workflow transition time | < 10 seconds |
-| Memory retrieval time | < 2 seconds |
+| Agent response time | < 30 seconds per agent per turn |
+| Context loading time | < 5 seconds |
+| Session save time | < 2 seconds |
+| Full planning session | 30-60 minutes (PRD + Arch) |
 
 ### 5.2 Reliability
 
 | Requirement | Target |
 |-------------|--------|
-| Workflow completion rate | 99% |
+| Session completion rate | 95%+ |
+| Context retention | 95%+ decision recall |
 | State recovery success | 100% |
 | Data loss prevention | 100% |
 
@@ -214,17 +235,17 @@ BMAD-Claude automates the complete BMAD workflow lifecycle:
 
 | Requirement | Target |
 |-------------|--------|
-| Concurrent users | 1 (single-user for POC) |
-| Projects per user | Unlimited |
-| Memory per project | 10MB |
+| Concurrent sessions | 1 (single-session for POC) |
+| Discussion turns per session | Unlimited |
+| Session file size | < 50MB |
 
 ### 5.4 Security
 
 | Requirement | Description |
 |-------------|-------------|
-| API key handling | Secure storage, never logged |
+| API key handling | Use OpenCode's credential management |
+| Session data | Local file storage only |
 | File access | Scoped to project directory |
-| Code execution | Sandboxed environment |
 
 ---
 
@@ -234,146 +255,145 @@ BMAD-Claude automates the complete BMAD workflow lifecycle:
 
 | Component | Rationale |
 |-----------|-----------|
-| BMAD Workflow System | Core methodology source |
-| OpenCode SDK | Execution layer (per requirements) |
-| Graphiti Memory | Cross-session context (from Auto-Claude) |
+| BMAD Agent Manifest | Agent persona source |
+| BMAD Party Mode Workflow | Foundation for discussions |
+| OpenCode CLI | LLM execution layer |
 | Python 3.12+ | Backend language (existing) |
 
 ### 6.2 Must Support
 
 | Component | Rationale |
 |-----------|-----------|
-| Claude Models | Primary LLM |
-| Other LLM Providers | OpenCode's 75+ providers |
-| macOS, Linux, Windows | Cross-platform (OpenCode supports all) |
+| Claude Opus 4.5 | Primary LLM (high quality for multi-agent) |
+| anthropic/claude-opus-4-5 | OpenCode model identifier |
+| macOS, Linux, Windows | Cross-platform |
 
 ### 6.3 Technical Risks
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| OpenCode SDK maturity | API stability | Pin versions, abstraction layer |
-| BMAD workflow complexity | Implementation time | Start with PRD only |
-| LLM output quality variance | Inconsistent results | Validation steps, retry logic |
-| State management complexity | Data corruption | Transaction-based saves |
+| Context window overflow | High | Progressive summarization, artifact-centric |
+| Agent response quality | Medium | Strong persona prompts, consistency checks |
+| Session state corruption | Medium | Frequent checkpoints, recovery mechanism |
+| Discussion going off-track | Low | Facilitator guidance, phase milestones |
+| Token efficiency | Medium | Intelligent context compression |
 
 ---
 
 ## 7. User Experience
 
-### 7.1 Primary Flow (POC)
+### 7.1 Primary Flow (Party Mode)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                        BMAD-CLAUDE USER FLOW (POC)                          │
+│                        BMAD-CLAUDE PARTY MODE FLOW                           │
 └─────────────────────────────────────────────────────────────────────────────┘
 
-[User starts BMAD-Claude]
+[User: bmad-claude party "Task Management App"]
          │
          ▼
-┌─────────────────────┐
-│ "Describe your      │
-│  project idea..."   │
-└─────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  🎉 PARTY MODE ACTIVATED!                                                    │
+│                                                                              │
+│  Welcome! I'm bringing together our BMAD expert team to help plan your app. │
+│                                                                              │
+│  📋 John (PM) - "I'll help define what we're building and for whom."        │
+│  🏛️ Winston (Architect) - "I'll design a solid technical foundation."       │
+│  📊 Mary (Analyst) - "I'll research the market and user needs."             │
+│                                                                              │
+│  Tell us about your project idea!                                           │
+└─────────────────────────────────────────────────────────────────────────────┘
          │
-         │ User enters: "I want to build a task management app..."
-         │
-         ▼
-┌─────────────────────┐
-│  PM AGENT (John)    │
-│  ───────────────    │
-│  "Great! I'm John,  │
-│  your PM. Let me    │
-│  create a PRD..."   │
-└─────────────────────┘
-         │
-         │ [PRD Workflow executes - 12 steps]
-         │ [Progress displayed to user]
+         │ User: "I want to build a task management app for small teams..."
          │
          ▼
-┌─────────────────────┐
-│  PRD COMPLETE!      │
-│  ───────────────    │
-│  "Here's your PRD.  │
-│  Review and approve │
-│  to continue..."    │
-└─────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  [Topic: Understanding the Product Vision]                                   │
+│                                                                              │
+│  📋 John: "Great vision! Let me dig into the 'why' here. What pain point    │
+│     are small teams facing with existing solutions? What makes this         │
+│     different from Trello, Asana, or Linear?"                               │
+│                                                                              │
+│  📊 Mary: "Good questions, John. I'd also add - what size teams are we      │
+│     targeting? 2-5 people? 5-15? The workflows differ significantly."       │
+│                                                                              │
+│  🏛️ Winston: "From a technical standpoint, real-time collaboration for      │
+│     teams suggests we'll need websockets and conflict resolution. Worth     │
+│     considering early on."                                                   │
+│                                                                              │
+│  [Type your response or let the discussion continue...]                      │
+└─────────────────────────────────────────────────────────────────────────────┘
          │
-         │ User approves or provides feedback
-         │
-         ▼
-┌─────────────────────┐
-│  ARCHITECT (Winston)│
-│  ───────────────    │
-│  "Hello. I'm        │
-│  Winston. Let me    │
-│  design the         │
-│  architecture..."   │
-└─────────────────────┘
-         │
-         │ [Architecture Workflow executes - 9 steps]
-         │ [Progress displayed to user]
+         │ [Discussion continues through Planning phase...]
+         │ [Artifacts are drafted as discussions progress...]
          │
          ▼
-┌─────────────────────┐
-│  ARCHITECTURE       │
-│  COMPLETE!          │
-│  ───────────────    │
-│  "Your architecture │
-│  is ready."         │
-└─────────────────────┘
-         │
-         ▼
-[PRD.md + Architecture.md saved to project]
+┌─────────────────────────────────────────────────────────────────────────────┐
+│  [Phase Milestone: Planning Complete]                                        │
+│                                                                              │
+│  📄 PRD Draft: prd.md (ready for review)                                     │
+│                                                                              │
+│  📋 John: "We've covered the product requirements. Ready to move to         │
+│     architecture planning?"                                                  │
+│                                                                              │
+│  [C] Continue to Solutioning | [R] Review PRD | [E] Exit                    │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### 7.2 CLI Interface (POC)
+### 7.2 CLI Interface
 
 ```bash
-# Initialize new project
+# Start a party mode session (NEW!)
+bmad-claude party "Task Management App"
+
+# Resume an existing party session
+bmad-claude party --resume
+
+# Legacy sequential workflows (still supported)
 bmad-claude init "Task Management App"
-
-# Run autonomous workflow
-bmad-claude run --workflow prd-to-arch
-
-# Check status
+bmad-claude run
 bmad-claude status
 
-# Resume interrupted workflow
-bmad-claude resume
-
-# View outputs
-bmad-claude outputs
+# List available workflows
+bmad-claude list
 ```
 
-### 7.3 Progress Display
+### 7.3 Party Mode Display
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- 📋 BMAD-Claude: PRD Workflow
+ 🎉 BMAD-Claude Party Mode
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  
- Active Agent: John (Product Manager) 📋
+ Project: Task Management App
+ Phase: Planning
+ Topic: User Personas & Journeys
  
- Progress: [████████████░░░░░░░░] 60%
+ Active Agents:
+ ├── 📋 John (PM) - Leading
+ ├── 📊 Mary (Analyst) - Contributing  
+ └── 🎨 Sally (UX Designer) - Contributing
  
- Current Step: step-07-project-type
- ├── ✅ step-01-init
- ├── ✅ step-02-discovery
- ├── ✅ step-03-success
- ├── ✅ step-04-journeys
- ├── ✅ step-05-domain
- ├── ✅ step-06-innovation
- ├── ⏳ step-07-project-type (in progress)
- ├── ○ step-08-scoping
- ├── ○ step-09-functional
- ├── ○ step-10-nonfunctional
- ├── ○ step-11-polish
- └── ○ step-12-complete
- 
- 💬 John: "I'm analyzing your project type to determine 
-     the appropriate scope and complexity level..."
+ Decisions Made: 4
+ Artifacts Drafting: prd.md (60% complete)
  
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 John: "Based on our discussion, I'm identifying three primary 
+user personas: the Team Lead who needs visibility, the Individual 
+Contributor who needs simplicity, and the Remote Worker who needs 
+async-friendly features."
+
+📊 Mary: "The research supports this. Teams under 10 people spend 
+an average of 4 hours/week on task coordination. Your async focus 
+could differentiate you from the always-on tools like Slack."
+
+🎨 Sally: "For the remote worker persona, we should consider time 
+zone awareness in the UI. Show deadlines in local time, and maybe 
+indicate when teammates are likely offline."
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+[Your turn] > _
 ```
 
 ---
@@ -384,48 +404,47 @@ bmad-claude outputs
 
 | Dependency | Type | Purpose |
 |------------|------|---------|
-| OpenCode SDK | Required | LLM execution |
+| OpenCode CLI | Required | LLM execution |
 | Anthropic API | Required | Claude model access |
-| Graphiti | Required | Memory system |
 | Python 3.12+ | Required | Runtime |
-| Node.js | Optional | Frontend (future) |
+| Typer/Rich | Required | CLI interface |
 
 ### 8.2 Internal Dependencies
 
 | Component | Depends On | Purpose |
 |-----------|------------|---------|
-| Workflow Engine | BMAD workflow files | Source workflows |
-| Persona System | BMAD agent manifest | Source personas |
-| Output Manager | Workflow Engine | Template handling |
-| State Manager | File system | Persistence |
+| PartySession | BMAD agent manifest | Agent personas |
+| PartyMemory | File system | Context persistence |
+| Facilitator | PartySession | Agent orchestration |
+| ArtifactExtractor | PartyMemory | PRD/Arch generation |
 
 ---
 
 ## 9. Milestones and Timeline
 
-### 9.1 POC Milestones
+### 9.1 Party Mode POC Milestones
 
 | Milestone | Description | Target Date |
 |-----------|-------------|-------------|
-| **M1** | Research Complete | ✅ 2026-01-15 |
-| **M2** | PRD & Architecture Docs | 2026-01-17 |
-| **M3** | Repository Fork | 2026-01-19 |
-| **M4** | Workflow Engine Core | 2026-01-26 |
-| **M5** | Persona System | 2026-01-28 |
-| **M6** | OpenCode Integration | 2026-01-31 |
-| **M7** | PRD Automation | 2026-02-05 |
-| **M8** | Architecture Automation | 2026-02-07 |
-| **M9** | POC Testing & Validation | 2026-02-14 |
+| **M1** | Research Complete | ✅ 2026-01-16 |
+| **M2** | PRD & Architecture Updated | 2026-01-16 |
+| **M3** | PartySession Class | 2026-01-17 |
+| **M4** | PartyMemory Class | 2026-01-18 |
+| **M5** | CLI `party` Command | 2026-01-19 |
+| **M6** | Agent Orchestration | 2026-01-20 |
+| **M7** | Artifact Extraction | 2026-01-21 |
+| **M8** | Phase Milestones | 2026-01-22 |
+| **M9** | Testing & Validation | 2026-01-24 |
 
 ### 9.2 Post-POC Roadmap
 
 | Phase | Scope | Estimated Duration |
 |-------|-------|-------------------|
-| Phase 4 | Stories & Sprint Workflows | 3 weeks |
-| Phase 5 | Dev & Code Review Workflows | 4 weeks |
-| Phase 6 | Breakthrough Recovery | 2 weeks |
-| Phase 7 | Multi-Project Memory | 2 weeks |
-| Phase 8 | GUI/Desktop App | 4 weeks |
+| Phase 1 | Session Save/Resume | 1 week |
+| Phase 2 | Vector DB Memory | 2 weeks |
+| Phase 3 | Implementation Phase Support | 2 weeks |
+| Phase 4 | TTS/Voice Integration | 1 week |
+| Phase 5 | GUI/Desktop App | 4 weeks |
 
 ---
 
@@ -433,55 +452,52 @@ bmad-claude outputs
 
 | # | Question | Owner | Status |
 |---|----------|-------|--------|
-| 1 | OpenCode SDK exact API for programmatic control? | Winston | Research needed |
-| 2 | How to handle long workflows > 30 min? | Bob | Design needed |
-| 3 | Checkpoint frequency for user review? | John | Decision needed |
-| 4 | Memory sharing across projects? | Mary | Future scope |
-| 5 | Error handling UX pattern? | Sally | Design needed |
+| 1 | Optimal context window usage per turn? | Winston | Design needed |
+| 2 | How to extract artifacts from free-form discussion? | John | POC to determine |
+| 3 | When to auto-advance phases vs ask user? | Bob | Design needed |
+| 4 | Session file format for save/resume? | Winston | Design needed |
+| 5 | How to handle very long sessions (2+ hours)? | Mary | Future scope |
 
 ---
 
 ## 11. Appendices
 
-### A. BMAD Workflow Inventory (POC Scope)
+### A. Discussion Topics by Phase
 
-**PRD Workflow (12 steps):**
-1. init - Workflow initialization
-2. discovery - Project discovery
-3. success - Success criteria
-4. journeys - User journeys
-5. domain - Domain analysis
-6. innovation - Innovation opportunities
-7. project-type - Project classification
-8. scoping - MVP scoping
-9. functional - Functional requirements
-10. nonfunctional - Non-functional requirements
-11. polish - Document polish
-12. complete - Completion
+**Phase 2: Planning**
+- "What problem are we solving?" - Core vision
+- "Who are the users?" - Personas and journeys  
+- "What does success look like?" - Success metrics
+- "What's the MVP scope?" - Feature prioritization
 
-**Architecture Workflow (9 steps):**
-1. init - Initialization
-2. context - Context gathering
-3. starter - Architecture starter
-4. decisions - Core decisions
-5. patterns - Design patterns
-6. structure - System structure
-7. validation - Validation
-8. complete - Completion
+**Phase 3: Solutioning**
+- "How should we build it?" - Architecture decisions
+- "What technology stack?" - Tech choices
+- "What are the work items?" - Epic breakdown
+- "Is everything ready to build?" - Gate check
 
-### B. Agent Personas (POC Scope)
+**Phase 4: Implementation**
+- "What's in sprint 1?" - Sprint planning
+- "How do we implement this story?" - Story refinement
 
-| Agent | Name | Communication Style |
-|-------|------|---------------------|
-| PM | John | Asks 'WHY?' relentlessly, direct and data-sharp |
-| Architect | Winston | Calm, pragmatic, balances 'what could be' with 'what should be' |
+### B. Agent Personas (Party Mode)
+
+| Agent | Name | Party Mode Role |
+|-------|------|-----------------|
+| PM | John | Planning lead, requirements driver |
+| Architect | Winston | Technical decisions, architecture |
+| Analyst | Mary | Research, market insights |
+| UX Designer | Sally | User experience, interface |
+| Scrum Master | Bob | Sprint planning, process |
+| Dev | Amelia | Implementation perspective |
+| Test Architect | Murat | Testability, quality |
 
 ### C. Related Documents
 
+- Research Report: Party Mode Research (`party-mode-research.md`)
 - Research Report: Auto-Claude Analysis
 - Research Report: BMAD Analysis  
 - Research Report: OpenCode Analysis
-- Project Context Document
 
 ---
 
@@ -489,9 +505,10 @@ bmad-claude outputs
 
 ---
 
-**Document Status:** DRAFT - Ready for Review
+**Document Status:** DRAFT v2.0 - Updated for Party Mode Pivot
 
 **Next Steps:**
-1. Stakeholder review and approval
-2. Proceed to Architecture document
-3. Begin implementation planning
+1. Update Architecture document for Party Mode
+2. Implement PartySession and PartyMemory classes
+3. Add `bmad-claude party` CLI command
+4. Test with real project
