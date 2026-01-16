@@ -545,6 +545,7 @@ export interface DetectedLanguage {
   tier: LanguageResolutionTier;
   confidence: number;
   confidenceLevel: ConfidenceLevel;
+  priority?: number;
   family?: LanguageFamily;
   strategyFile?: string;
   testFramework?: string;
