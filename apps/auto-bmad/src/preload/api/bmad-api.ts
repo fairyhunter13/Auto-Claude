@@ -133,6 +133,48 @@ export interface BmadSettings {
   defaultCommunicationLanguage?: string;
 }
 
+// Load Balancer Types
+export type OpenCodeProfile = 'personal' | 'work' | 'default';
+export type LoadBalancingStrategy = 'round-robin' | 'least-loaded' | 'least-recently-used' | 'random';
+
+export interface ProfileStats {
+  id: OpenCodeProfile;
+  name: string;
+  available: boolean;
+  currentLoad: number;
+  rateLimitedUntil: number | null;
+  lastUsed: number;
+  successCount: number;
+  failureCount: number;
+}
+
+export interface LoadBalancerConfig {
+  enabled: boolean;
+  strategy: LoadBalancingStrategy;
+  maxConcurrentPerProfile: number;
+  rateLimitCooldown: number;
+  skipRateLimited: boolean;
+  enabledProfiles: OpenCodeProfile[];
+}
+
+export interface LoadBalancerState {
+  initialized: boolean;
+  profiles: ProfileStats[];
+  config: LoadBalancerConfig;
+}
+
+export interface RateLimitedEvent {
+  profile: OpenCodeProfile;
+  cooldownUntil: number;
+}
+
+export interface ExecutionCompletedEvent {
+  profile: OpenCodeProfile;
+  exitCode: number;
+  duration: number;
+  rateLimited: boolean;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Event Types
 // ─────────────────────────────────────────────────────────────────────────────
@@ -238,6 +280,15 @@ export interface BmadAPI {
   // Cleanup
   dispose: () => Promise<IpcResult<void>>;
 
+  // Load Balancer
+  initLoadBalancer: () => Promise<IpcResult<{ initialized: boolean }>>;
+  getLoadBalancerState: () => Promise<IpcResult<LoadBalancerState>>;
+  getProfileStats: () => Promise<IpcResult<Record<OpenCodeProfile, ProfileStats>>>;
+  clearRateLimit: (profile: OpenCodeProfile) => Promise<IpcResult<void>>;
+  enableLoadBalancing: (projectPath: string) => Promise<IpcResult<void>>;
+  disableLoadBalancing: (projectPath: string) => Promise<IpcResult<void>>;
+  isLoadBalancingEnabled: (projectPath: string) => Promise<IpcResult<{ enabled: boolean }>>;
+
   // Event Subscriptions
   onStatusChanged: (callback: (event: StatusChangeEvent) => void) => () => void;
   onArtifactChanged: (callback: (event: ArtifactChangeEvent) => void) => () => void;
@@ -245,6 +296,8 @@ export interface BmadAPI {
   onWorkflowStdout: (callback: (data: string) => void) => () => void;
   onWorkflowStderr: (callback: (data: string) => void) => () => void;
   onWorkflowExit: (callback: (event: WorkflowExitEvent) => void) => () => void;
+  onRateLimited: (callback: (event: RateLimitedEvent) => void) => () => void;
+  onExecutionCompleted: (callback: (event: ExecutionCompletedEvent) => void) => () => void;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -386,6 +439,28 @@ export const createBmadAPI = (): BmadAPI => ({
   dispose: (): Promise<IpcResult<void>> =>
     ipcRenderer.invoke('bmad:dispose'),
 
+  // Load Balancer
+  initLoadBalancer: (): Promise<IpcResult<{ initialized: boolean }>> =>
+    ipcRenderer.invoke('bmad:init-load-balancer'),
+
+  getLoadBalancerState: (): Promise<IpcResult<LoadBalancerState>> =>
+    ipcRenderer.invoke('bmad:get-load-balancer-state'),
+
+  getProfileStats: (): Promise<IpcResult<Record<OpenCodeProfile, ProfileStats>>> =>
+    ipcRenderer.invoke('bmad:get-profile-stats'),
+
+  clearRateLimit: (profile: OpenCodeProfile): Promise<IpcResult<void>> =>
+    ipcRenderer.invoke('bmad:clear-rate-limit', profile),
+
+  enableLoadBalancing: (projectPath: string): Promise<IpcResult<void>> =>
+    ipcRenderer.invoke('bmad:enable-load-balancing', projectPath),
+
+  disableLoadBalancing: (projectPath: string): Promise<IpcResult<void>> =>
+    ipcRenderer.invoke('bmad:disable-load-balancing', projectPath),
+
+  isLoadBalancingEnabled: (projectPath: string): Promise<IpcResult<{ enabled: boolean }>> =>
+    ipcRenderer.invoke('bmad:is-load-balancing-enabled', projectPath),
+
   // Event Subscriptions
   onStatusChanged: (callback: (event: StatusChangeEvent) => void) => {
     const listener = (_: Electron.IpcRendererEvent, event: StatusChangeEvent) => callback(event);
@@ -421,5 +496,17 @@ export const createBmadAPI = (): BmadAPI => ({
     const listener = (_: Electron.IpcRendererEvent, event: WorkflowExitEvent) => callback(event);
     ipcRenderer.on('bmad:workflow-exit', listener);
     return () => ipcRenderer.off('bmad:workflow-exit', listener);
+  },
+
+  onRateLimited: (callback: (event: RateLimitedEvent) => void) => {
+    const listener = (_: Electron.IpcRendererEvent, event: RateLimitedEvent) => callback(event);
+    ipcRenderer.on('bmad:rate-limited', listener);
+    return () => ipcRenderer.off('bmad:rate-limited', listener);
+  },
+
+  onExecutionCompleted: (callback: (event: ExecutionCompletedEvent) => void) => {
+    const listener = (_: Electron.IpcRendererEvent, event: ExecutionCompletedEvent) => callback(event);
+    ipcRenderer.on('bmad:lb-execution-completed', listener);
+    return () => ipcRenderer.off('bmad:lb-execution-completed', listener);
   },
 });

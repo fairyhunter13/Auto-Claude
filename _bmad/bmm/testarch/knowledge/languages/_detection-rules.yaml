@@ -233,6 +233,52 @@ detection_rules:
       - "languages/csharp/moq-patterns.md"
 
   # ============================================
+  # SCALA - JVM/Functional, check before Java
+  # ============================================
+  - language: scala
+    display_name: "Scala"
+    priority: 32
+    indicators:
+      required_any:
+        - type: file
+          pattern: "build.sbt"
+        - type: glob
+          pattern: "**/*.scala"
+      optional:
+        - type: file
+          pattern: "project/build.properties"
+        - type: file
+          pattern: "project/plugins.sbt"
+    test_framework_default: scalatest
+    test_frameworks_available:
+      - id: scalatest
+        name: "ScalaTest"
+        description: "Flexible Scala testing framework"
+        config_file: null
+        test_command: "sbt test"
+        test_pattern: "**/*Spec.scala"
+      - id: munit
+        name: "MUnit"
+        description: "Lightweight Scala testing"
+        config_file: null
+        test_command: "sbt test"
+        test_pattern: "**/*Suite.scala"
+        detection:
+          - type: file_contains
+            pattern: "build.sbt"
+            contains: "munit"
+      - id: specs2
+        name: "Specs2"
+        description: "BDD testing for Scala"
+        config_file: null
+        test_command: "sbt test"
+        test_pattern: "**/*Spec.scala"
+    strategy_file: "languages/scala/_strategy.md"
+    knowledge_fragments:
+      - "languages/scala/scalatest-patterns.md"
+      - "languages/scala/property-testing.md"
+
+  # ============================================
   # KOTLIN - JVM language, check before Java
   # ============================================
   - language: kotlin
@@ -396,6 +442,79 @@ detection_rules:
     knowledge_fragments:
       - "languages/ruby/rspec-patterns.md"
       - "languages/ruby/factory-bot-patterns.md"
+
+  # ============================================
+  # ELIXIR - Erlang VM, functional
+  # ============================================
+  - language: elixir
+    display_name: "Elixir"
+    priority: 65
+    indicators:
+      required_any:
+        - type: file
+          pattern: "mix.exs"
+        - type: glob
+          pattern: "**/*.ex"
+      optional:
+        - type: glob
+          pattern: "**/*.exs"
+        - type: file
+          pattern: "mix.lock"
+    test_framework_default: exunit
+    test_frameworks_available:
+      - id: exunit
+        name: "ExUnit"
+        description: "Built-in Elixir test framework"
+        config_file: "test/test_helper.exs"
+        test_command: "mix test"
+        test_pattern: "**/*_test.exs"
+    strategy_file: "languages/elixir/_strategy.md"
+    knowledge_fragments:
+      - "languages/elixir/exunit-patterns.md"
+      - "languages/elixir/property-testing.md"
+
+  # ============================================
+  # CLOJURE - Lisp on JVM
+  # ============================================
+  - language: clojure
+    display_name: "Clojure"
+    priority: 70
+    indicators:
+      required_any:
+        - type: file
+          pattern: "deps.edn"
+        - type: file
+          pattern: "project.clj"
+        - type: glob
+          pattern: "**/*.clj"
+      optional:
+        - type: glob
+          pattern: "**/*.cljs"
+        - type: glob
+          pattern: "**/*.cljc"
+    test_framework_default: clojure-test
+    test_frameworks_available:
+      - id: clojure-test
+        name: "clojure.test"
+        description: "Built-in Clojure test framework"
+        config_file: null
+        test_command: "clojure -X:test"
+        alt_commands: ["lein test"]
+        test_pattern: "**/*_test.clj"
+      - id: midje
+        name: "Midje"
+        description: "BDD testing for Clojure"
+        config_file: null
+        test_command: "lein midje"
+        test_pattern: "**/*_test.clj"
+        detection:
+          - type: file_contains
+            pattern: "project.clj"
+            contains: "midje"
+    strategy_file: "languages/clojure/_strategy.md"
+    knowledge_fragments:
+      - "languages/clojure/test-patterns.md"
+      - "languages/clojure/spec-testing.md"
 
   # ============================================
   # TYPESCRIPT / JAVASCRIPT - Check last (most common, tooling everywhere)
@@ -637,6 +756,18 @@ family_hints:
   ruby:
     families: [scripting-family]
     primary: scripting-family
+    
+  scala:
+    families: [c-family, ml-family]
+    primary: ml-family
+    
+  elixir:
+    families: [ml-family, scripting-family]
+    primary: ml-family
+    
+  clojure:
+    families: [lisp-family]
+    primary: lisp-family
     
   # When inferring unknown languages, use these patterns
   inference_patterns:

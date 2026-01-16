@@ -30,6 +30,12 @@ import {
   getBaseAgents,
   getAgentsByModule,
   
+  // Load Balancer
+  getLoadBalancer,
+  disposeLoadBalancer,
+  type OpenCodeProfile,
+  type LoadBalancerConfig,
+  
   // Types
   BmadPhase,
   WorkflowStatusValue,
@@ -362,6 +368,153 @@ export function registerBmadHandlers(
   });
 
   // ───────────────────────────────────────────────────────────────────────────
+  // Load Balancer
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Initialize the load balancer
+   */
+  ipcMain.handle('bmad:init-load-balancer', async () => {
+    try {
+      const loadBalancer = getLoadBalancer();
+      await loadBalancer.initialize();
+      
+      // Forward load balancer events to renderer
+      loadBalancer.on('rate-limited', (event) => {
+        const mainWindow = getMainWindow();
+        if (mainWindow) {
+          mainWindow.webContents.send('bmad:rate-limited', event);
+        }
+      });
+      
+      loadBalancer.on('execution-started', (event) => {
+        const mainWindow = getMainWindow();
+        if (mainWindow) {
+          mainWindow.webContents.send('bmad:lb-execution-started', event);
+        }
+      });
+      
+      loadBalancer.on('execution-completed', (event) => {
+        const mainWindow = getMainWindow();
+        if (mainWindow) {
+          mainWindow.webContents.send('bmad:lb-execution-completed', event);
+        }
+      });
+      
+      return successResult({ initialized: true });
+    } catch (error) {
+      return errorResult(
+        'LOAD_BALANCER_INIT_ERROR',
+        `Failed to initialize load balancer: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  });
+
+  /**
+   * Get load balancer state
+   */
+  ipcMain.handle('bmad:get-load-balancer-state', async () => {
+    try {
+      const loadBalancer = getLoadBalancer();
+      const profiles = loadBalancer.getAvailableProfiles();
+      const stats = loadBalancer.getProfileStats();
+      
+      return successResult({
+        initialized: profiles.length > 0,
+        profiles: Object.values(stats),
+        config: {
+          enabled: true, // Will be managed by WorkflowRunner
+          strategy: 'least-loaded' as const,
+          maxConcurrentPerProfile: 2,
+          rateLimitCooldown: 60000,
+          skipRateLimited: true,
+          enabledProfiles: profiles.map(p => p.id) as OpenCodeProfile[],
+        },
+      });
+    } catch (error) {
+      return errorResult(
+        'LOAD_BALANCER_STATE_ERROR',
+        `Failed to get load balancer state: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  });
+
+  /**
+   * Get profile stats
+   */
+  ipcMain.handle('bmad:get-profile-stats', async () => {
+    try {
+      const loadBalancer = getLoadBalancer();
+      return successResult(loadBalancer.getProfileStats());
+    } catch (error) {
+      return errorResult(
+        'PROFILE_STATS_ERROR',
+        `Failed to get profile stats: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  });
+
+  /**
+   * Clear rate limit for a profile
+   */
+  ipcMain.handle('bmad:clear-rate-limit', async (_, profile: OpenCodeProfile) => {
+    try {
+      const loadBalancer = getLoadBalancer();
+      loadBalancer.clearRateLimit(profile);
+      return successResult(undefined);
+    } catch (error) {
+      return errorResult(
+        'CLEAR_RATE_LIMIT_ERROR',
+        `Failed to clear rate limit: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  });
+
+  /**
+   * Enable load balancing on workflow runner
+   */
+  ipcMain.handle('bmad:enable-load-balancing', async (_, projectPath: string) => {
+    try {
+      const runner = getWorkflowRunner(projectPath);
+      const result = await runner.enableLoadBalancing();
+      return result;
+    } catch (error) {
+      return errorResult(
+        'ENABLE_LB_ERROR',
+        `Failed to enable load balancing: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  });
+
+  /**
+   * Disable load balancing on workflow runner
+   */
+  ipcMain.handle('bmad:disable-load-balancing', async (_, projectPath: string) => {
+    try {
+      const runner = getWorkflowRunner(projectPath);
+      runner.disableLoadBalancing();
+      return successResult(undefined);
+    } catch (error) {
+      return errorResult(
+        'DISABLE_LB_ERROR',
+        `Failed to disable load balancing: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  });
+
+  /**
+   * Check if load balancing is enabled
+   */
+  ipcMain.handle('bmad:is-load-balancing-enabled', async (_, projectPath: string) => {
+    try {
+      const runner = getWorkflowRunner(projectPath);
+      return successResult({ enabled: runner.isLoadBalancingEnabled() });
+    } catch (error) {
+      return successResult({ enabled: false });
+    }
+  });
+
+  // ───────────────────────────────────────────────────────────────────────────
   // Cleanup
   // ───────────────────────────────────────────────────────────────────────────
 
@@ -369,6 +522,7 @@ export function registerBmadHandlers(
    * Dispose all BMAD resources
    */
   ipcMain.handle('bmad:dispose', async () => {
+    disposeLoadBalancer();
     await disposeBmadResources();
     return successResult(undefined);
   });
