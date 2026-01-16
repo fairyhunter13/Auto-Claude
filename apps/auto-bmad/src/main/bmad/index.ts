@@ -70,6 +70,28 @@ export {
   type BmadProjectValidation,
 } from './project-manager';
 
+// Language Detection (TEA Polyglot Support)
+export {
+  LanguageDetector,
+  getLanguageDetector,
+  clearLanguageDetector,
+} from './language-detector';
+
+// Target Runner (Flexible Execution)
+export {
+  TargetRunner,
+  loadTargetRegistry,
+  clearRegistryCache,
+  isValidBmadTarget,
+  getTargetDisplayName,
+  getTargetPhase,
+  groupTargetsByPhase,
+  type TargetRunnerOptions,
+  type TargetProgressEvent,
+  type TargetCompleteEvent,
+  type TargetExecutionPlan,
+} from './target-runner';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Convenience Functions
 // ─────────────────────────────────────────────────────────────────────────────
@@ -77,6 +99,8 @@ export {
 import { disposeStatusManager } from './status-manager';
 import { disposeArtifactWatcher } from './artifact-watcher';
 import { disposeWorkflowRunner } from './workflow-runner';
+import { clearLanguageDetector } from './language-detector';
+import { clearRegistryCache } from './target-runner';
 
 /**
  * Dispose all BMAD resources
@@ -88,4 +112,8 @@ export async function disposeBmadResources(): Promise<void> {
     disposeArtifactWatcher(),
     disposeWorkflowRunner(),
   ]);
+  
+  // Clear caches
+  clearLanguageDetector();
+  clearRegistryCache();
 }
