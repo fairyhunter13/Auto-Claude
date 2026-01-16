@@ -43,6 +43,11 @@
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:e2e": "npx playwright test --config=e2e/playwright.config.ts",
+    "test:bmad": "vitest run src/main/bmad/__tests__/",
+    "test:bmad:unit": "vitest run src/main/bmad/__tests__/bmad-modules.test.ts",
+    "test:bmad:e2e": "npx playwright test --config=e2e/playwright.config.ts opencode-workflow-comprehensive.e2e.ts",
+    "test:bmad:phase": "npx playwright test --config=e2e/playwright.config.ts --grep",
+    "test:bmad:comprehensive": "./e2e/run-comprehensive-tests.sh",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit"

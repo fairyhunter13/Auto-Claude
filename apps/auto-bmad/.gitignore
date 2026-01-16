@@ -60,3 +60,24 @@ bun.lockb
 # Test files in root
 test-*.js
 test-*.cjs
+
+# E2E test artifacts
+e2e/test-project/
+e2e/screenshots/
+e2e/videos/
+test-results/
+playwright-report/
+e2e/diagnostic-output/
+
+# E2E diagnostic/debug tools (not production code)
+e2e/debug-*.mjs
+e2e/diagnose-*.mjs
+e2e/wayland-*.mjs
+e2e/*video*.mjs
+e2e/direct-spawn-*.mjs
+e2e/fix-*.mjs
+e2e/native-*.mjs
+e2e/auto-test-runner.mjs
+e2e/playwright-visible-test.mjs
+e2e/record-and-test.sh
+e2e/screen-record-test.sh
