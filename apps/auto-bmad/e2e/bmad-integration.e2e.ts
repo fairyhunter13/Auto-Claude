@@ -12,7 +12,12 @@ import { test, expect, _electron as electron, ElectronApplication, Page } from '
 import { mkdirSync, rmSync, existsSync, writeFileSync, readFileSync } from 'fs';
 import { execSync, spawn } from 'child_process';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import * as yaml from 'js-yaml';
+
+// ESM compatibility for __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Test Configuration

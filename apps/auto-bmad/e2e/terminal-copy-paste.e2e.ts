@@ -10,7 +10,12 @@
 import { test, expect, _electron as electron, ElectronApplication, Page } from '@playwright/test';
 import { mkdirSync, rmSync, existsSync } from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import * as os from 'os';
+
+// ESM compatibility for __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Global Navigator declaration for clipboard
 declare global {
@@ -76,11 +81,45 @@ test.describe('Terminal Copy/Paste Flows', () => {
   test.beforeEach(async () => {
     // Launch Electron app
     const appPath = path.join(__dirname, '..');
-    app = await electron.launch({ args: [appPath] });
+    
+    // Detect Wayland environment
+    const isWayland = !!(process.env.WAYLAND_DISPLAY || process.env.XDG_SESSION_TYPE === 'wayland');
+    
+    // Base args for all platforms
+    const launchArgs = [appPath, '--no-sandbox'];
+    
+    // Add Wayland-specific args for X11/XWayland rendering
+    // This fixes white screen issue on Wayland compositors (GNOME, KDE, etc.)
+    if (isWayland) {
+      launchArgs.push(
+        '--ozone-platform=x11',
+        '--disable-gpu-compositing',
+        '--in-process-gpu'
+      );
+    }
+    
+    app = await electron.launch({
+      args: launchArgs,
+      env: {
+        ...process.env,
+        NODE_ENV: 'test',
+        // Wayland-specific env vars for X11 fallback
+        ...(isWayland && {
+          GDK_BACKEND: 'x11',
+          ELECTRON_OZONE_PLATFORM_HINT: 'x11',
+          DISPLAY: process.env.DISPLAY || ':0',
+        }),
+      },
+    });
 
     window = await app.firstWindow({
       timeout: 15000
     });
+    
+    // Extra wait on Wayland for renderer to stabilize
+    if (isWayland) {
+      await window.waitForTimeout(2000);
+    }
 
     // Wait for app to be ready
     try {
