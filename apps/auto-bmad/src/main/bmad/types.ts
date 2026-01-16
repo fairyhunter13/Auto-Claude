@@ -378,3 +378,274 @@ export interface WorkflowProgressEvent {
 }
 
 export type BmadEvent = StatusChangeEvent | ArtifactChangeEvent | WorkflowProgressEvent;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Target Registry Types (from _bmad/bmm/config/target-registry.yaml)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Valid BMAD target values for workflow execution stopping points.
+ * The `target` field determines where BMAD stops execution.
+ */
+export type BmadTarget =
+  // Phase 1: Analysis
+  | 'research'
+  | 'brief'
+  | 'brainstorm'
+  // Phase 2: Planning
+  | 'prd'
+  | 'ux-design'
+  // Phase 3: Solutioning
+  | 'architecture'
+  | 'test-design'
+  | 'epics'
+  | 'gate-check'
+  // Phase 4: Implementation
+  | 'sprint-ready'
+  | 'story-ready'
+  | 'implemented'
+  | 'reviewed'
+  | 'retro'
+  // TEA Workflows
+  | 'test-framework'
+  | 'test-framework-polyglot'
+  | 'atdd'
+  | 'test-coverage'
+  | 'test-reviewed'
+  | 'trace'
+  | 'nfr-tested'
+  | 'ci'
+  // Quick Flow
+  | 'quick-spec'
+  | 'quick-dev'
+  // Utilities
+  | 'documented'
+  // Control
+  | 'auto';
+
+/**
+ * Sub-targets that are created within parent workflows (e.g., diagrams)
+ */
+export type BmadSubTarget =
+  | 'diagram'
+  | 'flowchart'
+  | 'dataflow'
+  | 'wireframe';
+
+/**
+ * Output type for a target
+ */
+export type TargetOutputType = 'file' | 'directory' | 'code' | 'validation' | 'completion';
+
+/**
+ * Target definition from target-registry.yaml
+ */
+export interface TargetDefinition {
+  phase: number | null;
+  workflow: string | null;
+  workflow_path: string;
+  agent: string | null;
+  description: string;
+  output: {
+    type: TargetOutputType;
+    path?: string;
+    artifact?: string | null;
+    index?: string;
+    alternatives?: string[];
+  };
+  required: boolean;
+  repeatable?: boolean;
+  standalone?: boolean;
+  conditional?: {
+    field: string;
+    value: boolean | string;
+  };
+  sub_targets?: BmadSubTarget[];
+}
+
+/**
+ * Sub-target definition
+ */
+export interface SubTargetDefinition {
+  parent_targets: BmadTarget[];
+  workflow: string;
+  workflow_path: string;
+  agent: string;
+  description: string;
+  output: {
+    type: TargetOutputType;
+    path: string;
+  };
+}
+
+/**
+ * Target dependency definition
+ */
+export interface TargetDependencies {
+  required?: BmadTarget[];
+  optional?: BmadTarget[];
+}
+
+/**
+ * Complete target registry
+ */
+export interface TargetRegistry {
+  targets: Record<BmadTarget, TargetDefinition>;
+  sub_targets: Record<BmadSubTarget, SubTargetDefinition>;
+  excluded: {
+    cis_workflows: string[];
+    bmb_workflows: string[];
+    utility_workflows: string[];
+    core_workflows: string[];
+  };
+  dependencies: Record<BmadTarget, TargetDependencies>;
+  execution_order: {
+    phase_1: { order: BmadTarget[]; required: boolean };
+    phase_2: { order: BmadTarget[]; required: boolean };
+    phase_3: { order: BmadTarget[]; required: boolean };
+    phase_4: {
+      order: BmadTarget[];
+      story_cycle: { order: BmadTarget[]; repeat_until: string };
+      epic_completion: { order: BmadTarget[]; trigger: string };
+    };
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Language Detection Types (for TEA polyglot support)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Known programming language families for Tier 2 inference
+ */
+export type LanguageFamily =
+  | 'c-family'
+  | 'ml-family'
+  | 'lisp-family'
+  | 'systems-family'
+  | 'scripting-family'
+  | 'logic-family';
+
+/**
+ * Tier levels for language resolution
+ */
+export type LanguageResolutionTier = 1 | 2 | 3 | 4;
+
+/**
+ * Confidence level for language detection
+ */
+export type ConfidenceLevel = 'high' | 'medium' | 'low' | 'minimal';
+
+/**
+ * Detected language information
+ */
+export interface DetectedLanguage {
+  language: string;
+  displayName: string;
+  tier: LanguageResolutionTier;
+  confidence: number;
+  confidenceLevel: ConfidenceLevel;
+  family?: LanguageFamily;
+  strategyFile?: string;
+  testFramework?: string;
+  testCommand?: string;
+  testPattern?: string;
+}
+
+/**
+ * Language detection result for a project
+ */
+export interface LanguageDetectionResult {
+  primaryLanguage?: DetectedLanguage;
+  allLanguages: DetectedLanguage[];
+  isPolyglot: boolean;
+  unknownExtensions: string[];
+  discoveryNeeded: boolean;
+}
+
+/**
+ * Test framework definition
+ */
+export interface TestFramework {
+  id: string;
+  name: string;
+  description: string;
+  configFile?: string;
+  altConfigFiles?: string[];
+  testCommand: string;
+  testPattern: string;
+}
+
+/**
+ * Language strategy from _detection-rules.yaml
+ */
+export interface LanguageStrategy {
+  language: string;
+  displayName: string;
+  priority: number;
+  indicators: {
+    required?: { type: string; pattern: string }[];
+    required_any?: { type: string; pattern: string }[];
+    optional?: { type: string; pattern: string }[];
+  };
+  testFrameworkDefault: string;
+  testFrameworksAvailable: TestFramework[];
+  strategyFile: string;
+  knowledgeFragments: string[];
+  families?: LanguageFamily[];
+}
+
+/**
+ * Family inference result
+ */
+export interface FamilyInferenceResult {
+  family: LanguageFamily;
+  confidence: number;
+  matchedPatterns: { pattern: string; weight: number }[];
+  totalWeight: number;
+}
+
+/**
+ * Discovery mode settings
+ */
+export interface DiscoveryModeSettings {
+  enabled: boolean;
+  mode: 'auto' | 'prompt' | 'disabled';
+  allowWebFetch: boolean;
+  timeout: number;
+  searchQueries: string[];
+  provisionalPath: string;
+}
+
+/**
+ * Discovery result from Tier 3
+ */
+export interface DiscoveryResult {
+  language: string;
+  confidence: number;
+  sources: ('project_analysis' | 'web_research' | 'existing_tests')[];
+  framework?: {
+    name: string;
+    testCommand: string;
+    testPattern: string;
+  };
+  strategy: string;
+  provisional: boolean;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Workflow Exit Event (enhanced)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface WorkflowExitEvent {
+  type: 'workflow-exit';
+  workflowId: string;
+  target?: BmadTarget;
+  exitCode: number;
+  success: boolean;
+  outputPath?: string;
+  duration: number;
+}
+
+// Re-export combined event type
+export type BmadEventExtended = BmadEvent | WorkflowExitEvent;
