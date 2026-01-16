@@ -47,6 +47,19 @@ export {
   type WorkflowRunResult,
 } from './workflow-runner';
 
+// OpenCode Load Balancing
+export {
+  OpenCodeLoadBalancer,
+  getLoadBalancer,
+  disposeLoadBalancer,
+  executeWorkflowWithLoadBalancing,
+  type OpenCodeProfile,
+  type ProfileConfig,
+  type LoadBalancerConfig,
+  type ExecutionOptions,
+  type ExecutionResult,
+} from './opencode-load-balancer';
+
 // Agent Parsing
 export {
   loadAgent,
@@ -101,6 +114,7 @@ import { disposeArtifactWatcher } from './artifact-watcher';
 import { disposeWorkflowRunner } from './workflow-runner';
 import { clearLanguageDetector } from './language-detector';
 import { clearRegistryCache } from './target-runner';
+import { disposeLoadBalancer } from './opencode-load-balancer';
 
 /**
  * Dispose all BMAD resources
@@ -113,7 +127,8 @@ export async function disposeBmadResources(): Promise<void> {
     disposeWorkflowRunner(),
   ]);
   
-  // Clear caches
+  // Clear caches and dispose singletons
   clearLanguageDetector();
   clearRegistryCache();
+  disposeLoadBalancer();
 }

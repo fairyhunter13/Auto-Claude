@@ -3,6 +3,7 @@
  * 
  * Executes BMAD workflows based on target values.
  * Implements the flexible execution model where users can stop at any target.
+ * Integrates with WorkflowRunner and Load Balancer for execution.
  */
 
 import * as fs from 'fs';
@@ -17,6 +18,12 @@ import type {
   BmadPhase,
   WorkflowStatusValue,
 } from './types';
+import { 
+  WorkflowRunner, 
+  getWorkflowRunner, 
+  type WorkflowRunOptions 
+} from './workflow-runner';
+import type { OpenCodeProfile } from './opencode-load-balancer';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Constants
@@ -58,8 +65,18 @@ export interface TargetRunnerOptions {
   bmadPath: string;
   target: BmadTarget;
   yoloMode?: boolean;
+  /** Enable load balancing across multiple OpenCode profiles */
+  useLoadBalancing?: boolean;
+  /** Preferred OpenCode profile when load balancing */
+  preferredProfile?: OpenCodeProfile;
+  /** Enable automatic retry on rate limiting */
+  retryOnRateLimit?: boolean;
+  /** Additional arguments to pass to OpenCode */
+  additionalArgs?: string[];
   onProgress?: (event: TargetProgressEvent) => void;
   onComplete?: (event: TargetCompleteEvent) => void;
+  onStdout?: (data: string) => void;
+  onStderr?: (data: string) => void;
 }
 
 export interface TargetProgressEvent {
@@ -78,6 +95,10 @@ export interface TargetCompleteEvent {
   outputPath?: string;
   duration: number;
   error?: string;
+  /** Profile used for execution (when load balancing) */
+  profile?: OpenCodeProfile;
+  /** Whether execution was rate limited */
+  rateLimited?: boolean;
 }
 
 export interface TargetExecutionPlan {
@@ -93,9 +114,26 @@ export class TargetRunner {
   private registry: TargetRegistry | null = null;
   private completedTargets: Set<BmadTarget> = new Set();
   private startTime: number = 0;
+  private workflowRunner: WorkflowRunner | null = null;
+  private cancelled: boolean = false;
 
   constructor(options: TargetRunnerOptions) {
     this.options = options;
+  }
+
+  /**
+   * Initialize the workflow runner with optional load balancing
+   */
+  private async initializeRunner(): Promise<void> {
+    if (this.workflowRunner) return;
+
+    this.workflowRunner = getWorkflowRunner(this.options.projectPath);
+    await this.workflowRunner.initialize();
+
+    // Enable load balancing if requested
+    if (this.options.useLoadBalancing) {
+      await this.workflowRunner.enableLoadBalancing();
+    }
   }
 
   /**
@@ -133,7 +171,10 @@ export class TargetRunner {
    */
   async execute(): Promise<TargetCompleteEvent> {
     this.startTime = Date.now();
+    this.cancelled = false;
+    
     await this.loadRegistry();
+    await this.initializeRunner();
 
     try {
       const plan = await this.plan();
@@ -146,8 +187,16 @@ export class TargetRunner {
         message: `Starting execution plan for target: ${plan.target}`,
       });
 
+      let lastProfile: OpenCodeProfile | undefined;
+      let wasRateLimited = false;
+
       // Execute each target in order
       for (let i = 0; i < plan.executionOrder.length; i++) {
+        // Check if cancelled
+        if (this.cancelled) {
+          throw new Error('Execution cancelled by user');
+        }
+
         const currentTarget = plan.executionOrder[i];
         
         // Skip if already completed
@@ -164,7 +213,19 @@ export class TargetRunner {
         });
 
         // Execute the workflow for this target
-        await this.executeTarget(currentTarget);
+        const result = await this.executeTarget(currentTarget);
+        
+        if (result.rateLimited) {
+          wasRateLimited = true;
+        }
+        if (result.profile) {
+          lastProfile = result.profile;
+        }
+        
+        if (!result.success) {
+          throw new Error(result.error || `Failed to execute target: ${currentTarget}`);
+        }
+        
         this.completedTargets.add(currentTarget);
 
         // Check if this is our final target
@@ -179,6 +240,8 @@ export class TargetRunner {
         success: true,
         duration: Date.now() - this.startTime,
         outputPath: this.getTargetOutput(plan.target),
+        profile: lastProfile,
+        rateLimited: wasRateLimited,
       };
 
       this.options.onComplete?.(result);
@@ -195,6 +258,16 @@ export class TargetRunner {
 
       this.options.onComplete?.(result);
       return result;
+    }
+  }
+
+  /**
+   * Cancel the current execution
+   */
+  cancel(): void {
+    this.cancelled = true;
+    if (this.workflowRunner) {
+      this.workflowRunner.cancelWorkflow().catch(console.error);
     }
   }
 
@@ -295,21 +368,112 @@ export class TargetRunner {
     return order;
   }
 
-  private async executeTarget(target: BmadTarget): Promise<void> {
+  private async executeTarget(target: BmadTarget): Promise<{ success: boolean; error?: string; profile?: OpenCodeProfile; rateLimited?: boolean }> {
     const def = this.getTargetDefinition(target);
     if (!def) {
-      throw new Error(`No definition for target: ${target}`);
+      return { success: false, error: `No definition for target: ${target}` };
     }
 
-    // Build the workflow command
-    const command = this.buildWorkflowCommand(target, def);
-    
-    // Execute via workflow runner (this would integrate with existing workflow-runner.ts)
-    // For now, we'll just log the intent
-    console.log(`Would execute workflow for target ${target}:`, command);
-    
-    // In actual implementation, this would call:
-    // await workflowRunner.execute(command, { yoloMode: this.options.yoloMode });
+    if (!this.workflowRunner) {
+      return { success: false, error: 'WorkflowRunner not initialized' };
+    }
+
+    // Map target to workflow ID
+    const workflowId = this.getWorkflowIdForTarget(target);
+    if (!workflowId) {
+      return { success: false, error: `No workflow mapped for target: ${target}` };
+    }
+
+    // Build workflow run options
+    const runOptions: WorkflowRunOptions = {
+      yoloMode: this.options.yoloMode,
+      useLoadBalancing: this.options.useLoadBalancing,
+      preferredProfile: this.options.preferredProfile,
+      retryOnRateLimit: this.options.retryOnRateLimit,
+      args: this.options.additionalArgs,
+      onStdout: this.options.onStdout,
+      onStderr: this.options.onStderr,
+    };
+
+    // Wait for workflow completion
+    return new Promise((resolve) => {
+      let resolved = false;
+
+      const handleExit = (event: { success: boolean; exitCode: number; profile?: OpenCodeProfile; rateLimited?: boolean }) => {
+        if (resolved) return;
+        resolved = true;
+        
+        this.workflowRunner?.removeListener('exit', handleExit);
+        this.workflowRunner?.removeListener('error', handleError);
+
+        resolve({
+          success: event.success,
+          profile: event.profile,
+          rateLimited: event.rateLimited,
+          error: event.success ? undefined : `Workflow exited with code ${event.exitCode}`,
+        });
+      };
+
+      const handleError = (error: Error) => {
+        if (resolved) return;
+        resolved = true;
+        
+        this.workflowRunner?.removeListener('exit', handleExit);
+        this.workflowRunner?.removeListener('error', handleError);
+
+        resolve({
+          success: false,
+          error: error.message,
+        });
+      };
+
+      this.workflowRunner!.on('exit', handleExit);
+      this.workflowRunner!.on('error', handleError);
+
+      // Start the workflow
+      this.workflowRunner!.startWorkflow(workflowId, runOptions)
+        .then((result) => {
+          if (!result.success) {
+            if (!resolved) {
+              resolved = true;
+              this.workflowRunner?.removeListener('exit', handleExit);
+              this.workflowRunner?.removeListener('error', handleError);
+              resolve({ success: false, error: result.error?.message });
+            }
+          }
+        })
+        .catch((err) => {
+          if (!resolved) {
+            resolved = true;
+            this.workflowRunner?.removeListener('exit', handleExit);
+            this.workflowRunner?.removeListener('error', handleError);
+            resolve({ success: false, error: err.message });
+          }
+        });
+    });
+  }
+
+  /**
+   * Map a target to its corresponding workflow ID
+   */
+  private getWorkflowIdForTarget(target: BmadTarget): string | null {
+    // Map targets to workflow IDs (these match the ids in BMAD_WORKFLOWS)
+    const workflowMap: Partial<Record<BmadTarget, string>> = {
+      'research': 'research',
+      'brief': 'product-brief',
+      'brainstorm': 'brainstorm-project',
+      'prd': 'prd',
+      'ux-design': 'ux-design',
+      'architecture': 'architecture',
+      'test-design': 'test-design',
+      'epics': 'epics',
+      'gate-check': 'implementation-readiness',
+      'sprint-ready': 'sprint-planning',
+      'story-ready': 'create-story',
+      'implemented': 'dev-story',
+      'reviewed': 'code-review',
+    };
+    return workflowMap[target] || null;
   }
 
   private buildWorkflowCommand(target: BmadTarget, def: TargetDefinition): string {
