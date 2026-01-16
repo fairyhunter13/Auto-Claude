@@ -42,3 +42,32 @@ export { PhaseDetail } from './components/PhaseDetail';
 export { WorkflowExecutionPanel } from './components/WorkflowExecutionPanel';
 export { WorkflowList } from './components/WorkflowList';
 export { WorkflowRunner } from './components/WorkflowRunner';
+
+// Target & Language Components (New)
+export {
+  TargetSelector,
+  TargetBadge,
+  getTargetInfo,
+  getTargetsByPhase,
+  getRequiredTargets,
+  type BmadTarget,
+} from './components/TargetSelector';
+
+export {
+  LanguageDetectionBadge,
+  LanguageBadge,
+  PolyglotSummary,
+  type DetectedLanguage,
+  type LanguageDetectionResult,
+  type ConfidenceLevel,
+  type ResolutionTier,
+} from './components/LanguageDetectionBadge';
+
+export {
+  ArtifactDashboard,
+  ArtifactSummary,
+  createMockArtifacts,
+  type Artifact,
+  type ArtifactStatus,
+  type ArtifactGroup,
+} from './components/ArtifactDashboard';
