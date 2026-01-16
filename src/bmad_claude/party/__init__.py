@@ -10,6 +10,7 @@ Key Components:
 - AgentOrchestrator: Selects and coordinates agents
 - PhaseManager: Guides discussions through BMAD phases
 - OpenCodeClient: Streaming HTTP client for OpenCode server
+- OpenCodePool: Load balancing across multiple OpenCode profiles
 """
 
 from bmad_claude.party.session import PartySession
@@ -17,6 +18,14 @@ from bmad_claude.party.memory import PartyMemory, Message, Decision
 from bmad_claude.party.orchestrator import AgentOrchestrator
 from bmad_claude.party.phase import PhaseManager
 from bmad_claude.party.opencode_client import OpenCodeClient, OpenCodeConfig, StreamEvent
+from bmad_claude.party.opencode_pool import (
+    OpenCodePool,
+    OpenCodeProfile,
+    LoadBalanceStrategy,
+    BUILTIN_PROFILES,
+    get_available_profiles,
+    create_pool_from_names,
+)
 
 __all__ = [
     "PartySession",
@@ -28,4 +37,10 @@ __all__ = [
     "OpenCodeClient",
     "OpenCodeConfig",
     "StreamEvent",
+    "OpenCodePool",
+    "OpenCodeProfile",
+    "LoadBalanceStrategy",
+    "BUILTIN_PROFILES",
+    "get_available_profiles",
+    "create_pool_from_names",
 ]

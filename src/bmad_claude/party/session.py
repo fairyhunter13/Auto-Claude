@@ -23,6 +23,13 @@ from bmad_claude.party.memory import PartyMemory, Decision
 from bmad_claude.party.orchestrator import AgentOrchestrator, AgentPersona
 from bmad_claude.party.phase import PhaseManager, PhaseTopic
 from bmad_claude.party.opencode_client import OpenCodeClient, OpenCodeConfig, StreamEvent
+from bmad_claude.party.opencode_pool import (
+    OpenCodePool,
+    OpenCodeProfile,
+    LoadBalanceStrategy,
+    BUILTIN_PROFILES,
+    create_pool_from_names,
+)
 
 
 @dataclass
@@ -77,6 +84,8 @@ class PartySession:
         opencode_path: str = "opencode",
         model: str = "anthropic/claude-opus-4-5",  # OpenCode model (provider/model)
         variant: str = "max",  # Model variant (max = maximum thinking budget)
+        profiles: list[str] | None = None,  # OpenCode profiles for load balancing
+        load_balance_strategy: str = "round_robin",  # round_robin, random, failover
     ):
         self.project_name = project_name
         self.session_id = session_id
@@ -88,6 +97,8 @@ class PartySession:
         self.opencode_path = opencode_path
         self.model = model
         self.variant = variant
+        self.profiles = profiles  # e.g., ["personal", "work"]
+        self.load_balance_strategy = load_balance_strategy
 
         # Session state
         self.started_at = datetime.now()
@@ -97,9 +108,11 @@ class PartySession:
         # Session directory
         self.session_dir = project_root / ".bmad-claude" / "party-sessions" / session_id
 
-        # OpenCode client for streaming (lazily initialized)
+        # OpenCode client/pool for streaming (lazily initialized)
         self._opencode_client: OpenCodeClient | None = None
+        self._opencode_pool: OpenCodePool | None = None
         self._use_streaming = True  # Enable streaming by default
+        self._use_pool = profiles is not None and len(profiles) > 0
 
     @classmethod
     async def create(
@@ -109,6 +122,8 @@ class PartySession:
         opencode_path: str = "opencode",
         model: str = "anthropic/claude-opus-4-5",
         variant: str = "max",
+        profiles: list[str] | None = None,
+        load_balance_strategy: str = "round_robin",
     ) -> "PartySession":
         """
         Create a new party session.
@@ -118,6 +133,9 @@ class PartySession:
             project_root: Project root directory (default: cwd)
             opencode_path: Path to OpenCode CLI
             model: LLM model to use
+            variant: Model variant (e.g., "max" for Anthropic)
+            profiles: OpenCode profiles for load balancing (e.g., ["personal", "work"])
+            load_balance_strategy: Load balancing strategy (round_robin, random, failover)
 
         Returns:
             New PartySession instance
@@ -152,6 +170,8 @@ class PartySession:
             opencode_path=opencode_path,
             model=model,
             variant=variant,
+            profiles=profiles,
+            load_balance_strategy=load_balance_strategy,
         )
 
         # Create session directory
@@ -201,6 +221,8 @@ class PartySession:
             opencode_path=metadata.get("opencode_path", "opencode"),
             model=metadata.get("model", "anthropic/claude-opus-4-5"),
             variant=metadata.get("variant", "max"),
+            profiles=metadata.get("profiles"),
+            load_balance_strategy=metadata.get("load_balance_strategy", "round_robin"),
         )
 
         session.started_at = datetime.fromisoformat(metadata["session"]["started_at"])
@@ -431,6 +453,17 @@ class PartySession:
             await self._opencode_client.connect()
         return self._opencode_client
 
+    async def _get_opencode_pool(self) -> OpenCodePool:
+        """Get or create OpenCode pool for load balancing."""
+        if self._opencode_pool is None:
+            self._opencode_pool = create_pool_from_names(
+                profile_names=self.profiles or ["personal", "work"],
+                strategy=self.load_balance_strategy,
+                project_root=self.project_root,
+            )
+            await self._opencode_pool.start()
+        return self._opencode_pool
+
     async def _invoke_opencode_streaming(
         self,
         prompt: str,
@@ -438,6 +471,9 @@ class PartySession:
     ) -> str:
         """
         Invoke OpenCode with streaming output.
+
+        Uses pool with load balancing if profiles are configured,
+        otherwise uses a single client.
 
         Args:
             prompt: Prompt to send
@@ -449,14 +485,24 @@ class PartySession:
         self._ensure_opencode_config()
 
         try:
-            client = await self._get_opencode_client()
             full_response = []
 
-            async for event in client.stream_prompt(prompt):
-                if event.text:
-                    full_response.append(event.text)
-                    if on_text:
-                        on_text(event.text)
+            if self._use_pool and self.profiles:
+                # Use load-balanced pool
+                pool = await self._get_opencode_pool()
+                async for event in pool.stream_prompt(prompt):
+                    if event.text:
+                        full_response.append(event.text)
+                        if on_text:
+                            on_text(event.text)
+            else:
+                # Use single client
+                client = await self._get_opencode_client()
+                async for event in client.stream_prompt(prompt):
+                    if event.text:
+                        full_response.append(event.text)
+                        if on_text:
+                            on_text(event.text)
 
             return "".join(full_response)
         except Exception as e:
@@ -468,6 +514,15 @@ class PartySession:
         if self._opencode_client:
             await self._opencode_client.disconnect()
             self._opencode_client = None
+        if self._opencode_pool:
+            await self._opencode_pool.stop()
+            self._opencode_pool = None
+
+    def get_pool_status(self) -> dict[str, Any] | None:
+        """Get load balancing pool status if using profiles."""
+        if self._opencode_pool:
+            return self._opencode_pool.get_status()
+        return None
 
     async def transition_phase(self) -> PhaseTransition | None:
         """
@@ -696,6 +751,8 @@ Use BMAD format with clear sections and markdown formatting.
             "opencode_path": self.opencode_path,
             "model": self.model,
             "variant": self.variant,
+            "profiles": self.profiles,
+            "load_balance_strategy": self.load_balance_strategy,
         }
 
         with open(self.session_dir / "session.yaml", "w") as f:
