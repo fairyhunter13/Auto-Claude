@@ -4,13 +4,38 @@ BMAD-Claude Party Mode
 Collaborative multi-agent discussion system where AI agents
 discuss together like a human team to produce software artifacts.
 
-Key Components:
+## Key Components
+
 - PartySession: Manages the collaborative discussion session
 - PartyMemory: Handles context persistence and compression
 - AgentOrchestrator: Selects and coordinates agents
 - PhaseManager: Guides discussions through BMAD phases
-- OpenCodeClient: Streaming HTTP client for OpenCode server
-- OpenCodePool: Load balancing across multiple OpenCode profiles
+- FeedbackHandler: User feedback and command processing
+
+## BMAD Methodology
+
+Party Mode follows the BMAD 4-phase methodology:
+1. **Planning** - Product vision, target users, success metrics, MVP scope
+2. **Solutioning** - Architecture, epics/stories, test design
+3. **Implementation** - Sprint planning, story development
+4. **Completion** - Review and finalization
+
+## Testing Policy
+
+**IMPORTANT: Mock tests are FORBIDDEN in this project.**
+
+All tests use real OpenCode calls. Tests are designed to be small-scoped
+(1-2 turns maximum) to minimize API costs while providing real validation.
+
+```bash
+# Run smoke test (1 turn - minimal cost)
+cd src && uv run python -m bmad_claude.party.tests.test_harness
+
+# Run full test suite
+cd src && uv run pytest bmad_claude/party/tests/ -v
+```
+
+See `bmad_claude/party/tests/` for test implementation.
 """
 
 from bmad_claude.party.session import PartySession
