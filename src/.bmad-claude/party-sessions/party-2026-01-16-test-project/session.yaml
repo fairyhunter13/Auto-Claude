@@ -1,0 +1,26 @@
+load_balance_strategy: round_robin
+model: anthropic/claude-opus-4-5
+opencode_path: opencode
+phase:
+  current_phase: planning
+  topics_covered:
+    implementation: []
+    planning: []
+    solutioning: []
+profiles:
+- personal
+- work
+schema_version: 1
+session:
+  id: party-2026-01-16-test-project
+  project_name: Test Project
+  started_at: '2026-01-16T09:44:43.221623'
+  status: active
+  updated_at: '2026-01-16T09:44:43.221626'
+stats:
+  artifacts_count: 0
+  current_turn: 1
+  decisions_count: 0
+  messages_count: 1
+  summaries_count: 0
+variant: max

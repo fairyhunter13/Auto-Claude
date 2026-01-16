@@ -609,6 +609,22 @@ def party(
         "--load-balance",
         help="Load balancing strategy: round_robin, random, failover, least_used",
     ),
+    auto: bool = typer.Option(
+        False,
+        "--auto",
+        "-a",
+        help="Autopilot mode: agents discuss automatically, you can interject anytime",
+    ),
+    auto_turns: int = typer.Option(
+        3,
+        "--auto-turns",
+        help="Number of turns before pausing for optional input (in auto mode)",
+    ),
+    input_timeout: int = typer.Option(
+        5,
+        "--input-timeout",
+        help="Seconds to wait for user input before auto-continuing (in auto mode)",
+    ),
 ):
     """
     Start a party mode session with collaborative AI agents.
@@ -617,14 +633,20 @@ def party(
     to discuss your project collaboratively, producing artifacts through natural
     conversation.
 
+    Autopilot Mode (--auto):
+        Agents discuss automatically without waiting for input each turn.
+        You can still interject anytime to steer the discussion.
+        Press Enter to skip, or type a command/message to interject.
+
     Load Balancing:
         Use --profiles to distribute requests across multiple OpenCode accounts.
         Available profiles: personal, work, default (matching ~/.bash_aliases)
 
     Examples:
         bmad-claude party "Task Management App"
+        bmad-claude party "My Project" --auto                    # Autopilot mode
+        bmad-claude party "My Project" --auto --auto-turns 5     # 5 turns before pause
         bmad-claude party "My Project" --profiles personal,work
-        bmad-claude party "My Project" --profiles personal,work --load-balance round_robin
         bmad-claude party "My Project" --resume party-2026-01-16-my-project
     """
     print_party_banner()
@@ -643,8 +665,36 @@ def party(
             variant=variant,
             profiles=profile_list,
             load_balance_strategy=load_balance,
+            auto_mode=auto,
+            auto_turns=auto_turns,
+            input_timeout=input_timeout,
         )
     )
+
+
+def _get_input_with_timeout(timeout: int) -> str:
+    """
+    Get user input with a timeout.
+
+    Returns empty string if timeout expires without input.
+    Works on Unix systems using select.
+    """
+    import select
+    import sys
+
+    # Check if running in a terminal
+    if not sys.stdin.isatty():
+        return ""
+
+    try:
+        # Use select for non-blocking input on Unix
+        ready, _, _ = select.select([sys.stdin], [], [], timeout)
+        if ready:
+            return sys.stdin.readline().strip()
+        return ""
+    except (OSError, ValueError):
+        # Fallback for systems where select doesn't work on stdin
+        return ""
 
 
 async def _run_party_session(
@@ -655,8 +705,14 @@ async def _run_party_session(
     variant: str,
     profiles: list[str] | None = None,
     load_balance_strategy: str = "round_robin",
+    auto_mode: bool = False,
+    auto_turns: int = 3,
+    input_timeout: int = 5,
 ):
     """Run the interactive party mode session."""
+    import select
+    import sys
+
     from bmad_claude.party import PartySession, get_available_profiles, FeedbackType
 
     try:
@@ -692,16 +748,57 @@ async def _run_party_session(
         console.print(Markdown(session.get_welcome_message()))
         console.print()
 
+        # Autopilot mode setup
+        if auto_mode:
+            console.print(
+                Panel.fit(
+                    "[bold cyan]🤖 AUTOPILOT MODE ENABLED[/bold cyan]\n\n"
+                    f"Agents will discuss automatically ({auto_turns} turns per cycle).\n"
+                    f"You have {input_timeout}s to interject between cycles.\n\n"
+                    "[dim]Press Ctrl+C to stop and give feedback anytime.[/dim]",
+                    title="Autopilot",
+                )
+            )
+
+        turn_counter = 0
+        user_input = ""
+
         # Main discussion loop
         while not session.is_complete():
             # Display status
             console.print(session.get_status_display())
 
-            # Get user input
-            user_input = Prompt.ask(
-                "[bold green]Your turn[/bold green]",
-                default="",
-            )
+            # Get user input based on mode
+            if auto_mode:
+                turn_counter += 1
+
+                # Check if we should pause for input
+                if turn_counter >= auto_turns:
+                    turn_counter = 0
+                    console.print(
+                        f"\n[dim]💡 {input_timeout}s to interject (Enter to continue, or type message/command)...[/dim]"
+                    )
+
+                    # Non-blocking input with timeout
+                    try:
+                        user_input = _get_input_with_timeout(input_timeout)
+                        if user_input:
+                            console.print(
+                                f"[green]Got input: {user_input[:50]}...[/green]"
+                                if len(user_input) > 50
+                                else f"[green]Got input: {user_input}[/green]"
+                            )
+                    except KeyboardInterrupt:
+                        console.print("\n[yellow]Pausing autopilot...[/yellow]")
+                        user_input = Prompt.ask("[bold green]Your turn[/bold green]", default="")
+                else:
+                    user_input = ""  # Auto-continue
+            else:
+                # Manual mode - always wait for input
+                user_input = Prompt.ask(
+                    "[bold green]Your turn[/bold green]",
+                    default="",
+                )
 
             # Parse user input for commands
             parsed = session.feedback.parse_input(user_input)
@@ -933,6 +1030,39 @@ async def _run_party_session(
                 )
                 continue
 
+            # In autopilot mode with no input, get the next topic automatically
+            auto_topic = None
+            if auto_mode and not user_input:
+                next_topic = session.phase_manager.get_next_topic()
+                if next_topic:
+                    auto_topic = next_topic.name
+                    console.print(f"\n[cyan]🤖 Auto-topic: {auto_topic}[/cyan]")
+                else:
+                    # No more topics in current phase, try to transition
+                    console.print(
+                        "\n[yellow]📋 Phase topics covered. Checking for phase transition...[/yellow]"
+                    )
+                    transition = await session.transition_phase()
+                    if transition:
+                        console.print(
+                            Panel.fit(
+                                f"[green]Phase Complete![/green]\n\n"
+                                f"From: {transition.from_phase}\n"
+                                f"To: {transition.to_phase}\n"
+                                f"Artifacts: {', '.join(transition.artifacts_finalized)}",
+                                title="Phase Transition",
+                            )
+                        )
+                        continue
+                    else:
+                        # Can't transition, pause for user input
+                        console.print(
+                            "[yellow]Need more discussion or user input to proceed.[/yellow]"
+                        )
+                        user_input = Prompt.ask("[bold green]Your turn[/bold green]", default="")
+                        if not user_input:
+                            continue
+
             # Run discussion turn with streaming
             console.print("\n[dim]Agents are discussing...[/dim]\n")
 
@@ -944,6 +1074,7 @@ async def _run_party_session(
                 # Use streaming discuss for real-time output
                 discussion = await session.stream_discuss(
                     user_message=user_input or None,
+                    topic=auto_topic,  # Use auto-topic in autopilot mode
                     on_text=on_stream_text,
                 )
 
@@ -956,9 +1087,16 @@ async def _run_party_session(
                     for dec in discussion.decisions:
                         console.print(f"  • [{dec.id}] {dec.topic}: {dec.decision}")
                     console.print()
-                    console.print(
-                        "[dim]💡 Use /approve, /reject, or /revise to give feedback on decisions[/dim]"
-                    )
+                    if auto_mode:
+                        console.print(
+                            f"[dim]💡 Turn {turn_counter}/{auto_turns} - Interject with /reject, /focus, or any message[/dim]"
+                        )
+                    else:
+                        console.print(
+                            "[dim]💡 Use /approve, /reject, or /revise to give feedback on decisions[/dim]"
+                        )
+                elif auto_mode:
+                    console.print(f"[dim]🤖 Turn {turn_counter}/{auto_turns} complete[/dim]")
 
             except Exception as e:
                 console.print(f"\n[red]Error during discussion: {e}[/red]")
