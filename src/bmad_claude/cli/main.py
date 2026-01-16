@@ -1,20 +1,20 @@
 """
 BMAD-Claude CLI
 
-Command-line interface for BMAD workflow automation and Party Mode.
+Command-line interface for BMAD workflow automation.
 
 This CLI uses OpenCode's --agent flag to properly activate BMAD agents
 and execute workflows through the standard BMAD methodology.
 
 Commands:
-    bmad-claude init "Project Name"     # Initialize project
-    bmad-claude status                   # Show workflow status
-    bmad-claude run                      # Run all phases (2-4)
-    bmad-claude phase 2                  # Run specific phase
-    bmad-claude workflow prd             # Run specific workflow
-    bmad-claude list                     # List all workflows
-    bmad-claude next                     # Show next workflow
-    bmad-claude party "Project Name"     # Start Party Mode
+    bmad-claude init "Project Name"          # Initialize project
+    bmad-claude status                        # Show workflow status
+    bmad-claude run                           # Run all phases (2-4)
+    bmad-claude phase 2                       # Run specific phase
+    bmad-claude workflow prd                  # Run specific workflow
+    bmad-claude list                          # List all workflows
+    bmad-claude next                          # Show next workflow
+    bmad-claude interactive "Project Name"   # Start Interactive Mode
 
 BMAD Methodology Phases:
 - Phase 1: Analysis (Optional) - brainstorm, research, product-brief
@@ -37,7 +37,7 @@ from rich.markdown import Markdown
 
 from bmad_claude.workflow import (
     WorkflowRunner,
-    PartyOrchestrator,
+    InteractiveOrchestrator,
     WORKFLOWS,
     PHASES,
     PHASE_ORDER,
@@ -51,7 +51,7 @@ from bmad_claude.workflow import (
 # Initialize Typer app
 app = typer.Typer(
     name="bmad-claude",
-    help="BMAD-Claude: Workflow Automation & Party Mode via OpenCode Agents",
+    help="BMAD-Claude: Workflow Automation via OpenCode Agents",
     add_completion=False,
 )
 
@@ -71,7 +71,7 @@ def print_banner():
 ║   ██████╔╝██║ ╚═╝ ██║██║  ██║██████╔╝      ╚██████╗███████╗  ║
 ║   ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝╚═════╝        ╚═════╝╚══════╝  ║
 ║                                                              ║
-║         Workflow Automation & Party Mode via OpenCode        ║
+║         Workflow Automation via OpenCode Agents              ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
 [/bold blue]
@@ -175,7 +175,7 @@ def init(
     console.print("  1. Run [cyan]bmad-claude status[/cyan] to see workflow status")
     console.print("  2. Run [cyan]bmad-claude run[/cyan] to execute all phases")
     console.print("  3. Run [cyan]bmad-claude workflow prd[/cyan] to start with PRD")
-    console.print("  4. Run [cyan]bmad-claude party[/cyan] to start collaborative Party Mode")
+    console.print("  4. Run [cyan]bmad-claude interactive[/cyan] to start Interactive Mode")
 
 
 @app.command()
@@ -555,29 +555,29 @@ def show_info():
 
 
 # =============================================================================
-# PARTY MODE COMMANDS
+# INTERACTIVE MODE COMMANDS
 # =============================================================================
 
 
-def print_party_banner():
-    """Print the party mode banner."""
+def print_interactive_banner():
+    """Print the interactive mode banner."""
     banner = """
-[bold magenta]
+[bold cyan]
 ╔══════════════════════════════════════════════════════════════╗
 ║                                                              ║
-║   🎉 BMAD-CLAUDE PARTY MODE 🎉                              ║
+║   🚀 BMAD-CLAUDE INTERACTIVE MODE 🚀                        ║
 ║                                                              ║
-║   Multi-Agent Collaborative Discussions                      ║
-║   Following BMAD's Native Party Mode Design                  ║
+║   Chat Interface for Workflow Automation                     ║
+║   Sequential Agent Responses via OpenCode                    ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
-[/bold magenta]
+[/bold cyan]
 """
     console.print(banner)
 
 
 @app.command()
-def party(
+def interactive(
     project_name: str = typer.Argument(
         "My Project",
         help="Name of the project to discuss",
@@ -589,51 +589,50 @@ def party(
     ),
 ):
     """
-    Start Party Mode - Multi-agent collaborative discussions.
+    Start Interactive Mode - Chat interface for workflow automation.
 
-    Party Mode brings together multiple BMAD agents (PM, Architect, Analyst, etc.)
-    to discuss your project collaboratively, following BMAD's native party-mode
-    workflow design.
+    Interactive Mode provides a chat interface where you can discuss topics
+    and get responses from relevant BMAD agents. Each agent response is a
+    separate OpenCode invocation (sequential, not simultaneous).
 
     Features:
     - Intelligent agent selection based on topic
-    - In-character responses maintaining agent personalities
-    - Natural cross-talk between agents
+    - Sequential agent responses via OpenCode
     - All BMAD slash commands available
-    - Workflow execution during discussion
+    - Workflow execution during session
 
-    Commands in Party Mode:
-    - Type any message to discuss with the team
+    Commands in Interactive Mode:
+    - Type any message to get agent responses
     - /workflow <id> - Run a BMAD workflow
     - /ask <agent> <question> - Ask a specific agent
     - /agents - List all agents
     - /help - Show help
-    - /exit - End party mode
+    - /exit - End session
 
     Examples:
-        bmad-claude party "Task Management App"
-        bmad-claude party  # Uses default project name
+        bmad-claude interactive "Task Management App"
+        bmad-claude interactive  # Uses default project name
     """
-    print_party_banner()
+    print_interactive_banner()
 
     asyncio.run(
-        _run_party_session(
+        _run_interactive_session(
             project_name=project_name,
             opencode_path=opencode_path,
         )
     )
 
 
-async def _run_party_session(
+async def _run_interactive_session(
     project_name: str,
     opencode_path: str,
 ):
-    """Run the interactive party mode session."""
-    from bmad_claude.workflow.party import PartyOrchestrator
+    """Run the interactive session."""
+    from bmad_claude.workflow.interactive import InteractiveOrchestrator
 
     try:
         # Create orchestrator
-        orchestrator = PartyOrchestrator(
+        orchestrator = InteractiveOrchestrator(
             project_root=Path.cwd(),
             opencode_path=opencode_path,
         )
@@ -648,7 +647,7 @@ async def _run_party_session(
         console.print(Markdown(orchestrator.get_welcome_message()))
         console.print()
 
-        # Main discussion loop
+        # Main interaction loop
         while session.active:
             # Get user input
             try:
@@ -657,7 +656,7 @@ async def _run_party_session(
                     default="",
                 )
             except (KeyboardInterrupt, EOFError):
-                console.print("\n[yellow]Ending party mode...[/yellow]")
+                console.print("\n[yellow]Ending session...[/yellow]")
                 break
 
             if not user_input:
@@ -666,16 +665,16 @@ async def _run_party_session(
             # Check for exit
             if any(trigger in user_input.lower() for trigger in orchestrator.EXIT_TRIGGERS):
                 session.active = False
-                console.print(Markdown(orchestrator.get_farewell_message()))
+                console.print(Markdown(orchestrator.get_goodbye_message()))
                 break
 
-            # Run discussion
-            console.print("\n[dim]Agents are discussing...[/dim]\n")
+            # Run interaction
+            console.print("\n[dim]Getting agent responses...[/dim]\n")
 
             def on_output(text: str) -> None:
                 console.print(text, end="", highlight=False)
 
-            turns = await orchestrator.discuss(user_input, on_output)
+            turns = await orchestrator.interact(user_input, on_output)
 
             # Display turns (if not already streamed)
             for turn in turns:
