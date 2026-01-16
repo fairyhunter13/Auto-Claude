@@ -1,15 +1,17 @@
 """
 BMAD-Claude CLI
 
-Command-line interface for autonomous BMAD workflow execution.
-Follows BMAD methodology using OpenCode to drive workflows.
+Command-line interface for BMAD workflow execution.
 
-BMAD Methodology Flow:
-1. Initialize: bmad-claude init "Project Name"
-2. Execute Phases: bmad-claude run (or phase by phase)
-3. Check Status: bmad-claude status
+Two modes available:
+1. Party Mode (NEW!): Collaborative multi-agent discussions
+   - bmad-claude party "Project Name"
 
-BMAD Phases:
+2. Sequential Mode (Legacy): Workflow-by-workflow execution
+   - bmad-claude init "Project Name"
+   - bmad-claude run
+
+BMAD Methodology Phases:
 - Phase 1: Analysis (Optional) - brainstorm, research, product-brief
 - Phase 2: Planning (Required) - PRD, UX design
 - Phase 3: Solutioning (Required) - Architecture, Epics, Gate Check
@@ -26,6 +28,8 @@ import typer
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+from rich.prompt import Prompt
+from rich.markdown import Markdown
 
 from bmad_claude.driver import BMADDriver, get_bundled_bmad_path
 
@@ -33,7 +37,7 @@ from bmad_claude.driver import BMADDriver, get_bundled_bmad_path
 # Initialize Typer app
 app = typer.Typer(
     name="bmad-claude",
-    help="BMAD-Claude: Autonomous BMAD Workflow Execution using OpenCode",
+    help="BMAD-Claude: Collaborative AI Agents for Software Development",
     add_completion=False,
 )
 
@@ -541,6 +545,244 @@ def show_info():
 
     # Show BMAD methodology summary
     print_bmad_methodology()
+
+
+# =============================================================================
+# PARTY MODE COMMANDS (NEW!)
+# =============================================================================
+
+
+def print_party_banner():
+    """Print the party mode banner."""
+    banner = """
+[bold magenta]
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║   🎉 BMAD-CLAUDE PARTY MODE 🎉                              ║
+║                                                              ║
+║   Collaborative Multi-Agent Discussions                      ║
+║   Where AI agents discuss together like a human team         ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+[/bold magenta]
+"""
+    console.print(banner)
+
+
+@app.command()
+def party(
+    project_name: str = typer.Argument(
+        ...,
+        help="Name of the project to discuss",
+    ),
+    resume_session: str = typer.Option(
+        None,
+        "--resume",
+        "-r",
+        help="Resume an existing session by ID",
+    ),
+    opencode_path: str = typer.Option(
+        "opencode",
+        "--opencode-path",
+        help="Path to OpenCode executable",
+    ),
+    model: str = typer.Option(
+        "claude-4-opus",
+        "--model",
+        "-m",
+        help="LLM model to use (claude-4-opus recommended for high quality)",
+    ),
+):
+    """
+    Start a party mode session with collaborative AI agents.
+
+    Party Mode brings together multiple BMAD agents (PM, Architect, Analyst, etc.)
+    to discuss your project collaboratively, producing artifacts through natural
+    conversation.
+
+    Examples:
+        bmad-claude party "Task Management App"
+        bmad-claude party "E-commerce Platform" --model claude-4-opus
+        bmad-claude party "My Project" --resume party-2026-01-16-my-project
+    """
+    print_party_banner()
+
+    asyncio.run(
+        _run_party_session(
+            project_name=project_name,
+            resume_session=resume_session,
+            opencode_path=opencode_path,
+            model=model,
+        )
+    )
+
+
+async def _run_party_session(
+    project_name: str,
+    resume_session: str | None,
+    opencode_path: str,
+    model: str,
+):
+    """Run the interactive party mode session."""
+    from bmad_claude.party import PartySession
+
+    try:
+        # Create or resume session
+        if resume_session:
+            console.print(f"[cyan]Resuming session: {resume_session}[/cyan]")
+            session = PartySession.resume(resume_session)
+        else:
+            console.print(f"[cyan]Creating new session for: {project_name}[/cyan]")
+            session = await PartySession.create(
+                project_name=project_name,
+                opencode_path=opencode_path,
+                model=model,
+            )
+
+        # Display welcome
+        console.print(Markdown(session.get_welcome_message()))
+        console.print()
+
+        # Main discussion loop
+        while not session.is_complete():
+            # Display status
+            console.print(session.get_status_display())
+
+            # Get user input
+            user_input = Prompt.ask(
+                "[bold green]Your turn[/bold green]",
+                default="",
+            )
+
+            # Handle special commands
+            if user_input.lower() in ["exit", "quit", "bye"]:
+                console.print("\n[yellow]Saving session and exiting...[/yellow]")
+                session.save()
+                console.print(f"[green]Session saved: {session.session_id}[/green]")
+                console.print(
+                    f'Resume with: bmad-claude party "{project_name}" --resume {session.session_id}'
+                )
+                break
+
+            if user_input.lower() == "status":
+                console.print(session.get_status_display())
+                continue
+
+            if user_input.lower() in ["next", "continue", "phase"]:
+                # Try to transition phase
+                transition = await session.transition_phase()
+                if transition:
+                    console.print(
+                        Panel.fit(
+                            f"[green]Phase Complete![/green]\n\n"
+                            f"From: {transition.from_phase}\n"
+                            f"To: {transition.to_phase}\n"
+                            f"Artifacts: {', '.join(transition.artifacts_finalized)}",
+                            title="Phase Transition",
+                        )
+                    )
+                else:
+                    is_complete, missing = session.phase_manager.check_phase_complete(
+                        session.memory
+                    )
+                    console.print(f"[yellow]Not ready for transition. Missing:[/yellow]")
+                    for item in missing:
+                        console.print(f"  • {item}")
+                continue
+
+            # Run discussion turn
+            console.print("\n[dim]Agents are discussing...[/dim]\n")
+
+            try:
+                discussion = await session.discuss(user_message=user_input or None)
+
+                # Display agent responses
+                console.print()
+                for agent_id, content in discussion.agent_responses:
+                    agent = session.agents.get(agent_id)
+                    if agent:
+                        console.print(f"{agent.icon} [bold]{agent.display_name}[/bold]:")
+                        console.print(Markdown(content))
+                        console.print()
+
+                # Display decisions if any
+                if discussion.decisions:
+                    console.print("[bold yellow]Decisions Made:[/bold yellow]")
+                    for dec in discussion.decisions:
+                        console.print(f"  • [{dec.id}] {dec.topic}: {dec.decision}")
+                    console.print()
+
+            except Exception as e:
+                console.print(f"[red]Error during discussion: {e}[/red]")
+                console.print("[yellow]Session saved. You can resume later.[/yellow]")
+                session.save()
+
+        # Session complete
+        if session.is_complete():
+            console.print(
+                Panel.fit(
+                    "[bold green]🎉 Session Complete![/bold green]\n\n"
+                    "All planning phases finished.\n"
+                    "Artifacts created in _bmad-output/planning-artifacts/",
+                    title="BMAD-Claude Party Mode",
+                )
+            )
+
+    except FileNotFoundError as e:
+        console.print(f"[red]Error: {e}[/red]")
+        console.print(
+            "[yellow]Make sure _bmad directory exists or run 'bmad-claude copy-bmad' first.[/yellow]"
+        )
+        raise typer.Exit(1)
+    except RuntimeError as e:
+        console.print(f"[red]Error: {e}[/red]")
+        raise typer.Exit(1)
+
+
+@app.command(name="sessions")
+def list_sessions():
+    """
+    List all party mode sessions.
+    """
+    sessions_dir = Path.cwd() / ".bmad-claude" / "party-sessions"
+
+    if not sessions_dir.exists():
+        console.print("[yellow]No party sessions found.[/yellow]")
+        console.print('Start one with: bmad-claude party "Project Name"')
+        return
+
+    sessions = list(sessions_dir.iterdir())
+
+    if not sessions:
+        console.print("[yellow]No party sessions found.[/yellow]")
+        return
+
+    table = Table(title="Party Mode Sessions")
+    table.add_column("Session ID", style="cyan")
+    table.add_column("Project", style="green")
+    table.add_column("Status", style="yellow")
+    table.add_column("Phase", style="blue")
+
+    import yaml
+
+    for session_path in sessions:
+        if session_path.is_dir():
+            session_file = session_path / "session.yaml"
+            if session_file.exists():
+                with open(session_file) as f:
+                    data = yaml.safe_load(f)
+
+                table.add_row(
+                    session_path.name,
+                    data.get("session", {}).get("project_name", "Unknown"),
+                    data.get("session", {}).get("status", "unknown"),
+                    data.get("phase", {}).get("current_phase", "unknown"),
+                )
+
+    console.print(table)
+    console.print(
+        '\n[dim]Resume a session with: bmad-claude party "Project" --resume SESSION_ID[/dim]'
+    )
 
 
 def main():
