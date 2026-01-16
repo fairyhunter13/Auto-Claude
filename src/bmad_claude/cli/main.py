@@ -827,15 +827,12 @@ async def _run_party_session(
                 # Status command
                 elif cmd == "/status":
                     console.print(session.get_status_display())
-                    if session._use_pool and session._opencode_pool:
-                        pool_status = session.get_pool_status()
-                        if pool_status:
-                            console.print("\n[bold]Load Balancing Status:[/bold]")
-                            for p in pool_status["profiles"]:
-                                status = "✅" if p["healthy"] else "⚠️"
-                                console.print(
-                                    f"  {status} {p['name']}: {p['requests']} requests, {p['errors']} errors"
-                                )
+                    pool_status = session.get_pool_status()
+                    if pool_status:
+                        console.print("\n[bold]Load Balancing:[/bold]")
+                        console.print(f"  Strategy: {pool_status['strategy']}")
+                        console.print(f"  Profiles: {', '.join(pool_status['profiles'])}")
+                        console.print(f"  Active: {pool_status['active_profile']}")
                     continue
 
                 # Phase transition
