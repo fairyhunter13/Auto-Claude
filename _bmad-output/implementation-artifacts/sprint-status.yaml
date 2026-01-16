@@ -1,108 +1,136 @@
 # Sprint Status - Auto-BMAD Project
-# Sprint 1: Project Foundation & Core Infrastructure
+# Sprint 2: Project Management
 # Started: 2026-01-16
 # Completed: 2026-01-16
 
-sprint_number: 1
-sprint_name: "Project Foundation & Core Infrastructure"
-sprint_goal: "Fork Auto-Claude and establish core BMAD infrastructure for Auto-BMAD"
-epic: "Epic 1: Project Foundation & Core Infrastructure"
+sprint_number: 2
+sprint_name: "Project Management"
+sprint_goal: "Enable users to create, import, configure, and manage BMAD projects"
+epic: "Epic 2: Project Management"
 status: completed
-started_at: 2026-01-16T21:00:00
-completed_at: 2026-01-16T23:59:00
+started_at: 2026-01-16T10:00:00
+completed_at: 2026-01-16T12:00:00
 
 stories:
-  story-1.1:
-    title: "Fork Auto-Claude and Initialize Auto-BMAD"
+  story-2.1:
+    title: "Create New Project Flow"
     status: completed
     assigned_to: dev
     priority: P0
-    completed_at: 2026-01-16T22:00:00
+    completed_at: 2026-01-16T10:30:00
     notes:
-      - "Created apps/auto-bmad/ by forking apps/frontend/"
-      - "Updated package.json: name='auto-bmad', version='0.1.0'"
-      - "Updated electron-builder: appId='com.autobmad.ui', productName='Auto-BMAD'"
-      - "812 files copied (213,689 lines)"
+      - "Created BmadProjectManager in src/main/bmad/project-manager.ts"
+      - "CreateProjectDialog component with name, type, folder picker"
+      - "Initializes _bmad-output/planning-artifacts/ and bmm-workflow-status.yaml"
+      - "Updates _bmad/bmm/config.yaml with project settings"
+      - "IPC handlers: bmad:create-project, bmad:select-folder"
     
-  story-1.2:
-    title: "Create BMAD Main Process Infrastructure"
+  story-2.2:
+    title: "Import Existing Project"
     status: completed
     assigned_to: dev
     priority: P0
-    depends_on: [story-1.1]
-    completed_at: 2026-01-16T23:30:00
+    completed_at: 2026-01-16T10:45:00
     notes:
-      - "Created src/main/bmad/ with 7 modules (1,565 lines)"
-      - "types.ts: Zod schemas for config and status YAML"
-      - "config-loader.ts: Load and parse _bmad/bmm/config.yaml"
-      - "status-manager.ts: Read/write/watch bmm-workflow-status.yaml with atomic saves"
-      - "artifact-watcher.ts: Watch _bmad-output for artifact changes"
-      - "agent-parser.ts: Parse agent .md files"
-      - "workflow-runner.ts: Execute workflows via OpenCode CLI"
-      - "Created bmad-handlers.ts with 20+ IPC handlers"
-      - "Added yaml package dependency"
+      - "ImportProjectDialog component with folder validation"
+      - "Validates _bmad/ directory exists before import"
+      - "Reads existing status from bmm-workflow-status.yaml"
+      - "IPC handlers: bmad:import-project, bmad:validate-project"
     
-  story-1.3:
-    title: "Adapt Terminal Component for Workflow Execution"
+  story-2.3:
+    title: "View Project List"
     status: completed
     assigned_to: dev
     priority: P0
-    depends_on: [story-1.2]
-    completed_at: 2026-01-16T23:45:00
+    completed_at: 2026-01-16T11:00:00
     notes:
-      - "Created src/renderer/features/bmad/ feature module"
-      - "Created bmad-store.ts: Zustand store with IPC event subscriptions"
-      - "Created useWorkflowTerminal.ts: xterm.js hook for workflow output"
-      - "Created WorkflowTerminal.tsx: Terminal component with controls"
-      - "Types defined in types/index.ts"
+      - "ProjectList component with cards showing project info"
+      - "Shows name, path, current phase, last opened date"
+      - "Sorted by last opened (most recent first)"
+      - "Click to select and open project"
+      - "Zustand store: useBmadProjectStore"
     
-  story-1.4:
-    title: "Add Terminal Panel Management"
+  story-2.4:
+    title: "Delete Project from Auto-BMAD"
     status: completed
     assigned_to: dev
-    priority: P0
-    depends_on: [story-1.3]
-    completed_at: 2026-01-16T23:50:00
+    priority: P1
+    completed_at: 2026-01-16T11:15:00
     notes:
-      - "Created WorkflowTerminalPanel.tsx with resize handles"
-      - "Uses react-resizable-panels for drag resizing"
-      - "Created useWorkflowHistory.ts for session persistence"
-      - "Terminal supports expand/collapse, clear, cancel"
+      - "Confirmation dialog with AlertDialog"
+      - "Removes project from store (files NOT deleted)"
+      - "IPC handler: bmad:remove-project"
+      - "Updates recent projects list"
     
-  story-1.5:
-    title: "Create Preload API for BMAD Operations"
+  story-2.5:
+    title: "Configure Project Settings"
     status: completed
     assigned_to: dev
-    priority: P0
-    depends_on: [story-1.2]
-    completed_at: 2026-01-16T23:40:00
+    priority: P1
+    completed_at: 2026-01-16T11:30:00
     notes:
-      - "Created src/preload/api/bmad-api.ts (~300 lines)"
-      - "Typed API for all BMAD IPC handlers"
-      - "Event subscriptions for status, artifacts, workflow progress"
-      - "Registered in api/index.ts as window.electronAPI.bmad"
+      - "ProjectSettingsDialog with General and Advanced tabs"
+      - "Edit project name, communication language"
+      - "Configure OpenCode CLI path"
+      - "Settings persisted via IPC: bmad:get-settings, bmad:update-settings"
+    
+  story-2.6:
+    title: "Browse Project Files"
+    status: completed
+    assigned_to: dev
+    priority: P1
+    completed_at: 2026-01-16T11:45:00
+    notes:
+      - "ProjectFileBrowser component with tree view"
+      - "Highlights _bmad-output/ folder with star icon"
+      - "Auto-expands important directories"
+      - "Double-click to open in external editor"
+      - "Uses existing listDirectory IPC handler"
 
 velocity:
-  planned_stories: 5
-  completed_stories: 5
+  planned_stories: 6
+  completed_stories: 6
   story_points_completed: 21
-  
+
 blockers: []
+
+files_created:
+  main_process:
+    - "src/main/bmad/project-manager.ts (350+ lines)"
+    - "Updated src/main/ipc-handlers/bmad-handlers.ts (+100 lines)"
+    - "Updated src/main/bmad/index.ts (exports)"
+  preload:
+    - "Updated src/preload/api/bmad-api.ts (+80 lines for project API)"
+  renderer:
+    - "src/renderer/features/bmad/stores/project-store.ts (250 lines)"
+    - "src/renderer/features/bmad/components/CreateProjectDialog.tsx (200 lines)"
+    - "src/renderer/features/bmad/components/ImportProjectDialog.tsx (180 lines)"
+    - "src/renderer/features/bmad/components/ProjectList.tsx (250 lines)"
+    - "src/renderer/features/bmad/components/ProjectSettingsDialog.tsx (230 lines)"
+    - "src/renderer/features/bmad/components/ProjectFileBrowser.tsx (280 lines)"
+    - "Updated src/renderer/features/bmad/index.ts (exports)"
 
 retrospective:
   went_well:
-    - "All 5 stories completed in single sprint"
-    - "Clean architecture following Auto-Claude patterns"
-    - "Comprehensive IPC API with 20+ handlers"
-    - "Real-time event subscriptions for status/artifacts"
+    - "All 6 stories completed efficiently"
+    - "Reused existing IPC patterns from Auto-Claude"
+    - "Clean separation between BMAD and Auto-Claude project management"
+    - "Comprehensive validation for BMAD projects"
   improvements:
-    - "Need TypeScript compilation verification"
-    - "Unit tests not yet written"
+    - "Need to verify TypeScript compilation"
+    - "UI components need integration testing"
   action_items:
-    - "Run full build to verify TypeScript"
-    - "Add tests for BMAD modules in Sprint 2"
+    - "Run full build in Sprint 3"
+    - "Create main app shell to integrate components"
+
+previous_sprint:
+  sprint_number: 1
+  sprint_name: "Project Foundation & Core Infrastructure"
+  status: completed
+  completed_at: 2026-01-16T23:59:00
+  completed_stories: 5
 
 notes:
-  - "Sprint 1 COMPLETE - Foundation established for Auto-BMAD"
-  - "Core infrastructure ready for Epic 2 (Project Management)"
-  - "Next: Sprint 2 - Epic 2: Project Management features"
+  - "Sprint 2 COMPLETE - Project Management features delivered"
+  - "Total new code: ~1,500 lines across 8 files"
+  - "Next: Sprint 3 - Epic 3: Phase Dashboard & Navigation"

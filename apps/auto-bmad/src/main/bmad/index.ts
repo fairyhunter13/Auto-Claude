@@ -59,6 +59,17 @@ export {
   getAgentFilePath,
 } from './agent-parser';
 
+// Project Management
+export {
+  BmadProjectManager,
+  bmadProjectManager,
+  type BmadProject,
+  type BmadProjectType,
+  type CreateProjectOptions,
+  type ImportProjectOptions,
+  type BmadProjectValidation,
+} from './project-manager';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Convenience Functions
 // ─────────────────────────────────────────────────────────────────────────────
