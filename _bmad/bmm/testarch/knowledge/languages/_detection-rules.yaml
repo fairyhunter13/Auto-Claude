@@ -517,6 +517,229 @@ detection_rules:
       - "languages/clojure/spec-testing.md"
 
   # ============================================
+  # HASKELL - Pure functional
+  # ============================================
+  - language: haskell
+    display_name: "Haskell"
+    priority: 72
+    indicators:
+      required_any:
+        - type: file
+          pattern: "stack.yaml"
+        - type: file
+          pattern: "cabal.project"
+        - type: glob
+          pattern: "**/*.cabal"
+        - type: file
+          pattern: "package.yaml"
+      optional:
+        - type: glob
+          pattern: "**/*.hs"
+        - type: glob
+          pattern: "**/*.lhs"
+        - type: file
+          pattern: "stack.yaml.lock"
+    test_framework_default: hspec
+    test_frameworks_available:
+      - id: hspec
+        name: "HSpec"
+        description: "BDD testing for Haskell"
+        config_file: null
+        test_command: "stack test"
+        alt_commands: ["cabal test"]
+        test_pattern: "**/*Spec.hs"
+      - id: tasty
+        name: "Tasty"
+        description: "Modern testing framework"
+        config_file: null
+        test_command: "stack test"
+        test_pattern: "**/Test*.hs"
+        detection:
+          - type: file_contains
+            pattern: "package.yaml"
+            contains: "tasty"
+      - id: quickcheck
+        name: "QuickCheck"
+        description: "Property-based testing"
+        config_file: null
+        test_command: "stack test"
+        test_pattern: "**/*Prop.hs"
+    strategy_file: "languages/haskell/_strategy.md"
+    knowledge_fragments:
+      - "languages/haskell/hspec-patterns.md"
+      - "languages/haskell/property-testing.md"
+
+  # ============================================
+  # OCAML - ML family, systems
+  # ============================================
+  - language: ocaml
+    display_name: "OCaml"
+    priority: 74
+    indicators:
+      required_any:
+        - type: file
+          pattern: "dune-project"
+        - type: file
+          pattern: "dune"
+        - type: glob
+          pattern: "**/*.opam"
+      optional:
+        - type: glob
+          pattern: "**/*.ml"
+        - type: glob
+          pattern: "**/*.mli"
+        - type: file
+          pattern: "*.opam.locked"
+    test_framework_default: alcotest
+    test_frameworks_available:
+      - id: alcotest
+        name: "Alcotest"
+        description: "Lightweight OCaml testing"
+        config_file: null
+        test_command: "dune runtest"
+        test_pattern: "**/test_*.ml"
+      - id: ounit2
+        name: "OUnit2"
+        description: "Classic OCaml unit testing"
+        config_file: null
+        test_command: "dune runtest"
+        test_pattern: "**/*_test.ml"
+      - id: qcheck
+        name: "QCheck"
+        description: "Property-based testing for OCaml"
+        config_file: null
+        test_command: "dune runtest"
+        test_pattern: "**/*_prop.ml"
+    strategy_file: "languages/ocaml/_strategy.md"
+    knowledge_fragments:
+      - "languages/ocaml/alcotest-patterns.md"
+      - "languages/ocaml/qcheck-patterns.md"
+
+  # ============================================
+  # F# - Functional .NET
+  # ============================================
+  - language: fsharp
+    display_name: "F#"
+    priority: 48
+    indicators:
+      required_any:
+        - type: glob
+          pattern: "**/*.fsproj"
+        - type: glob
+          pattern: "**/*.fs"
+      optional:
+        - type: glob
+          pattern: "**/*.fsx"
+        - type: glob
+          pattern: "**/*.fsi"
+    test_framework_default: expecto
+    test_frameworks_available:
+      - id: expecto
+        name: "Expecto"
+        description: "F# native testing framework"
+        config_file: null
+        test_command: "dotnet test"
+        test_pattern: "**/*Tests.fs"
+      - id: xunit-fsharp
+        name: "xUnit (F#)"
+        description: "xUnit with FsUnit"
+        config_file: null
+        test_command: "dotnet test"
+        test_pattern: "**/*Tests.fs"
+      - id: fscheck
+        name: "FsCheck"
+        description: "Property-based testing"
+        config_file: null
+        test_command: "dotnet test"
+        test_pattern: "**/*Properties.fs"
+    strategy_file: "languages/fsharp/_strategy.md"
+    knowledge_fragments:
+      - "languages/fsharp/expecto-patterns.md"
+      - "languages/fsharp/fscheck-patterns.md"
+
+  # ============================================
+  # DART - Flutter/mobile
+  # ============================================
+  - language: dart
+    display_name: "Dart"
+    priority: 76
+    indicators:
+      required_any:
+        - type: file
+          pattern: "pubspec.yaml"
+        - type: glob
+          pattern: "**/*.dart"
+      optional:
+        - type: file
+          pattern: "pubspec.lock"
+        - type: file
+          pattern: "analysis_options.yaml"
+        - type: glob
+          pattern: "**/lib/**/*.dart"
+    test_framework_default: dart-test
+    test_frameworks_available:
+      - id: dart-test
+        name: "Dart Test"
+        description: "Official Dart testing package"
+        config_file: "dart_test.yaml"
+        test_command: "dart test"
+        alt_commands: ["flutter test"]
+        test_pattern: "**/*_test.dart"
+      - id: flutter-test
+        name: "Flutter Test"
+        description: "Widget and integration testing"
+        config_file: null
+        test_command: "flutter test"
+        test_pattern: "**/*_test.dart"
+        detection:
+          - type: file_contains
+            pattern: "pubspec.yaml"
+            contains: "flutter:"
+      - id: integration-test
+        name: "Integration Test"
+        description: "Flutter integration testing"
+        config_file: null
+        test_command: "flutter test integration_test"
+        test_pattern: "integration_test/**/*_test.dart"
+    strategy_file: "languages/dart/_strategy.md"
+    knowledge_fragments:
+      - "languages/dart/dart-test-patterns.md"
+      - "languages/dart/widget-testing.md"
+
+  # ============================================
+  # ZIG - Systems programming
+  # ============================================
+  - language: zig
+    display_name: "Zig"
+    priority: 15
+    indicators:
+      required_any:
+        - type: file
+          pattern: "build.zig"
+        - type: file
+          pattern: "build.zig.zon"
+        - type: glob
+          pattern: "**/*.zig"
+      optional:
+        - type: file
+          pattern: "zig.mod"
+        - type: glob
+          pattern: "**/src/*.zig"
+    test_framework_default: zig-test
+    test_frameworks_available:
+      - id: zig-test
+        name: "Zig Test"
+        description: "Built-in Zig testing"
+        config_file: null
+        test_command: "zig build test"
+        alt_commands: ["zig test src/main.zig"]
+        test_pattern: "**/*.zig"
+    strategy_file: "languages/zig/_strategy.md"
+    knowledge_fragments:
+      - "languages/zig/zig-test-patterns.md"
+      - "languages/zig/comptime-testing.md"
+
+  # ============================================
   # TYPESCRIPT / JAVASCRIPT - Check last (most common, tooling everywhere)
   # ============================================
   - language: typescript
@@ -768,6 +991,26 @@ family_hints:
   clojure:
     families: [lisp-family]
     primary: lisp-family
+    
+  haskell:
+    families: [ml-family]
+    primary: ml-family
+    
+  ocaml:
+    families: [ml-family]
+    primary: ml-family
+    
+  fsharp:
+    families: [ml-family, c-family]
+    primary: ml-family
+    
+  dart:
+    families: [c-family]
+    primary: c-family
+    
+  zig:
+    families: [c-family, systems-family]
+    primary: systems-family
     
   # When inferring unknown languages, use these patterns
   inference_patterns:
