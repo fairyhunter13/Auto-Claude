@@ -263,7 +263,8 @@ export class WorkflowRunner extends EventEmitter {
    */
   getProfileStats(): Record<OpenCodeProfile, unknown> | null {
     if (!this.loadBalancer) return null;
-    return this.loadBalancer.getProfileStats();
+    const stats = this.loadBalancer.getProfileStats();
+    return stats as Record<OpenCodeProfile, unknown> | null;
   }
 
   /**
@@ -356,9 +357,12 @@ export class WorkflowRunner extends EventEmitter {
     await statusManager.updateWorkflowStatus(workflow.phase, workflowId, 'in_progress');
 
     // Build command arguments for OpenCode
-    // OpenCode CLI syntax: opencode [flags] [prompt]
+    // OpenCode CLI syntax: opencode run --command "/slash-command" [flags]
     // Using --agent to specify the BMAD agent
-    const args: string[] = [];
+    const args: string[] = ['run'];
+
+    // The workflow command must be passed via --command flag for slash commands
+    args.push('--command', workflow.command);
 
     // Specify the agent to use
     if (workflow.agent) {
@@ -374,9 +378,6 @@ export class WorkflowRunner extends EventEmitter {
     if (options.args) {
       args.push(...options.args);
     }
-
-    // The workflow command is the prompt (BMAD slash command)
-    args.push(workflow.command);
 
     // Set up environment
     const env: Record<string, string> = {
@@ -503,8 +504,13 @@ export class WorkflowRunner extends EventEmitter {
     const statusManager = getStatusManager(this.projectPath);
     await statusManager.updateWorkflowStatus(workflow.phase, workflowId, 'in_progress');
 
-    // Build command arguments
-    const args: string[] = [];
+    // Build command arguments for OpenCode run
+    // OpenCode CLI syntax: opencode run --command "/slash-command" [flags]
+    const args: string[] = ['run'];
+    
+    // The workflow command must be passed via --command flag for slash commands
+    args.push('--command', workflow.command);
+    
     if (workflow.agent) {
       args.push('--agent', workflow.agent);
     }
@@ -514,7 +520,6 @@ export class WorkflowRunner extends EventEmitter {
     if (options.args) {
       args.push(...options.args);
     }
-    args.push(workflow.command);
 
     // Build load balancer options
     const lbOptions: LoadBalancerOptions = {
