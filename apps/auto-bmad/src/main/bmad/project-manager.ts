@@ -524,16 +524,10 @@ export class BmadProjectManager {
    */
   async detectProjectLanguages(projectPath: string): Promise<DetectedLanguage[]> {
     try {
-      const detector = getLanguageDetector();
       const bmadPath = path.join(projectPath, '_bmad');
-      
-      // Initialize detector if needed
-      if (!detector.isInitialized()) {
-        await detector.initialize(bmadPath);
-      }
-      
-      const result = await detector.detectLanguages(projectPath);
-      return result.languages;
+      const detector = getLanguageDetector(projectPath, bmadPath);
+      const result = await detector.detect();
+      return result.allLanguages;
     } catch (error) {
       console.warn('[BmadProjectManager] Language detection failed:', error);
       return [];
@@ -600,3 +594,108 @@ export class BmadProjectManager {
 
 // Singleton instance
 export const bmadProjectManager = new BmadProjectManager();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ProjectManager - Per-Project Instance Class
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * ProjectManager provides a per-project interface for BMAD operations.
+ * Unlike BmadProjectManager which manages multiple projects, this class
+ * is instantiated for a single project path.
+ */
+export class ProjectManager {
+  private projectPath: string;
+  private bmadPath: string;
+  private initialized: boolean = false;
+  private detectedLanguagesCache: DetectedLanguage[] | null = null;
+  private primaryLanguageCache: string | null = null;
+
+  constructor(projectPath: string) {
+    this.projectPath = projectPath;
+    this.bmadPath = path.join(projectPath, '_bmad');
+  }
+
+  /**
+   * Initialize the project manager
+   */
+  async initialize(): Promise<void> {
+    // Validate project structure
+    if (!existsSync(this.projectPath)) {
+      throw new Error(`Project path does not exist: ${this.projectPath}`);
+    }
+
+    // Check if it's a BMAD project
+    if (!existsSync(this.bmadPath)) {
+      // Create minimal BMAD structure for non-BMAD projects
+      console.log('[ProjectManager] No _bmad directory found, project may not be a BMAD project');
+    }
+
+    this.initialized = true;
+  }
+
+  /**
+   * Check if the project manager is initialized
+   */
+  isInitialized(): boolean {
+    return this.initialized;
+  }
+
+  /**
+   * Get project info
+   */
+  getProjectInfo(): { path: string; bmadPath: string; name: string } {
+    return {
+      path: this.projectPath,
+      bmadPath: this.bmadPath,
+      name: path.basename(this.projectPath),
+    };
+  }
+
+  /**
+   * Detect languages in the project
+   */
+  async detectLanguages(): Promise<{ languages: DetectedLanguage[]; primaryLanguage: DetectedLanguage | null }> {
+    if (this.detectedLanguagesCache) {
+      const primary = this.detectedLanguagesCache.find(l => l.language === this.primaryLanguageCache) || null;
+      return { languages: this.detectedLanguagesCache, primaryLanguage: primary };
+    }
+
+    try {
+      const detector = getLanguageDetector(this.projectPath, this.bmadPath);
+      const result = await detector.detect();
+      
+      this.detectedLanguagesCache = result.allLanguages;
+      this.primaryLanguageCache = result.primaryLanguage?.language || null;
+      
+      return { 
+        languages: result.allLanguages, 
+        primaryLanguage: result.primaryLanguage || null 
+      };
+    } catch (error) {
+      console.warn('[ProjectManager] Language detection failed:', error);
+      return { languages: [], primaryLanguage: null };
+    }
+  }
+
+  /**
+   * Get the project's detected languages (cached)
+   */
+  getDetectedLanguages(): DetectedLanguage[] {
+    return this.detectedLanguagesCache || [];
+  }
+
+  /**
+   * Get the project's primary language (cached)
+   */
+  getPrimaryLanguage(): string | null {
+    return this.primaryLanguageCache;
+  }
+
+  /**
+   * Validate the project structure
+   */
+  validateProject(): BmadProjectValidation {
+    return bmadProjectManager.validateProject(this.projectPath);
+  }
+}

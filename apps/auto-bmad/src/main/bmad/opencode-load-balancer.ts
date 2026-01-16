@@ -15,10 +15,10 @@ import { EventEmitter } from 'events';
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type OpenCodeProfile = 'personal' | 'work' | 'default';
+export type OpenCodeProfile = 'personal' | 'work' | 'default' | string;
 
 export interface ProfileConfig {
-  id: OpenCodeProfile;
+  id: string;
   name: string;
   alias: string;
   shortAlias: string;
@@ -32,6 +32,12 @@ export interface ProfileConfig {
   failureCount: number;
 }
 
+export interface CustomProfileDefinition {
+  id: string;
+  configPath: string;
+  name: string;
+}
+
 export interface LoadBalancerConfig {
   /** Strategy for selecting profiles */
   strategy: 'round-robin' | 'least-loaded' | 'least-recently-used' | 'random';
@@ -43,6 +49,15 @@ export interface LoadBalancerConfig {
   skipRateLimited: boolean;
   /** Profiles to use (empty = all available) */
   enabledProfiles: OpenCodeProfile[];
+  /** Whether load balancing is enabled */
+  enabled: boolean;
+  /** Custom profile definitions (for testing or advanced config) */
+  profiles?: CustomProfileDefinition[];
+}
+
+export interface LoadBalancerState {
+  profiles: ProfileConfig[];
+  config: LoadBalancerConfig;
 }
 
 export interface ExecutionOptions {
@@ -81,6 +96,7 @@ const DEFAULT_CONFIG: LoadBalancerConfig = {
   rateLimitCooldown: 60000, // 1 minute
   skipRateLimited: true,
   enabledProfiles: ['personal', 'work', 'default'],
+  enabled: true,
 };
 
 const PROFILE_DEFINITIONS: Record<OpenCodeProfile, Omit<ProfileConfig, 'available' | 'currentLoad' | 'rateLimitedUntil' | 'lastUsed' | 'successCount' | 'failureCount'>> = {
@@ -135,6 +151,41 @@ export class OpenCodeLoadBalancer extends EventEmitter {
   constructor(config: Partial<LoadBalancerConfig> = {}) {
     super();
     this.config = { ...DEFAULT_CONFIG, ...config };
+    
+    // Initialize custom profiles if provided
+    if (config.profiles && config.profiles.length > 0) {
+      for (const customProfile of config.profiles) {
+        this.profiles.set(customProfile.id as OpenCodeProfile, {
+          id: customProfile.id,
+          name: customProfile.name,
+          alias: customProfile.id,
+          shortAlias: customProfile.id.substring(0, 3),
+          configHome: customProfile.configPath,
+          dataHome: customProfile.configPath.replace('config', 'data'),
+          available: true,
+          currentLoad: 0,
+          rateLimitedUntil: null,
+          lastUsed: 0,
+          successCount: 0,
+          failureCount: 0,
+        });
+      }
+      // Update enabled profiles to include custom ones
+      this.config.enabledProfiles = config.profiles.map(p => p.id as OpenCodeProfile);
+    } else {
+      // Initialize default profiles (availability will be checked during initialize())
+      for (const [id, def] of Object.entries(PROFILE_DEFINITIONS)) {
+        this.profiles.set(id as OpenCodeProfile, {
+          ...def,
+          available: false, // Will be updated during initialize()
+          currentLoad: 0,
+          rateLimitedUntil: null,
+          lastUsed: 0,
+          successCount: 0,
+          failureCount: 0,
+        });
+      }
+    }
   }
 
   /**
@@ -213,9 +264,45 @@ export class OpenCodeLoadBalancer extends EventEmitter {
   }
 
   /**
-   * Get profile stats
+   * Get the current state of the load balancer
    */
-  getProfileStats(): Record<OpenCodeProfile, ProfileConfig> {
+  getState(): LoadBalancerState {
+    return {
+      profiles: Array.from(this.profiles.values()),
+      config: { ...this.config },
+    };
+  }
+
+  /**
+   * Get the next available profile (alias for selectProfile)
+   */
+  getNextProfile(options: ExecutionOptions = {}): OpenCodeProfile | null {
+    return this.selectProfile(options);
+  }
+
+  /**
+   * Record an execution result for a profile
+   */
+  recordExecution(profileId: string, success: boolean): void {
+    const profile = this.profiles.get(profileId as OpenCodeProfile);
+    if (profile) {
+      if (success) {
+        profile.successCount++;
+      } else {
+        profile.failureCount++;
+      }
+      profile.lastUsed = Date.now();
+      this.emit('execution-recorded', { profileId, success });
+    }
+  }
+
+  /**
+   * Get profile stats - optionally for a specific profile
+   */
+  getProfileStats(profileId?: string): ProfileConfig | Record<OpenCodeProfile, ProfileConfig> | undefined {
+    if (profileId) {
+      return this.profiles.get(profileId as OpenCodeProfile);
+    }
     const stats: Record<string, ProfileConfig> = {};
     for (const [id, config] of this.profiles) {
       stats[id] = { ...config };
