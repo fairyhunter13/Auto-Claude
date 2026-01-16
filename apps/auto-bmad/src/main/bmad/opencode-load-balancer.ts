@@ -623,7 +623,11 @@ export async function executeWorkflowWithLoadBalancing(
   const lb = getLoadBalancer();
   await lb.initialize();
 
-  const args: string[] = [];
+  // OpenCode CLI syntax: opencode run --command "/slash-command" [flags]
+  const args: string[] = ['run'];
+  
+  // The workflow command must be passed via --command flag for slash commands
+  args.push('--command', command);
   
   if (agent) {
     args.push('--agent', agent);
@@ -632,8 +636,6 @@ export async function executeWorkflowWithLoadBalancing(
   if (options.yoloMode) {
     args.push('--yolo');
   }
-  
-  args.push(command);
 
   return lb.executeWithRetry(args, options);
 }
