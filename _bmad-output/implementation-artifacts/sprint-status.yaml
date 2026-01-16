@@ -1,92 +1,90 @@
 # Sprint Status - Auto-BMAD Project
-# Sprint 3: Phase Dashboard & Navigation
+# Sprint 4: Workflow Execution
 # Started: 2026-01-16
 # Completed: 2026-01-16
 
-sprint_number: 3
-sprint_name: "Phase Dashboard & Navigation"
-sprint_goal: "Provide visual phase tracking and navigation through the 4-phase BMAD methodology"
-epic: "Epic 3: Phase Dashboard & Navigation"
+sprint_number: 4
+sprint_name: "Workflow Execution"
+sprint_goal: "Enable users to start, monitor, and manage BMAD workflow execution via OpenCode"
+epic: "Epic 4: Workflow Execution"
 status: completed
-started_at: 2026-01-16T12:00:00
-completed_at: 2026-01-16T13:00:00
+started_at: 2026-01-16T13:00:00
+completed_at: 2026-01-16T13:30:00
 
 stories:
-  story-3.1:
-    title: "Create Phase Dashboard Component"
+  story-4.1:
+    title: "Start Workflow from UI"
     status: completed
     assigned_to: dev
     priority: P0
-    completed_at: 2026-01-16T12:15:00
+    completed_at: 2026-01-16T13:10:00
     notes:
-      - "PhaseDashboard.tsx with 4 phase cards"
-      - "Phase icons (Search, FileText, Boxes, Code)"
-      - "Current phase highlighted with ring"
-      - "Overall progress section with progress bars"
+      - "WorkflowExecutionPanel with Start button"
+      - "Integrates with useBmadStore.startWorkflow()"
+      - "Clears terminal before new workflow"
+      - "Shows agent name and elapsed time"
     
-  story-3.2:
-    title: "Display Phase Status Indicators"
+  story-4.2:
+    title: "Display Workflow List"
     status: completed
     assigned_to: dev
     priority: P0
-    completed_at: 2026-01-16T12:25:00
+    completed_at: 2026-01-16T13:15:00
     notes:
-      - "Status colors: green (complete), blue (in_progress), gray (pending), red (blocked)"
-      - "Status icons: CheckCircle2, Loader2 (spinning), Circle, Lock"
-      - "Workflow completion counts (X/Y workflows)"
-      - "Progress bar per phase"
+      - "WorkflowList component with tabs per phase"
+      - "Shows all workflows grouped by phase"
+      - "Status icons (done/running/blocked/pending)"
+      - "Completion badge per phase"
+      - "Click to select workflow"
     
-  story-3.3:
-    title: "Enable Phase Navigation"
+  story-4.3:
+    title: "Execute Workflow via OpenCode"
     status: completed
     assigned_to: dev
     priority: P0
-    completed_at: 2026-01-16T12:35:00
+    completed_at: 2026-01-16T13:10:00
     notes:
-      - "PhaseDetail.tsx for expanded phase view"
-      - "Click phase card to expand"
-      - "Back button to return to dashboard"
-      - "WorkflowCard for each workflow with status"
-      - "Shows agent name, output file, completion time"
+      - "Uses existing workflow-runner.ts from Sprint 1"
+      - "Spawns: opencode --agent [id] [command]"
+      - "Environment variables passed"
+      - "Working directory set to project path"
     
-  story-3.4:
-    title: "Enforce Phase Prerequisites"
+  story-4.4:
+    title: "Stream Terminal Output"
+    status: completed
+    assigned_to: dev
+    priority: P0
+    completed_at: 2026-01-16T13:20:00
+    notes:
+      - "useWorkflowTerminal hook from Sprint 1"
+      - "Real-time stdout/stderr via IPC events"
+      - "ANSI color support via xterm.js"
+      - "Auto-scroll to bottom"
+      - "10,000 line scrollback"
+    
+  story-4.5:
+    title: "Cancel Running Workflow"
     status: completed
     assigned_to: dev
     priority: P1
-    completed_at: 2026-01-16T12:45:00
+    completed_at: 2026-01-16T13:25:00
     notes:
-      - "canAdvanceToPhase() checks previous required workflows"
-      - "Alert banner when prerequisites not met"
-      - "Lists specific blockers"
-      - "Phase 1 (Analysis) always skippable"
-      - "Workflow-level blocking via dependsOn"
+      - "Cancel button with AlertDialog confirmation"
+      - "Terminates OpenCode process"
+      - "Updates UI state immediately"
+      - "Shows 'Workflow cancelled' in terminal"
     
-  story-3.5:
-    title: "Allow Phase Reset"
+  story-4.6:
+    title: "Track Workflow Completion"
     status: completed
     assigned_to: dev
     priority: P1
-    completed_at: 2026-01-16T12:50:00
+    completed_at: 2026-01-16T13:28:00
     notes:
-      - "Reset button on completed phases"
-      - "AlertDialog confirmation"
-      - "Warns about subsequent phases also resetting"
-      - "Artifacts NOT deleted"
-      - "resetPhase() in phase-store.ts"
-    
-  story-3.6:
-    title: "Show Recommended Next Workflow"
-    status: completed
-    assigned_to: dev
-    priority: P1
-    completed_at: 2026-01-16T12:55:00
-    notes:
-      - "getRecommendedWorkflow() finds first incomplete required"
-      - "Prominent card at top of dashboard"
-      - "Shows workflow name and phase"
-      - "Start Workflow button"
-      - "Skips optional Analysis phase for recommendations"
+      - "onWorkflowExit event triggers status refresh"
+      - "Status badge shows Done/Running"
+      - "Phase store syncs with status file"
+      - "Dashboard updates automatically"
 
 velocity:
   planned_stories: 6
@@ -97,32 +95,38 @@ blockers: []
 
 files_created:
   renderer:
-    - "src/renderer/features/bmad/stores/phase-store.ts (300+ lines)"
-    - "src/renderer/features/bmad/components/PhaseDashboard.tsx (250 lines)"
-    - "src/renderer/features/bmad/components/PhaseDetail.tsx (280 lines)"
+    - "src/renderer/features/bmad/components/WorkflowExecutionPanel.tsx (280 lines)"
+    - "src/renderer/features/bmad/components/WorkflowList.tsx (230 lines)"
+    - "src/renderer/features/bmad/components/WorkflowRunner.tsx (100 lines)"
     - "Updated src/renderer/features/bmad/index.ts (exports)"
 
 key_features:
-  - "4-phase visual dashboard with cards"
-  - "Real-time status from bmm-workflow-status.yaml"
-  - "Phase expansion with workflow details"
-  - "Prerequisite enforcement with blockers list"
-  - "Phase reset with confirmation"
-  - "Recommended next workflow suggestion"
-  - "Agent names and output files displayed"
-  - "Progress bars per phase and overall"
+  - "Start workflow with one click"
+  - "Real-time terminal output with colors"
+  - "Workflow list with phase tabs"
+  - "Status indicators for all workflows"
+  - "Cancel with confirmation dialog"
+  - "Elapsed time counter"
+  - "OpenCode availability warning"
+  - "Expandable fullscreen terminal"
+  - "Auto-refresh status on completion"
+
+integration_notes:
+  - "Uses existing workflow-runner.ts IPC handlers from Sprint 1"
+  - "Uses useWorkflowTerminal hook from Sprint 1"
+  - "Uses usePhaseStore from Sprint 3 for workflow status"
+  - "Resizable panels via react-resizable-panels"
 
 retrospective:
   went_well:
-    - "All 6 stories completed quickly"
-    - "Clean separation of dashboard/detail views"
-    - "Comprehensive phase/workflow status tracking"
-    - "Good UX with recommended actions"
+    - "Leveraged existing Sprint 1 infrastructure"
+    - "Clean component composition"
+    - "Good UX with confirmation dialogs"
   improvements:
-    - "Could add keyboard navigation"
-    - "Could add phase timeline visualization"
+    - "Could add workflow search/filter"
+    - "Could add keyboard shortcuts"
   action_items:
-    - "Integrate with workflow execution in Sprint 4"
+    - "Consider adding workflow history"
 
 previous_sprints:
   - sprint_number: 1
@@ -133,8 +137,14 @@ previous_sprints:
     sprint_name: "Project Management"
     status: completed
     completed_stories: 6
+  - sprint_number: 3
+    sprint_name: "Phase Dashboard & Navigation"
+    status: completed
+    completed_stories: 6
 
 notes:
-  - "Sprint 3 COMPLETE - Phase Dashboard delivered"
-  - "Total new code: ~850 lines across 3 files"
-  - "Next: Sprint 4 - Epic 4: Workflow Execution"
+  - "Sprint 4 COMPLETE - Workflow Execution delivered"
+  - "Total new code: ~610 lines across 3 files"
+  - "4 sprints completed, 23 stories total"
+  - "Core Auto-BMAD functionality now complete!"
+  - "Next: Epic 5 (Agent Roster) or Epic 6 (Artifact Management)"

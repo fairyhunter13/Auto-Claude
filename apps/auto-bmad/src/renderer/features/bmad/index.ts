@@ -39,3 +39,6 @@ export { ProjectSettingsDialog } from './components/ProjectSettingsDialog';
 export { ProjectFileBrowser } from './components/ProjectFileBrowser';
 export { PhaseDashboard } from './components/PhaseDashboard';
 export { PhaseDetail } from './components/PhaseDetail';
+export { WorkflowExecutionPanel } from './components/WorkflowExecutionPanel';
+export { WorkflowList } from './components/WorkflowList';
+export { WorkflowRunner } from './components/WorkflowRunner';
