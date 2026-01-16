@@ -209,6 +209,25 @@ describe('LanguageDetector', () => {
 
   describe('Unknown Extensions', () => {
     it('should report unknown extensions', async () => {
+      // Create files with extension that has no matching family patterns
+      setupTestProject({
+        'src/data.xyz': 'HEADER: 12345',  // Extension with content that won't match any family
+        'src/config.xyz': 'KEY=VALUE',
+      });
+      
+      const { LanguageDetector, clearLanguageDetector } = await import('../language-detector');
+      clearLanguageDetector();
+      
+      const detector = new LanguageDetector(PROJECT_PATH, BMAD_PATH);
+      const result = await detector.detect();
+      
+      // .xyz should be unknown since it matches no rules and no family patterns
+      expect(result.unknownExtensions).toContain('.xyz');
+      expect(result.discoveryNeeded).toBe(true);
+    });
+    
+    it('should detect unknown language via family inference', async () => {
+      // Zig code contains curly braces and semicolons which match c-family patterns
       setupTestProject({
         'src/main.zig': 'const std = @import("std");',
         'src/utils.zig': 'fn add(a: i32, b: i32) i32 { return a + b; }',
@@ -220,8 +239,12 @@ describe('LanguageDetector', () => {
       const detector = new LanguageDetector(PROJECT_PATH, BMAD_PATH);
       const result = await detector.detect();
       
-      expect(result.unknownExtensions).toContain('.zig');
-      expect(result.discoveryNeeded).toBe(true);
+      // Zig should be detected via Tier 2 family inference as c-family
+      expect(result.primaryLanguage).toBeDefined();
+      expect(result.primaryLanguage?.language).toBe('unknown-zig');
+      expect(result.primaryLanguage?.tier).toBe(2);
+      expect(result.primaryLanguage?.family).toBe('c-family');
+      expect(result.unknownExtensions).not.toContain('.zig');
     });
   });
 

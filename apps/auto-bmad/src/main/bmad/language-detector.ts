@@ -69,9 +69,20 @@ export class LanguageDetector {
     
     // Scan project for files
     const files = await this.scanProjectFiles();
-    const extensionCounts = this.countExtensions(files);
+    // Ensure files is always an array
+    const fileList = Array.isArray(files) ? files : [];
+    const extensionCounts = this.countExtensions(fileList);
     
-    // Try to detect each unique extension
+    // First, check for marker files (tsconfig.json, pyproject.toml, etc.)
+    const markerDetected = await this.detectByMarkerFiles(fileList);
+    for (const detected of markerDetected) {
+      const existing = detectedLanguages.find(d => d.language === detected.language);
+      if (!existing) {
+        detectedLanguages.push(detected);
+      }
+    }
+    
+    // Then try to detect each unique extension
     for (const [ext, count] of Object.entries(extensionCounts)) {
       const detected = await this.detectLanguageForExtension(ext, count as number);
       if (detected) {
@@ -81,12 +92,20 @@ export class LanguageDetector {
           detectedLanguages.push(detected);
         }
       } else {
-        unknownExtensions.push(ext);
+        // Only mark as unknown if not already detected via markers
+        if (!detectedLanguages.some(d => this.extensionMatchesLanguage(ext, d.language))) {
+          unknownExtensions.push(ext);
+        }
       }
     }
 
-    // Sort by confidence
-    detectedLanguages.sort((a, b) => b.confidence - a.confidence);
+    // Sort by confidence (higher first), then by priority (lower first)
+    detectedLanguages.sort((a, b) => {
+      if (b.confidence !== a.confidence) {
+        return b.confidence - a.confidence;
+      }
+      return (a.priority || 999) - (b.priority || 999);
+    });
 
     const result: LanguageDetectionResult = {
       primaryLanguage: detectedLanguages[0],
@@ -98,6 +117,79 @@ export class LanguageDetector {
 
     this.cache.set(cacheKey, result);
     return result;
+  }
+  
+  /**
+   * Detect languages by marker files (tsconfig.json, pyproject.toml, etc.)
+   */
+  private async detectByMarkerFiles(files: string[]): Promise<DetectedLanguage[]> {
+    const detected: DetectedLanguage[] = [];
+    const rules = this.detectionRules?.detection_rules || [];
+    
+    for (const rule of rules) {
+      const indicators = rule.indicators || {};
+      const requiredAny = indicators.required_any || [];
+      const required = indicators.required || [];
+      
+      // Check required_any - at least one must match
+      let hasRequiredAny = requiredAny.length === 0; // If none required, pass
+      for (const indicator of requiredAny) {
+        if (indicator.type === 'file' && indicator.pattern) {
+          if (files.some(f => f === indicator.pattern || f.endsWith('/' + indicator.pattern))) {
+            hasRequiredAny = true;
+            break;
+          }
+        }
+      }
+      
+      // Check required - all must match
+      let hasAllRequired = true;
+      for (const indicator of required) {
+        if (indicator.type === 'file' && indicator.pattern) {
+          if (!files.some(f => f === indicator.pattern || f.endsWith('/' + indicator.pattern))) {
+            hasAllRequired = false;
+            break;
+          }
+        }
+      }
+      
+      if (hasRequiredAny && hasAllRequired && (requiredAny.length > 0 || required.length > 0)) {
+        detected.push(this.createDetectedLanguage(rule, 1, 0.95));
+      }
+    }
+    
+    return detected;
+  }
+  
+  /**
+   * Check if an extension matches a language
+   */
+  private extensionMatchesLanguage(extension: string, language: string): boolean {
+    const extensionToLanguage: Record<string, string[]> = {
+      '.ts': ['typescript'],
+      '.tsx': ['typescript'],
+      '.js': ['javascript', 'typescript'],
+      '.jsx': ['javascript', 'typescript'],
+      '.py': ['python'],
+      '.go': ['go'],
+      '.rs': ['rust'],
+      '.java': ['java', 'kotlin'],
+      '.kt': ['kotlin'],
+      '.kts': ['kotlin'],
+      '.cs': ['csharp'],
+      '.rb': ['ruby'],
+      '.php': ['php'],
+      '.swift': ['swift'],
+      '.scala': ['scala'],
+      '.ex': ['elixir'],
+      '.exs': ['elixir'],
+      '.clj': ['clojure'],
+      '.cljs': ['clojure'],
+      '.cljc': ['clojure'],
+    };
+    
+    const languages = extensionToLanguage[extension] || [];
+    return languages.includes(language);
   }
 
   /**
@@ -220,7 +312,7 @@ export class LanguageDetector {
       }
     }
 
-    // Check common extension mappings
+    // Check common extension mappings - only if we have a detection rule for the language
     const extensionMap: Record<string, string> = {
       '.ts': 'typescript',
       '.tsx': 'typescript',
@@ -243,7 +335,10 @@ export class LanguageDetector {
       '.hs': 'haskell',
       '.fs': 'fsharp',
       '.clj': 'clojure',
+      '.cljs': 'clojure',
+      '.cljc': 'clojure',
       '.ex': 'elixir',
+      '.exs': 'elixir',
       '.erl': 'erlang',
       '.lua': 'lua',
       '.pl': 'perl',
@@ -257,15 +352,8 @@ export class LanguageDetector {
       if (rule) {
         return this.createDetectedLanguage(rule, 1, 0.85);
       }
-      
-      // Return basic info even without full rule
-      return {
-        language,
-        displayName: language.charAt(0).toUpperCase() + language.slice(1),
-        tier: 1,
-        confidence: 0.8,
-        confidenceLevel: 'high',
-      };
+      // If no rule exists for this language, don't return it as detected
+      // This allows proper handling of unknown extensions
     }
 
     return null;
@@ -387,6 +475,7 @@ export class LanguageDetector {
       tier,
       confidence,
       confidenceLevel: this.getConfidenceLevel(confidence),
+      priority: rule.priority,
       strategyFile: rule.strategy_file,
       testFramework: defaultFramework?.name,
       testCommand: defaultFramework?.test_command,
