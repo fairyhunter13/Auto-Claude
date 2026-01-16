@@ -9,13 +9,14 @@ Key Components:
 - PartyMemory: Handles context persistence and compression
 - AgentOrchestrator: Selects and coordinates agents
 - PhaseManager: Guides discussions through BMAD phases
-- ArtifactExtractor: Extracts PRD, Architecture from discussions
+- OpenCodeClient: Streaming HTTP client for OpenCode server
 """
 
 from bmad_claude.party.session import PartySession
 from bmad_claude.party.memory import PartyMemory, Message, Decision
 from bmad_claude.party.orchestrator import AgentOrchestrator
 from bmad_claude.party.phase import PhaseManager
+from bmad_claude.party.opencode_client import OpenCodeClient, OpenCodeConfig, StreamEvent
 
 __all__ = [
     "PartySession",
@@ -24,4 +25,7 @@ __all__ = [
     "Decision",
     "AgentOrchestrator",
     "PhaseManager",
+    "OpenCodeClient",
+    "OpenCodeConfig",
+    "StreamEvent",
 ]
