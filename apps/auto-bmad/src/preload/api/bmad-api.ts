@@ -93,6 +93,46 @@ export type IpcResult<T> =
   | { success: true; data: T }
   | { success: false; error: { code: string; message: string } };
 
+// Project Management Types
+export type BmadProjectType = 'greenfield' | 'brownfield';
+
+export interface BmadProject {
+  id: string;
+  name: string;
+  path: string;
+  projectType: BmadProjectType;
+  currentPhase: BmadPhase;
+  createdAt: Date;
+  updatedAt: Date;
+  lastOpenedAt: Date;
+}
+
+export interface CreateProjectOptions {
+  name: string;
+  path: string;
+  projectType: BmadProjectType;
+  communicationLanguage?: string;
+  userSkillLevel?: 'beginner' | 'intermediate' | 'advanced';
+}
+
+export interface ImportProjectOptions {
+  path: string;
+}
+
+export interface BmadProjectValidation {
+  valid: boolean;
+  hasBmadDir: boolean;
+  hasBmadOutput: boolean;
+  hasStatusFile: boolean;
+  hasConfigFile: boolean;
+  errors: string[];
+}
+
+export interface BmadSettings {
+  opencodePath?: string;
+  defaultCommunicationLanguage?: string;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Event Types
 // ─────────────────────────────────────────────────────────────────────────────
@@ -128,6 +168,20 @@ export interface WorkflowExitEvent {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export interface BmadAPI {
+  // Project Management
+  selectFolder: () => Promise<IpcResult<{ canceled: boolean; path: string | null }>>;
+  validateProject: (projectPath: string) => Promise<IpcResult<BmadProjectValidation>>;
+  createProject: (options: CreateProjectOptions) => Promise<IpcResult<BmadProject>>;
+  importProject: (options: ImportProjectOptions) => Promise<IpcResult<BmadProject>>;
+  getProjects: () => Promise<IpcResult<BmadProject[]>>;
+  getProject: (projectId: string) => Promise<IpcResult<BmadProject | undefined>>;
+  getRecentProjects: () => Promise<IpcResult<BmadProject[]>>;
+  openProject: (projectId: string) => Promise<IpcResult<BmadProject | undefined>>;
+  removeProject: (projectId: string) => Promise<IpcResult<boolean>>;
+  updateProject: (projectId: string, updates: Partial<Pick<BmadProject, 'name' | 'currentPhase'>>) => Promise<IpcResult<BmadProject | undefined>>;
+  getSettings: () => Promise<IpcResult<BmadSettings>>;
+  updateSettings: (settings: Partial<BmadSettings>) => Promise<IpcResult<void>>;
+
   // Project Detection
   isProject: (projectPath: string) => Promise<boolean>;
   hasConfig: (projectPath: string) => Promise<boolean>;
@@ -198,6 +252,43 @@ export interface BmadAPI {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const createBmadAPI = (): BmadAPI => ({
+  // Project Management
+  selectFolder: (): Promise<IpcResult<{ canceled: boolean; path: string | null }>> =>
+    ipcRenderer.invoke('bmad:select-folder'),
+
+  validateProject: (projectPath: string): Promise<IpcResult<BmadProjectValidation>> =>
+    ipcRenderer.invoke('bmad:validate-project', projectPath),
+
+  createProject: (options: CreateProjectOptions): Promise<IpcResult<BmadProject>> =>
+    ipcRenderer.invoke('bmad:create-project', options),
+
+  importProject: (options: ImportProjectOptions): Promise<IpcResult<BmadProject>> =>
+    ipcRenderer.invoke('bmad:import-project', options),
+
+  getProjects: (): Promise<IpcResult<BmadProject[]>> =>
+    ipcRenderer.invoke('bmad:get-projects'),
+
+  getProject: (projectId: string): Promise<IpcResult<BmadProject | undefined>> =>
+    ipcRenderer.invoke('bmad:get-project', projectId),
+
+  getRecentProjects: (): Promise<IpcResult<BmadProject[]>> =>
+    ipcRenderer.invoke('bmad:get-recent-projects'),
+
+  openProject: (projectId: string): Promise<IpcResult<BmadProject | undefined>> =>
+    ipcRenderer.invoke('bmad:open-project', projectId),
+
+  removeProject: (projectId: string): Promise<IpcResult<boolean>> =>
+    ipcRenderer.invoke('bmad:remove-project', projectId),
+
+  updateProject: (projectId: string, updates: Partial<Pick<BmadProject, 'name' | 'currentPhase'>>): Promise<IpcResult<BmadProject | undefined>> =>
+    ipcRenderer.invoke('bmad:update-project', projectId, updates),
+
+  getSettings: (): Promise<IpcResult<BmadSettings>> =>
+    ipcRenderer.invoke('bmad:get-settings'),
+
+  updateSettings: (settings: Partial<BmadSettings>): Promise<IpcResult<void>> =>
+    ipcRenderer.invoke('bmad:update-settings', settings),
+
   // Project Detection
   isProject: (projectPath: string): Promise<boolean> =>
     ipcRenderer.invoke('bmad:is-project', projectPath),

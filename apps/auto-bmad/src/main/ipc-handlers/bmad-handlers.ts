@@ -5,7 +5,7 @@
  * Provides communication between renderer and main process for BMAD features.
  */
 
-import { ipcMain, BrowserWindow } from 'electron';
+import { ipcMain, BrowserWindow, dialog } from 'electron';
 import {
   // Config
   loadBmadConfig,
@@ -38,6 +38,14 @@ import {
   errorResult,
   disposeBmadResources,
 } from '../bmad';
+
+import {
+  bmadProjectManager,
+  type BmadProject,
+  type CreateProjectOptions,
+  type ImportProjectOptions,
+  type BmadProjectValidation,
+} from '../bmad/project-manager';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Handler Registration
@@ -362,6 +370,128 @@ export function registerBmadHandlers(
    */
   ipcMain.handle('bmad:dispose', async () => {
     await disposeBmadResources();
+    return successResult(undefined);
+  });
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // Project Management (Epic 2)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Show folder picker dialog
+   */
+  ipcMain.handle('bmad:select-folder', async () => {
+    const mainWindow = getMainWindow();
+    if (!mainWindow) {
+      return errorResult('NO_WINDOW', 'Main window not available');
+    }
+
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openDirectory', 'createDirectory'],
+      title: 'Select Project Folder',
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return successResult({ canceled: true, path: null });
+    }
+
+    return successResult({ canceled: false, path: result.filePaths[0] });
+  });
+
+  /**
+   * Validate a directory as a BMAD project
+   */
+  ipcMain.handle('bmad:validate-project', async (_, projectPath: string): Promise<IpcResult<BmadProjectValidation>> => {
+    const validation = bmadProjectManager.validateProject(projectPath);
+    return successResult(validation);
+  });
+
+  /**
+   * Create a new BMAD project
+   */
+  ipcMain.handle('bmad:create-project', async (_, options: CreateProjectOptions): Promise<IpcResult<BmadProject>> => {
+    const result = await bmadProjectManager.createProject(options);
+    if (result.success && result.project) {
+      return successResult(result.project);
+    }
+    return errorResult('CREATE_PROJECT_ERROR', result.error || 'Failed to create project');
+  });
+
+  /**
+   * Import an existing BMAD project
+   */
+  ipcMain.handle('bmad:import-project', async (_, options: ImportProjectOptions): Promise<IpcResult<BmadProject>> => {
+    const result = await bmadProjectManager.importProject(options);
+    if (result.success && result.project) {
+      return successResult(result.project);
+    }
+    return errorResult('IMPORT_PROJECT_ERROR', result.error || 'Failed to import project');
+  });
+
+  /**
+   * Get all BMAD projects
+   */
+  ipcMain.handle('bmad:get-projects', async (): Promise<IpcResult<BmadProject[]>> => {
+    const projects = bmadProjectManager.getProjects();
+    return successResult(projects);
+  });
+
+  /**
+   * Get a project by ID
+   */
+  ipcMain.handle('bmad:get-project', async (_, projectId: string): Promise<IpcResult<BmadProject | undefined>> => {
+    const project = bmadProjectManager.getProject(projectId);
+    return successResult(project);
+  });
+
+  /**
+   * Get recent projects
+   */
+  ipcMain.handle('bmad:get-recent-projects', async (): Promise<IpcResult<BmadProject[]>> => {
+    const projects = bmadProjectManager.getRecentProjects();
+    return successResult(projects);
+  });
+
+  /**
+   * Open a project (updates last opened time)
+   */
+  ipcMain.handle('bmad:open-project', async (_, projectId: string): Promise<IpcResult<BmadProject | undefined>> => {
+    const project = bmadProjectManager.openProject(projectId);
+    return successResult(project);
+  });
+
+  /**
+   * Remove a project from the store
+   */
+  ipcMain.handle('bmad:remove-project', async (_, projectId: string): Promise<IpcResult<boolean>> => {
+    const success = bmadProjectManager.removeProject(projectId);
+    return successResult(success);
+  });
+
+  /**
+   * Update a project
+   */
+  ipcMain.handle('bmad:update-project', async (
+    _,
+    projectId: string,
+    updates: Partial<Pick<BmadProject, 'name' | 'currentPhase'>>
+  ): Promise<IpcResult<BmadProject | undefined>> => {
+    const project = bmadProjectManager.updateProject(projectId, updates);
+    return successResult(project);
+  });
+
+  /**
+   * Get global BMAD settings
+   */
+  ipcMain.handle('bmad:get-settings', async () => {
+    return successResult(bmadProjectManager.getSettings());
+  });
+
+  /**
+   * Update global BMAD settings
+   */
+  ipcMain.handle('bmad:update-settings', async (_, settings: { opencodePath?: string; defaultCommunicationLanguage?: string }) => {
+    bmadProjectManager.updateSettings(settings);
     return successResult(undefined);
   });
 
