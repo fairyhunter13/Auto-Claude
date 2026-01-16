@@ -1,0 +1,641 @@
+# Language Detection Rules for TEA Workflows
+# Version: 1.0.0
+# 
+# This file defines how TEA workflows detect programming languages
+# and select appropriate test frameworks for polyglot projects.
+#
+# Priority order: Lower number = higher priority (checked first)
+# More specific languages (Rust, Go) should have higher priority
+# than common languages (TypeScript) that might have tooling files
+
+detection_rules:
+
+  # ============================================
+  # RUST - Very specific, check first
+  # ============================================
+  - language: rust
+    display_name: "Rust"
+    priority: 10
+    indicators:
+      required:
+        - type: file
+          pattern: "Cargo.toml"
+      optional:
+        - type: glob
+          pattern: "**/*.rs"
+        - type: file
+          pattern: "Cargo.lock"
+    test_framework_default: cargo-test
+    test_frameworks_available:
+      - id: cargo-test
+        name: "Cargo Test"
+        description: "Built-in Rust test framework"
+        config_file: null
+        test_command: "cargo test"
+        test_pattern: "**/*_test.rs"
+    strategy_file: "languages/rust/_strategy.md"
+    knowledge_fragments:
+      - "languages/rust/cargo-test-patterns.md"
+      - "languages/rust/integration-tests.md"
+
+  # ============================================
+  # GO - Very specific, check early
+  # ============================================
+  - language: go
+    display_name: "Go"
+    priority: 20
+    indicators:
+      required:
+        - type: file
+          pattern: "go.mod"
+      optional:
+        - type: glob
+          pattern: "**/*.go"
+        - type: file
+          pattern: "go.sum"
+    test_framework_default: go-test
+    test_frameworks_available:
+      - id: go-test
+        name: "Go Test"
+        description: "Built-in Go testing package"
+        config_file: null
+        test_command: "go test ./..."
+        test_pattern: "**/*_test.go"
+      - id: testify
+        name: "Testify"
+        description: "Enhanced assertions and mocking"
+        config_file: null
+        test_command: "go test ./..."
+        test_pattern: "**/*_test.go"
+        detection:
+          - type: file_contains
+            pattern: "go.mod"
+            contains: "github.com/stretchr/testify"
+    strategy_file: "languages/go/_strategy.md"
+    knowledge_fragments:
+      - "languages/go/go-testing-patterns.md"
+      - "languages/go/table-driven-tests.md"
+      - "languages/go/testify-patterns.md"
+
+  # ============================================
+  # PYTHON - Check before TypeScript (more specific indicators)
+  # ============================================
+  - language: python
+    display_name: "Python"
+    priority: 30
+    indicators:
+      required_any:
+        - type: file
+          pattern: "pyproject.toml"
+        - type: file
+          pattern: "setup.py"
+        - type: file
+          pattern: "setup.cfg"
+        - type: file
+          pattern: "requirements.txt"
+        - type: file
+          pattern: "Pipfile"
+        - type: file
+          pattern: "poetry.lock"
+      optional:
+        - type: glob
+          pattern: "**/*.py"
+    test_framework_default: pytest
+    test_frameworks_available:
+      - id: pytest
+        name: "pytest"
+        description: "Modern Python testing framework"
+        config_file: "pytest.ini"
+        alt_config_files: ["pyproject.toml", "setup.cfg", "tox.ini"]
+        test_command: "pytest"
+        test_pattern: "**/test_*.py"
+        detection:
+          - type: file_contains
+            pattern: "pyproject.toml"
+            contains: "pytest"
+          - type: file_contains
+            pattern: "requirements.txt"
+            contains: "pytest"
+      - id: unittest
+        name: "unittest"
+        description: "Python built-in testing"
+        config_file: null
+        test_command: "python -m unittest discover"
+        test_pattern: "**/test_*.py"
+      - id: playwright-python
+        name: "Playwright Python"
+        description: "E2E testing with Playwright"
+        config_file: "pytest.ini"
+        test_command: "pytest"
+        test_pattern: "**/test_*.py"
+        detection:
+          - type: file_contains
+            pattern: "requirements.txt"
+            contains: "playwright"
+          - type: file_contains
+            pattern: "pyproject.toml"
+            contains: "playwright"
+    strategy_file: "languages/python/_strategy.md"
+    knowledge_fragments:
+      - "languages/python/pytest-patterns.md"
+      - "languages/python/pytest-fixtures.md"
+      - "languages/python/mocking-python.md"
+
+  # ============================================
+  # JAVA - Check before TypeScript
+  # ============================================
+  - language: java
+    display_name: "Java"
+    priority: 40
+    indicators:
+      required_any:
+        - type: file
+          pattern: "pom.xml"
+        - type: file
+          pattern: "build.gradle"
+        - type: file
+          pattern: "build.gradle.kts"
+      optional:
+        - type: glob
+          pattern: "**/*.java"
+        - type: glob
+          pattern: "**/src/main/java/**"
+    test_framework_default: junit5
+    test_frameworks_available:
+      - id: junit5
+        name: "JUnit 5"
+        description: "Modern Java testing framework"
+        config_file: null
+        test_command: "mvn test"
+        alt_commands: ["gradle test", "./gradlew test"]
+        test_pattern: "**/src/test/java/**/*Test.java"
+      - id: junit4
+        name: "JUnit 4"
+        description: "Legacy Java testing framework"
+        config_file: null
+        test_command: "mvn test"
+        test_pattern: "**/src/test/java/**/*Test.java"
+      - id: testng
+        name: "TestNG"
+        description: "Alternative Java testing framework"
+        config_file: "testng.xml"
+        test_command: "mvn test"
+        test_pattern: "**/src/test/java/**/*Test.java"
+      - id: selenium
+        name: "Selenium"
+        description: "Browser E2E testing"
+        config_file: null
+        test_command: "mvn test -Dtest=*IT"
+        test_pattern: "**/src/test/java/**/*IT.java"
+    strategy_file: "languages/java/_strategy.md"
+    knowledge_fragments:
+      - "languages/java/junit5-patterns.md"
+      - "languages/java/mockito-patterns.md"
+
+  # ============================================
+  # C# / .NET
+  # ============================================
+  - language: csharp
+    display_name: "C#"
+    priority: 50
+    indicators:
+      required_any:
+        - type: glob
+          pattern: "**/*.csproj"
+        - type: glob
+          pattern: "**/*.sln"
+      optional:
+        - type: glob
+          pattern: "**/*.cs"
+    test_framework_default: xunit
+    test_frameworks_available:
+      - id: xunit
+        name: "xUnit"
+        description: "Modern .NET testing framework"
+        config_file: null
+        test_command: "dotnet test"
+        test_pattern: "**/*Tests.cs"
+      - id: nunit
+        name: "NUnit"
+        description: "Popular .NET testing framework"
+        config_file: null
+        test_command: "dotnet test"
+        test_pattern: "**/*Tests.cs"
+      - id: mstest
+        name: "MSTest"
+        description: "Microsoft's testing framework"
+        config_file: null
+        test_command: "dotnet test"
+        test_pattern: "**/*Tests.cs"
+    strategy_file: "languages/csharp/_strategy.md"
+    knowledge_fragments:
+      - "languages/csharp/xunit-patterns.md"
+      - "languages/csharp/moq-patterns.md"
+
+  # ============================================
+  # TYPESCRIPT / JAVASCRIPT - Check last (most common, tooling everywhere)
+  # ============================================
+  - language: typescript
+    display_name: "TypeScript"
+    priority: 100
+    indicators:
+      required_any:
+        - type: file
+          pattern: "tsconfig.json"
+        - type: file_contains
+          pattern: "package.json"
+          contains: '"typescript"'
+      optional:
+        - type: glob
+          pattern: "**/*.ts"
+          exclude: "**/*.d.ts"
+        - type: glob
+          pattern: "**/*.tsx"
+    test_framework_default: playwright
+    test_frameworks_available:
+      - id: playwright
+        name: "Playwright"
+        description: "E2E and API testing"
+        config_file: "playwright.config.ts"
+        alt_config_files: ["playwright.config.js"]
+        test_command: "npx playwright test"
+        test_pattern: "**/*.spec.ts"
+        detection:
+          - type: file_contains
+            pattern: "package.json"
+            contains: "@playwright/test"
+      - id: jest
+        name: "Jest"
+        description: "Unit and integration testing"
+        config_file: "jest.config.ts"
+        alt_config_files: ["jest.config.js", "jest.config.json"]
+        test_command: "npm test"
+        test_pattern: "**/*.test.ts"
+        detection:
+          - type: file_contains
+            pattern: "package.json"
+            contains: '"jest"'
+      - id: vitest
+        name: "Vitest"
+        description: "Fast unit testing for Vite projects"
+        config_file: "vitest.config.ts"
+        alt_config_files: ["vite.config.ts"]
+        test_command: "npm test"
+        test_pattern: "**/*.test.ts"
+        detection:
+          - type: file_contains
+            pattern: "package.json"
+            contains: '"vitest"'
+      - id: cypress
+        name: "Cypress"
+        description: "E2E and component testing"
+        config_file: "cypress.config.ts"
+        alt_config_files: ["cypress.config.js", "cypress.json"]
+        test_command: "npx cypress run"
+        test_pattern: "**/*.cy.ts"
+        detection:
+          - type: file_contains
+            pattern: "package.json"
+            contains: '"cypress"'
+    framework_selection_logic:
+      - condition: has_playwright_config
+        framework: playwright
+      - condition: has_cypress_config
+        framework: cypress
+      - condition: has_vitest_config
+        framework: vitest
+      - condition: has_jest_config
+        framework: jest
+      - condition: has_ui_components
+        framework: playwright
+      - condition: pure_library
+        framework: vitest
+    strategy_file: "languages/typescript/_strategy.md"
+    knowledge_fragments:
+      - "languages/typescript/playwright-patterns.md"
+      - "languages/typescript/fixtures-ts.md"
+      - "languages/typescript/mocking-ts.md"
+
+  # ============================================
+  # JAVASCRIPT (non-TypeScript)
+  # ============================================
+  - language: javascript
+    display_name: "JavaScript"
+    priority: 110
+    indicators:
+      required:
+        - type: file
+          pattern: "package.json"
+      required_not:
+        - type: file
+          pattern: "tsconfig.json"
+      optional:
+        - type: glob
+          pattern: "**/*.js"
+          exclude: "**/node_modules/**"
+    test_framework_default: jest
+    test_frameworks_available:
+      - id: jest
+        name: "Jest"
+        description: "Unit and integration testing"
+        config_file: "jest.config.js"
+        test_command: "npm test"
+        test_pattern: "**/*.test.js"
+      - id: playwright
+        name: "Playwright"
+        description: "E2E testing"
+        config_file: "playwright.config.js"
+        test_command: "npx playwright test"
+        test_pattern: "**/*.spec.js"
+      - id: cypress
+        name: "Cypress"
+        description: "E2E testing"
+        config_file: "cypress.config.js"
+        test_command: "npx cypress run"
+        test_pattern: "**/*.cy.js"
+    strategy_file: "languages/typescript/_strategy.md"  # Share with TS
+    knowledge_fragments:
+      - "languages/typescript/playwright-patterns.md"
+      - "languages/typescript/jest-patterns.md"
+
+# ============================================
+# GLOBAL CONFIGURATION
+# ============================================
+
+global_exclusions:
+  # Package managers and dependencies
+  - "**/node_modules/**"
+  - "**/vendor/**"
+  - "**/.venv/**"
+  - "**/venv/**"
+  - "**/env/**"
+  - "**/__pycache__/**"
+  - "**/.eggs/**"
+  - "**/*.egg-info/**"
+  
+  # Build outputs
+  - "**/dist/**"
+  - "**/build/**"
+  - "**/target/**"
+  - "**/out/**"
+  - "**/bin/**"
+  - "**/obj/**"
+  - "**/.next/**"
+  - "**/.nuxt/**"
+  
+  # Version control
+  - "**/.git/**"
+  - "**/.svn/**"
+  - "**/.hg/**"
+  
+  # IDE and editor
+  - "**/.idea/**"
+  - "**/.vscode/**"
+  - "**/*.swp"
+  - "**/*.swo"
+  
+  # Test outputs
+  - "**/coverage/**"
+  - "**/test-results/**"
+  - "**/playwright-report/**"
+  - "**/.nyc_output/**"
+
+# ============================================
+# DETECTION SETTINGS
+# ============================================
+
+detection_settings:
+  # Maximum directory depth to scan
+  max_depth: 5
+  
+  # Stop scanning subdirectory if language already detected at parent
+  inherit_parent_language: true
+  
+  # Allow multiple languages in same project
+  allow_polyglot: true
+  
+  # Cache detection results
+  cache_results: true
+  cache_duration_minutes: 60
+  
+  # Minimum confidence to report a language
+  min_confidence: 0.7
+
+# ============================================
+# FAMILY HINTS (for Tier 2 inference)
+# ============================================
+
+family_hints:
+  # Map known languages to their families
+  # Used when a similar unknown language is encountered
+  
+  rust:
+    families: [c-family, ml-family, systems-family]
+    primary: systems-family
+    
+  go:
+    families: [c-family]
+    primary: c-family
+    
+  typescript:
+    families: [c-family]
+    primary: c-family
+    
+  javascript:
+    families: [c-family, scripting-family]
+    primary: scripting-family
+    
+  python:
+    families: [scripting-family]
+    primary: scripting-family
+    
+  java:
+    families: [c-family]
+    primary: c-family
+    
+  csharp:
+    families: [c-family]
+    primary: c-family
+    
+  # When inferring unknown languages, use these patterns
+  inference_patterns:
+    c-family:
+      strong_indicators:
+        - pattern: "\\{[\\s\\S]*\\}"
+          weight: 3
+        - pattern: ";\\s*$"
+          weight: 4
+        - pattern: "\\b(if|else|while|for|switch)\\s*\\("
+          weight: 3
+      weak_indicators:
+        - pattern: "//.*$"
+          weight: 1
+        - pattern: "/\\*[\\s\\S]*\\*/"
+          weight: 1
+          
+    ml-family:
+      strong_indicators:
+        - pattern: "\\blet\\s+\\w+\\s*="
+          weight: 5
+        - pattern: "\\|>"
+          weight: 5
+        - pattern: "\\bmatch\\b"
+          weight: 4
+      weak_indicators:
+        - pattern: "->\\s*$"
+          weight: 2
+        - pattern: "\\bfun\\b"
+          weight: 2
+          
+    lisp-family:
+      strong_indicators:
+        - pattern: "^\\s*\\([a-z]+"
+          weight: 5
+        - pattern: "\\(def[n]?\\s"
+          weight: 5
+      weak_indicators:
+        - pattern: "\\)\\)\\)+"
+          weight: 3
+          
+    systems-family:
+      strong_indicators:
+        - pattern: "\\bunsafe\\b"
+          weight: 5
+        - pattern: "\\b(malloc|free|alloc)\\b"
+          weight: 5
+        - pattern: "\\b(u8|u16|u32|u64|i8|i16|i32|i64)\\b"
+          weight: 4
+      weak_indicators:
+        - pattern: "[*&]\\w+"
+          weight: 2
+          
+    scripting-family:
+      strong_indicators:
+        - pattern: "^#!"
+          weight: 5
+        - pattern: "\\bdef\\s+\\w+.*:"
+          weight: 4
+      weak_indicators:
+        - pattern: "\\bprint\\b|\\bputs\\b|\\becho\\b"
+          weight: 2
+
+# ============================================
+# DISCOVERY MODE SETTINGS (Tier 3)
+# ============================================
+
+discovery:
+  # Whether discovery mode is enabled
+  enabled: true
+  
+  # How discovery mode is triggered
+  # auto: automatically run when language unknown
+  # prompt: ask user before running
+  # disabled: never run discovery
+  mode: prompt
+  
+  # Allow web fetching for research
+  allow_web_fetch: true
+  
+  # Timeout for discovery operations (seconds)
+  timeout: 60
+  
+  # Search queries template for unknown languages
+  search_queries:
+    - "{language} testing framework"
+    - "{language} unit test tutorial"
+    - "{language} test best practices"
+    - "{language} how to run tests"
+  
+  # Project analysis settings
+  project_analysis:
+    # Patterns to identify test files
+    test_file_patterns:
+      - "*test*"
+      - "*spec*"
+      - "test_*"
+      - "*_test.*"
+      - "*.test.*"
+      - "*.spec.*"
+    
+    # Content markers indicating test files
+    test_content_markers:
+      - "assert"
+      - "expect"
+      - "test("
+      - "describe("
+      - "it("
+      - "should"
+    
+    # Files to check for test commands
+    test_command_locations:
+      - "Makefile"
+      - "package.json"
+      - "*.toml"
+      - "README*"
+      - ".github/workflows/*"
+      - ".gitlab-ci.yml"
+      - "Taskfile.yml"
+  
+  # Where to save discovered strategies
+  provisional:
+    enabled: true
+    path: "languages/_provisional"
+    filename: "_provisional.md"
+
+# ============================================
+# UNIVERSAL FALLBACK SETTINGS (Tier 4)
+# ============================================
+
+universal_fallback:
+  # When to use universal fallback
+  triggers:
+    - discovery_failed
+    - discovery_disabled
+    - user_selected
+    - confidence_below: 0.3
+  
+  # Path to universal fallback strategy
+  strategy_file: "universal/universal-fallback.md"
+  
+  # Prompt user when using fallback
+  prompt_user: true
+  
+  # Default test patterns when nothing is known
+  default_patterns:
+    test_directories:
+      - "tests"
+      - "test"
+      - "spec"
+      - "__tests__"
+    test_file_patterns:
+      - "*test*"
+      - "*spec*"
+    test_commands:
+      - "make test"
+      - "./test.sh"
+      - "npm test"
+
+# ============================================
+# COMPONENT DETECTION
+# ============================================
+
+component_patterns:
+  # Monorepo patterns
+  monorepo_indicators:
+    - pattern: "apps/*"
+      type: "application"
+    - pattern: "packages/*"
+      type: "library"
+    - pattern: "services/*"
+      type: "service"
+    - pattern: "libs/*"
+      type: "library"
+  
+  # Each subdirectory with a language indicator is a component
+  component_root_files:
+    - "package.json"
+    - "go.mod"
+    - "Cargo.toml"
+    - "pyproject.toml"
+    - "pom.xml"
+    - "*.csproj"

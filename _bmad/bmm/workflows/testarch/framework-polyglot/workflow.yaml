@@ -1,0 +1,71 @@
+# Test Architect workflow: framework-polyglot
+# Language-agnostic test framework setup for polyglot projects
+name: testarch-framework-polyglot
+description: "Initialize production-ready test framework architecture with automatic language detection for polyglot/multi-language projects"
+author: "BMad"
+version: "1.0.0"
+
+# Critical variables from config
+config_source: "{project-root}/_bmad/bmm/config.yaml"
+output_folder: "{config_source}:output_folder"
+user_name: "{config_source}:user_name"
+communication_language: "{config_source}:communication_language"
+document_output_language: "{config_source}:document_output_language"
+date: system-generated
+
+# Workflow components
+installed_path: "{project-root}/_bmad/bmm/workflows/testarch/framework-polyglot"
+instructions: "{installed_path}/instructions.md"
+validation: "{installed_path}/checklist.md"
+
+# Knowledge base paths
+knowledge_base: "{project-root}/_bmad/bmm/testarch/knowledge"
+detection_rules: "{knowledge_base}/languages/_detection-rules.yaml"
+universal_knowledge: "{knowledge_base}/universal"
+language_strategies: "{knowledge_base}/languages"
+
+# Variables and inputs
+variables:
+  # Detection mode
+  detection_mode: "auto"          # auto, manual, hybrid
+  
+  # Directory paths
+  test_dir: "{project-root}/tests"
+  source_dir: "{project-root}/src"
+  
+  # Override settings (used when detection_mode is manual or hybrid)
+  language_overrides: {}          # { "path": "language" }
+  exclude_paths: []               # Additional paths to exclude from detection
+  
+  # Framework preferences (optional override)
+  framework_preference: "auto"    # auto or specific framework name
+  
+  # Feature flags
+  generate_ci_config: true        # Generate CI/CD configuration
+  generate_sample_tests: true     # Generate example test files
+  use_mcp_enhancements: false     # Use playwright-utils if TypeScript/Playwright
+
+# Output configuration
+default_output_file: "{test_dir}/README.md"
+
+# Required tools
+required_tools:
+  - read_file       # Read project files for detection
+  - write_file      # Create config files, tests
+  - create_directory # Create test directories
+  - list_files      # Discover project structure
+  - glob            # Pattern matching for detection
+
+tags:
+  - qa
+  - setup
+  - test-architect
+  - framework
+  - polyglot
+  - multi-language
+  - language-agnostic
+
+execution_hints:
+  interactive: true   # May need user input for ambiguous detection
+  autonomous: false   # Pause for confirmation on framework selection
+  iterative: true

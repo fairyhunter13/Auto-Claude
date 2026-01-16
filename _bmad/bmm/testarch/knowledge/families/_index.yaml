@@ -1,0 +1,368 @@
+# Language Family Definitions for TEA Workflows
+# Version: 1.0.0
+#
+# When a language is not directly recognized, TEA uses family inference
+# to apply appropriate testing strategies based on syntax patterns.
+#
+# This is Tier 2 of the 4-tier language resolution system.
+
+families:
+
+  # ============================================
+  # C-FAMILY: Curly-brace, semicolon languages
+  # ============================================
+  c-family:
+    display_name: "C-Family Languages"
+    description: |
+      Languages with C-like syntax: curly braces for blocks,
+      semicolons for statement termination, familiar control flow.
+    
+    known_members:
+      - c
+      - cpp
+      - java
+      - csharp
+      - javascript
+      - typescript
+      - go
+      - rust
+      - swift
+      - kotlin
+      - zig
+      - odin
+      - v
+      - d
+      - dart
+    
+    syntax_patterns:
+      # Curly braces for blocks
+      - pattern: "\\{[^}]*\\}"
+        weight: 2
+        description: "Curly brace blocks"
+      
+      # Semicolon line endings
+      - pattern: ";\\s*$"
+        weight: 3
+        description: "Semicolon terminators"
+      
+      # Common control flow keywords
+      - pattern: "\\b(if|else|while|for|switch|case)\\b"
+        weight: 2
+        description: "C-style control flow"
+      
+      # Function definitions (various styles)
+      - pattern: "\\b(func|fn|function|def|void|int|string)\\s+\\w+\\s*\\("
+        weight: 3
+        description: "Function definitions"
+      
+      # C-style includes/imports
+      - pattern: "^\\s*(#include|import|using|require)"
+        weight: 2
+        description: "Import statements"
+    
+    min_confidence: 0.6
+    strategy_file: "families/c-family.md"
+
+  # ============================================
+  # ML-FAMILY: Functional, pattern-matching languages
+  # ============================================
+  ml-family:
+    display_name: "ML-Family Languages"
+    description: |
+      Functional languages derived from ML tradition: strong typing,
+      pattern matching, immutability by default, expression-oriented.
+    
+    known_members:
+      - ocaml
+      - fsharp
+      - haskell
+      - elm
+      - purescript
+      - gleam
+      - roc
+      - reason
+      - sml
+      - scala  # Partial
+    
+    syntax_patterns:
+      # Let bindings
+      - pattern: "\\blet\\s+\\w+\\s*="
+        weight: 4
+        description: "Let bindings"
+      
+      # Pattern matching
+      - pattern: "\\bmatch\\b.*\\bwith\\b|\\bcase\\b.*\\bof\\b"
+        weight: 5
+        description: "Pattern matching"
+      
+      # Pipe operator
+      - pattern: "\\|>"
+        weight: 5
+        description: "Pipe operator"
+      
+      # Function keyword variants
+      - pattern: "\\b(fn|fun|fun\\s|λ)\\b"
+        weight: 3
+        description: "Function keywords"
+      
+      # Type annotations ML-style
+      - pattern: ":\\s*[A-Z][a-zA-Z0-9]*\\s*(->|$)"
+        weight: 3
+        description: "ML-style type annotations"
+      
+      # No semicolons (negative indicator for C-family)
+      - pattern: "^[^;]+$"
+        weight: 1
+        description: "No semicolons"
+    
+    min_confidence: 0.5
+    strategy_file: "families/ml-family.md"
+
+  # ============================================
+  # LISP-FAMILY: S-expression languages
+  # ============================================
+  lisp-family:
+    display_name: "Lisp-Family Languages"
+    description: |
+      Languages using S-expressions (parenthesized prefix notation),
+      homoiconicity, and macro systems.
+    
+    known_members:
+      - clojure
+      - common-lisp
+      - scheme
+      - racket
+      - emacs-lisp
+      - fennel
+      - hy
+      - janet
+    
+    syntax_patterns:
+      # S-expression structure
+      - pattern: "^\\s*\\([a-z]+"
+        weight: 5
+        description: "S-expression start"
+      
+      # Def forms
+      - pattern: "\\(def[n]?\\s"
+        weight: 5
+        description: "Definition forms"
+      
+      # Lambda/fn
+      - pattern: "\\((lambda|fn|λ)\\s"
+        weight: 4
+        description: "Lambda expressions"
+      
+      # Keywords (Clojure-style)
+      - pattern: ":[a-z][a-z0-9-]*"
+        weight: 3
+        description: "Keyword literals"
+      
+      # Quote/quasiquote
+      - pattern: "[`']\\("
+        weight: 4
+        description: "Quoting"
+      
+      # High paren density
+      - pattern: "\\)\\)\\)+"
+        weight: 3
+        description: "Nested closing parens"
+    
+    min_confidence: 0.6
+    strategy_file: "families/lisp-family.md"
+
+  # ============================================
+  # SYSTEMS-FAMILY: Low-level systems languages
+  # ============================================
+  systems-family:
+    display_name: "Systems Languages"
+    description: |
+      Languages designed for systems programming: manual memory management,
+      low-level control, performance-critical code.
+    
+    known_members:
+      - c
+      - cpp
+      - rust
+      - zig
+      - odin
+      - nim
+      - d
+      - ada
+    
+    syntax_patterns:
+      # Unsafe blocks
+      - pattern: "\\bunsafe\\b"
+        weight: 5
+        description: "Unsafe blocks"
+      
+      # Pointer/reference syntax
+      - pattern: "[*&]\\w+|\\w+\\s*[*&]"
+        weight: 4
+        description: "Pointer/reference types"
+      
+      # Memory allocation
+      - pattern: "\\b(malloc|alloc|free|new|delete|Box|Rc|Arc)\\b"
+        weight: 4
+        description: "Memory allocation"
+      
+      # Low-level types
+      - pattern: "\\b(u8|u16|u32|u64|i8|i16|i32|i64|usize|isize|size_t)\\b"
+        weight: 5
+        description: "Fixed-size integer types"
+      
+      # Inline assembly
+      - pattern: "\\b(asm|__asm__|assembly)\\b"
+        weight: 5
+        description: "Inline assembly"
+      
+      # Header includes (C/C++)
+      - pattern: "#include\\s*[<\"]"
+        weight: 3
+        description: "Header includes"
+    
+    min_confidence: 0.5
+    strategy_file: "families/systems-family.md"
+
+  # ============================================
+  # SCRIPTING-FAMILY: Dynamic interpreted languages
+  # ============================================
+  scripting-family:
+    display_name: "Scripting Languages"
+    description: |
+      Dynamic, interpreted languages optimized for rapid development,
+      text processing, and automation tasks.
+    
+    known_members:
+      - python
+      - ruby
+      - perl
+      - lua
+      - php
+      - tcl
+      - bash
+      - powershell
+    
+    syntax_patterns:
+      # Shebang
+      - pattern: "^#!"
+        weight: 5
+        description: "Shebang line"
+      
+      # Dynamic typing hints
+      - pattern: "\\bdef\\s+\\w+\\s*\\([^)]*\\)\\s*:"
+        weight: 4
+        description: "Python-style function"
+      
+      # String interpolation
+      - pattern: "\\$\\{|#\\{|f\""
+        weight: 3
+        description: "String interpolation"
+      
+      # No type declarations
+      - pattern: "^\\s*\\w+\\s*=\\s*[^;]+$"
+        weight: 2
+        description: "Untyped assignment"
+      
+      # Common scripting patterns
+      - pattern: "\\b(print|puts|echo|require|import)\\b"
+        weight: 2
+        description: "Scripting keywords"
+    
+    min_confidence: 0.5
+    strategy_file: "families/scripting-family.md"
+
+  # ============================================
+  # LOGIC-FAMILY: Logic/constraint languages
+  # ============================================
+  logic-family:
+    display_name: "Logic Programming Languages"
+    description: |
+      Languages based on formal logic, constraint solving,
+      and declarative programming paradigms.
+    
+    known_members:
+      - prolog
+      - datalog
+      - mercury
+      - minikanren
+      - alloy
+    
+    syntax_patterns:
+      # Prolog-style rules
+      - pattern: ":-"
+        weight: 5
+        description: "Rule operator"
+      
+      # Prolog-style facts
+      - pattern: "^\\w+\\([^)]*\\)\\."
+        weight: 5
+        description: "Fact definitions"
+      
+      # Logic operators
+      - pattern: "\\b(forall|exists|not|and|or)\\b"
+        weight: 3
+        description: "Logic operators"
+      
+      # Variables (uppercase)
+      - pattern: "\\b[A-Z][a-zA-Z0-9_]*\\b"
+        weight: 2
+        description: "Prolog variables"
+    
+    min_confidence: 0.6
+    strategy_file: "families/logic-family.md"
+
+# ============================================
+# INFERENCE SETTINGS
+# ============================================
+
+inference_settings:
+  # Minimum total weight to consider a family match
+  min_total_weight: 8
+  
+  # Minimum patterns that must match
+  min_patterns_matched: 3
+  
+  # Sample size for analysis (lines of code)
+  sample_lines: 200
+  
+  # Files to sample from
+  sample_file_count: 5
+  
+  # Exclude from sampling
+  exclude_patterns:
+    - "**/test*"
+    - "**/*test*"
+    - "**/spec*"
+    - "**/*.min.*"
+    - "**/vendor/**"
+    - "**/node_modules/**"
+
+# ============================================
+# MULTI-FAMILY HANDLING
+# ============================================
+
+multi_family:
+  # Some languages belong to multiple families
+  # Apply strategies from all matching families
+  enabled: true
+  
+  # Known multi-family languages
+  overlap_mappings:
+    rust:
+      - c-family
+      - ml-family
+      - systems-family
+    scala:
+      - c-family
+      - ml-family
+    kotlin:
+      - c-family
+      - ml-family
+    swift:
+      - c-family
+      - ml-family
+    nim:
+      - c-family
+      - systems-family
+      - scripting-family
