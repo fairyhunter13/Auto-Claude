@@ -63,6 +63,7 @@ class Decision:
     participants: list[str]
     timestamp: datetime = field(default_factory=datetime.now)
     phase: str | None = None
+    status: str = "pending"  # pending, approved, rejected, revised
 
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary for serialization."""
@@ -74,6 +75,7 @@ class Decision:
             "participants": self.participants,
             "timestamp": self.timestamp.isoformat(),
             "phase": self.phase,
+            "status": self.status,
         }
 
     @classmethod
@@ -87,6 +89,7 @@ class Decision:
             participants=data["participants"],
             timestamp=datetime.fromisoformat(data["timestamp"]),
             phase=data.get("phase"),
+            status=data.get("status", "pending"),
         )
 
 
@@ -286,6 +289,17 @@ class PartyMemory:
         for d in self.decisions:
             lines.append(f"- [{d.id}] {d.topic}: {d.decision}")
         return "\n".join(lines)
+
+    def get_all_decisions(self) -> list["Decision"]:
+        """Get all decisions made in the session."""
+        return self.decisions.copy()
+
+    def get_decision_by_id(self, decision_id: str) -> "Decision | None":
+        """Get a specific decision by ID."""
+        for d in self.decisions:
+            if d.id == decision_id:
+                return d
+        return None
 
     def get_artifact_snippet(self, artifact_name: str = "prd") -> str:
         """Get a snippet of the current artifact draft."""

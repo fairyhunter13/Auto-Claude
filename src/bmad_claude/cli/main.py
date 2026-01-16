@@ -657,7 +657,7 @@ async def _run_party_session(
     load_balance_strategy: str = "round_robin",
 ):
     """Run the interactive party mode session."""
-    from bmad_claude.party import PartySession, get_available_profiles
+    from bmad_claude.party import PartySession, get_available_profiles, FeedbackType
 
     try:
         # Show load balancing info if profiles specified
@@ -703,41 +703,234 @@ async def _run_party_session(
                 default="",
             )
 
-            # Handle special commands
+            # Parse user input for commands
+            parsed = session.feedback.parse_input(user_input)
+
+            # Handle commands
+            if parsed.is_command:
+                cmd = parsed.command
+                args = parsed.args
+
+                # Exit commands
+                if cmd in ["/exit", "/quit", "/bye"]:
+                    console.print("\n[yellow]Saving session and exiting...[/yellow]")
+                    await session.close()
+                    session.save()
+                    console.print(f"[green]Session saved: {session.session_id}[/green]")
+                    console.print(
+                        f'Resume with: bmad-claude party "{project_name}" --resume {session.session_id}'
+                    )
+                    break
+
+                # Help command
+                elif cmd == "/help":
+                    console.print(Markdown(session.feedback.get_help_text()))
+                    continue
+
+                # Status command
+                elif cmd == "/status":
+                    console.print(session.get_status_display())
+                    if session._use_pool and session._opencode_pool:
+                        pool_status = session.get_pool_status()
+                        if pool_status:
+                            console.print("\n[bold]Load Balancing Status:[/bold]")
+                            for p in pool_status["profiles"]:
+                                status = "✅" if p["healthy"] else "⚠️"
+                                console.print(
+                                    f"  {status} {p['name']}: {p['requests']} requests, {p['errors']} errors"
+                                )
+                    continue
+
+                # Phase transition
+                elif cmd in ["/next", "/phase"]:
+                    transition = await session.transition_phase()
+                    if transition:
+                        console.print(
+                            Panel.fit(
+                                f"[green]Phase Complete![/green]\n\n"
+                                f"From: {transition.from_phase}\n"
+                                f"To: {transition.to_phase}\n"
+                                f"Artifacts: {', '.join(transition.artifacts_finalized)}",
+                                title="Phase Transition",
+                            )
+                        )
+                    else:
+                        is_complete, missing = session.phase_manager.check_phase_complete(
+                            session.memory
+                        )
+                        console.print(f"[yellow]Not ready for transition. Missing:[/yellow]")
+                        for item in missing:
+                            console.print(f"  • {item}")
+                    continue
+
+                # Decisions list
+                elif cmd == "/decisions":
+                    decisions = session.memory.get_all_decisions()
+                    if decisions:
+                        console.print("\n[bold]📋 Decisions Made:[/bold]\n")
+                        for dec in decisions:
+                            status = (
+                                "✅"
+                                if dec.status == "approved"
+                                else "⏳"
+                                if dec.status == "pending"
+                                else "❌"
+                            )
+                            console.print(f"  {status} [{dec.id}] {dec.topic}")
+                            console.print(f"      {dec.decision}")
+                            console.print(f"      [dim]Rationale: {dec.rationale[:80]}...[/dim]\n")
+                    else:
+                        console.print("[yellow]No decisions made yet.[/yellow]")
+                    continue
+
+                # Approve decision
+                elif cmd == "/approve":
+                    if args:
+                        target = args[0]
+                        session.feedback.create_feedback(
+                            FeedbackType.APPROVE,
+                            target_id=target,
+                            content=f"User approved decision {target}",
+                        )
+                        console.print(f"[green]✅ Approved: {target}[/green]")
+                        console.print("[dim]Agents will acknowledge this in the next turn.[/dim]")
+                    else:
+                        console.print("[yellow]Usage: /approve [decision_id][/yellow]")
+                    continue
+
+                # Reject decision
+                elif cmd == "/reject":
+                    if args:
+                        target = args[0]
+                        reason = " ".join(args[1:]) if len(args) > 1 else ""
+                        session.feedback.create_feedback(
+                            FeedbackType.REJECT,
+                            target_id=target,
+                            reason=reason,
+                        )
+                        console.print(f"[red]❌ Rejected: {target}[/red]")
+                        if reason:
+                            console.print(f"[dim]Reason: {reason}[/dim]")
+                        console.print(
+                            "[dim]Agents will propose alternatives in the next turn.[/dim]"
+                        )
+                    else:
+                        console.print("[yellow]Usage: /reject [decision_id] [reason][/yellow]")
+                    continue
+
+                # Revise decision
+                elif cmd == "/revise":
+                    if args:
+                        target = args[0]
+                        feedback = " ".join(args[1:]) if len(args) > 1 else ""
+                        session.feedback.create_feedback(
+                            FeedbackType.REVISE,
+                            target_id=target,
+                            content=feedback,
+                        )
+                        console.print(f"[yellow]🔄 Revision requested: {target}[/yellow]")
+                        console.print("[dim]Agents will revise this in the next turn.[/dim]")
+                    else:
+                        console.print("[yellow]Usage: /revise [decision_id] [feedback][/yellow]")
+                    continue
+
+                # Focus on topic
+                elif cmd == "/focus":
+                    if args:
+                        topic = " ".join(args)
+                        session.feedback.create_feedback(
+                            FeedbackType.FOCUS,
+                            content=topic,
+                        )
+                        console.print(f"[cyan]🎯 Focus set: {topic}[/cyan]")
+                        console.print("[dim]Agents will prioritize this topic.[/dim]")
+                    else:
+                        console.print("[yellow]Usage: /focus [topic][/yellow]")
+                    continue
+
+                # Ask specific agent
+                elif cmd == "/ask":
+                    if len(args) >= 2:
+                        agent_name = args[0]
+                        question = " ".join(args[1:])
+                        session.feedback.create_feedback(
+                            FeedbackType.ASK,
+                            target_id=agent_name,
+                            content=question,
+                        )
+                        console.print(f"[cyan]❓ Question for {agent_name}: {question}[/cyan]")
+                    else:
+                        console.print("[yellow]Usage: /ask [agent_name] [question][/yellow]")
+                        console.print("\n[bold]Available agents:[/bold]")
+                        for agent_id, agent in list(session.agents.items())[:8]:
+                            console.print(f"  {agent.icon} {agent.display_name} ({agent_id})")
+                    continue
+
+                # List agents
+                elif cmd == "/agents":
+                    console.print("\n[bold]🤖 Available Agents:[/bold]\n")
+                    for agent_id, agent in session.agents.items():
+                        console.print(
+                            f"  {agent.icon} [bold]{agent.display_name}[/bold] ({agent_id})"
+                        )
+                        console.print(f"      {agent.title}")
+                    continue
+
+                # Pause/Resume
+                elif cmd == "/pause":
+                    session.feedback.is_paused = True
+                    console.print(
+                        "[yellow]⏸️ Discussion paused. Agents will wait for your input.[/yellow]"
+                    )
+                    continue
+
+                elif cmd == "/resume":
+                    session.feedback.is_paused = False
+                    console.print("[green]▶️ Discussion resumed.[/green]")
+                    continue
+
+                # Save
+                elif cmd == "/save":
+                    session.save()
+                    console.print(f"[green]💾 Session saved: {session.session_id}[/green]")
+                    continue
+
+                # Undo last decision
+                elif cmd == "/undo":
+                    decisions = session.memory.get_all_decisions()
+                    if decisions:
+                        last = decisions[-1]
+                        session.feedback.create_feedback(
+                            FeedbackType.UNDO,
+                            target_id=last.id,
+                            content=f"Undo decision {last.id}",
+                        )
+                        console.print(
+                            f"[yellow]↩️ Undo requested for: [{last.id}] {last.topic}[/yellow]"
+                        )
+                    else:
+                        console.print("[yellow]No decisions to undo.[/yellow]")
+                    continue
+
+                # Unknown command
+                else:
+                    console.print(f"[yellow]Unknown command: {cmd}[/yellow]")
+                    console.print("Type /help for available commands.")
+                    continue
+
+            # Handle legacy simple commands (without /)
             if user_input.lower() in ["exit", "quit", "bye"]:
                 console.print("\n[yellow]Saving session and exiting...[/yellow]")
-                await session.close()  # Clean up OpenCode client
+                await session.close()
                 session.save()
                 console.print(f"[green]Session saved: {session.session_id}[/green]")
-                console.print(
-                    f'Resume with: bmad-claude party "{project_name}" --resume {session.session_id}'
-                )
                 break
 
-            if user_input.lower() == "status":
-                console.print(session.get_status_display())
-                continue
-
-            if user_input.lower() in ["next", "continue", "phase"]:
-                # Try to transition phase
-                transition = await session.transition_phase()
-                if transition:
-                    console.print(
-                        Panel.fit(
-                            f"[green]Phase Complete![/green]\n\n"
-                            f"From: {transition.from_phase}\n"
-                            f"To: {transition.to_phase}\n"
-                            f"Artifacts: {', '.join(transition.artifacts_finalized)}",
-                            title="Phase Transition",
-                        )
-                    )
-                else:
-                    is_complete, missing = session.phase_manager.check_phase_complete(
-                        session.memory
-                    )
-                    console.print(f"[yellow]Not ready for transition. Missing:[/yellow]")
-                    for item in missing:
-                        console.print(f"  • {item}")
+            # Check if paused - require explicit input
+            if session.feedback.is_paused and not user_input:
+                console.print(
+                    "[dim]Discussion paused. Enter your input or /resume to continue.[/dim]"
+                )
                 continue
 
             # Run discussion turn with streaming
@@ -763,6 +956,9 @@ async def _run_party_session(
                     for dec in discussion.decisions:
                         console.print(f"  • [{dec.id}] {dec.topic}: {dec.decision}")
                     console.print()
+                    console.print(
+                        "[dim]💡 Use /approve, /reject, or /revise to give feedback on decisions[/dim]"
+                    )
 
             except Exception as e:
                 console.print(f"\n[red]Error during discussion: {e}[/red]")
