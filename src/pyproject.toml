@@ -81,4 +81,5 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["tests"]
+testpaths = ["tests", "bmad_claude/party/tests"]
+asyncio_default_fixture_loop_scope = "function"

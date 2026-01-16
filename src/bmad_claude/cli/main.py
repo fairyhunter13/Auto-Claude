@@ -1123,7 +1123,7 @@ async def _run_party_session(
         raise typer.Exit(1)
     finally:
         # Ensure cleanup on any exit
-        if "session" in locals() and session._opencode_client:
+        if "session" in locals():
             await session.close()
 
 
