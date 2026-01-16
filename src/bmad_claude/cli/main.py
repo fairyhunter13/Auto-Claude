@@ -666,6 +666,7 @@ async def _run_party_session(
             # Handle special commands
             if user_input.lower() in ["exit", "quit", "bye"]:
                 console.print("\n[yellow]Saving session and exiting...[/yellow]")
+                await session.close()  # Clean up OpenCode client
                 session.save()
                 console.print(f"[green]Session saved: {session.session_id}[/green]")
                 console.print(
@@ -699,35 +700,38 @@ async def _run_party_session(
                         console.print(f"  • {item}")
                 continue
 
-            # Run discussion turn
+            # Run discussion turn with streaming
             console.print("\n[dim]Agents are discussing...[/dim]\n")
 
             try:
-                discussion = await session.discuss(user_message=user_input or None)
+                # Streaming callback - prints text as it arrives
+                def on_stream_text(text: str) -> None:
+                    console.print(text, end="", highlight=False)
 
-                # Display agent responses
-                console.print()
-                for agent_id, content in discussion.agent_responses:
-                    agent = session.agents.get(agent_id)
-                    if agent:
-                        console.print(f"{agent.icon} [bold]{agent.display_name}[/bold]:")
-                        console.print(Markdown(content))
-                        console.print()
+                # Use streaming discuss for real-time output
+                discussion = await session.stream_discuss(
+                    user_message=user_input or None,
+                    on_text=on_stream_text,
+                )
 
-                # Display decisions if any
+                # Add newlines after streaming completes
+                console.print("\n")
+
+                # Display decisions if any (these come after parsing)
                 if discussion.decisions:
-                    console.print("[bold yellow]Decisions Made:[/bold yellow]")
+                    console.print("[bold yellow]📋 Decisions Made:[/bold yellow]")
                     for dec in discussion.decisions:
                         console.print(f"  • [{dec.id}] {dec.topic}: {dec.decision}")
                     console.print()
 
             except Exception as e:
-                console.print(f"[red]Error during discussion: {e}[/red]")
+                console.print(f"\n[red]Error during discussion: {e}[/red]")
                 console.print("[yellow]Session saved. You can resume later.[/yellow]")
                 session.save()
 
         # Session complete
         if session.is_complete():
+            await session.close()  # Clean up
             console.print(
                 Panel.fit(
                     "[bold green]🎉 Session Complete![/bold green]\n\n"
@@ -746,6 +750,10 @@ async def _run_party_session(
     except RuntimeError as e:
         console.print(f"[red]Error: {e}[/red]")
         raise typer.Exit(1)
+    finally:
+        # Ensure cleanup on any exit
+        if "session" in locals() and session._opencode_client:
+            await session.close()
 
 
 @app.command(name="sessions")

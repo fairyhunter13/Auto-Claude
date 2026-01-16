@@ -15,13 +15,14 @@ import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, AsyncIterator, Callable
 
 import yaml
 
 from bmad_claude.party.memory import PartyMemory, Decision
 from bmad_claude.party.orchestrator import AgentOrchestrator, AgentPersona
 from bmad_claude.party.phase import PhaseManager, PhaseTopic
+from bmad_claude.party.opencode_client import OpenCodeClient, OpenCodeConfig, StreamEvent
 
 
 @dataclass
@@ -95,6 +96,10 @@ class PartySession:
 
         # Session directory
         self.session_dir = project_root / ".bmad-claude" / "party-sessions" / session_id
+
+        # OpenCode client for streaming (lazily initialized)
+        self._opencode_client: OpenCodeClient | None = None
+        self._use_streaming = True  # Enable streaming by default
 
     @classmethod
     async def create(
@@ -306,6 +311,163 @@ class PartySession:
             phase=current_phase,
             turn=self.memory.current_turn,
         )
+
+    async def stream_discuss(
+        self,
+        user_message: str | None = None,
+        topic: str | None = None,
+        lead_agent: str | None = None,
+        on_text: Callable[[str], None] | None = None,
+    ) -> Discussion:
+        """
+        Facilitate a discussion turn with streaming output.
+
+        Streams text chunks in real-time while building the full response.
+
+        Args:
+            user_message: User's input (optional for continuation)
+            topic: Discussion topic (auto-detected if not provided)
+            lead_agent: Agent to lead discussion (optional)
+            on_text: Callback for each text chunk (for real-time display)
+
+        Returns:
+            Discussion result with agent responses and decisions
+        """
+        self.updated_at = datetime.now()
+        current_phase = self.phase_manager.current_phase
+
+        # Determine topic
+        if not topic:
+            if user_message:
+                suggested = self.phase_manager.get_suggested_topic(user_message)
+                topic = suggested.name if suggested else "General Discussion"
+            else:
+                next_topic = self.phase_manager.get_next_topic()
+                topic = next_topic.name if next_topic else "General Discussion"
+
+        # Add user message to memory
+        if user_message:
+            self.memory.add_message(
+                role="user",
+                content=user_message,
+                topic=topic,
+                phase=current_phase,
+            )
+
+        # Select agents
+        selected_agents = self.orchestrator.select_agents(
+            topic=user_message or topic,
+            phase=current_phase,
+            user_directed=lead_agent,
+        )
+
+        # Build context
+        context = f"""**Project:** {self.project_name}
+**Current Phase:** {self.phase_manager.get_current_phase().name}
+**Discussion Topic:** {topic}
+
+{self.memory.get_context()}
+"""
+
+        # Build prompt
+        prompt = self.orchestrator.build_discussion_prompt(
+            topic=topic,
+            agents=selected_agents,
+            context=context,
+            user_message=user_message,
+        )
+
+        # Stream response
+        llm_response = await self._invoke_opencode_streaming(prompt, on_text)
+
+        # Parse responses
+        agent_responses, raw_decisions = self.orchestrator.parse_agent_responses(llm_response)
+
+        # Add agent responses to memory
+        self.memory.add_agent_responses(
+            responses=agent_responses,
+            topic=topic,
+            phase=current_phase,
+        )
+
+        # Register decisions
+        decisions = []
+        for raw_dec in raw_decisions:
+            decision = self.memory.add_decision(
+                topic=raw_dec["topic"],
+                decision=raw_dec["decision"],
+                rationale=raw_dec["rationale"],
+                participants=selected_agents,
+                phase=current_phase,
+            )
+            decisions.append(decision)
+
+        # Mark topic as covered if it matches a phase topic
+        phase_topic = self.phase_manager.get_suggested_topic(topic)
+        if phase_topic:
+            self.phase_manager.mark_topic_covered(phase_topic.id)
+
+        # Auto-save
+        self.save()
+
+        return Discussion(
+            topic=topic,
+            user_message=user_message,
+            agent_responses=agent_responses,
+            decisions=decisions,
+            phase=current_phase,
+            turn=self.memory.current_turn,
+        )
+
+    async def _get_opencode_client(self) -> OpenCodeClient:
+        """Get or create OpenCode client for streaming."""
+        if self._opencode_client is None:
+            config = OpenCodeConfig(
+                model=self.model,
+                variant=self.variant,
+                opencode_path=self.opencode_path,
+            )
+            self._opencode_client = OpenCodeClient(config, self.project_root)
+            await self._opencode_client.connect()
+        return self._opencode_client
+
+    async def _invoke_opencode_streaming(
+        self,
+        prompt: str,
+        on_text: Callable[[str], None] | None = None,
+    ) -> str:
+        """
+        Invoke OpenCode with streaming output.
+
+        Args:
+            prompt: Prompt to send
+            on_text: Callback for each text chunk
+
+        Returns:
+            Complete response text
+        """
+        self._ensure_opencode_config()
+
+        try:
+            client = await self._get_opencode_client()
+            full_response = []
+
+            async for event in client.stream_prompt(prompt):
+                if event.text:
+                    full_response.append(event.text)
+                    if on_text:
+                        on_text(event.text)
+
+            return "".join(full_response)
+        except Exception as e:
+            # Fall back to non-streaming if server fails
+            return await self._invoke_opencode(prompt)
+
+    async def close(self) -> None:
+        """Close the session and clean up resources."""
+        if self._opencode_client:
+            await self._opencode_client.disconnect()
+            self._opencode_client = None
 
     async def transition_phase(self) -> PhaseTransition | None:
         """
