@@ -22,14 +22,6 @@ import yaml
 from bmad_claude.party.memory import PartyMemory, Decision
 from bmad_claude.party.orchestrator import AgentOrchestrator, AgentPersona
 from bmad_claude.party.phase import PhaseManager, PhaseTopic
-from bmad_claude.party.opencode_client import OpenCodeClient, OpenCodeConfig, StreamEvent
-from bmad_claude.party.opencode_pool import (
-    OpenCodePool,
-    OpenCodeProfile,
-    LoadBalanceStrategy,
-    BUILTIN_PROFILES,
-    create_pool_from_names,
-)
 from bmad_claude.party.feedback import FeedbackHandler, FeedbackType
 
 
@@ -108,12 +100,6 @@ class PartySession:
 
         # Session directory
         self.session_dir = project_root / ".bmad-claude" / "party-sessions" / session_id
-
-        # OpenCode client/pool for streaming (lazily initialized)
-        self._opencode_client: OpenCodeClient | None = None
-        self._opencode_pool: OpenCodePool | None = None
-        self._use_streaming = True  # Enable streaming by default
-        self._use_pool = profiles is not None and len(profiles) > 0
 
         # User feedback handler
         self.feedback = FeedbackHandler()
@@ -459,29 +445,6 @@ class PartySession:
             turn=self.memory.current_turn,
         )
 
-    async def _get_opencode_client(self) -> OpenCodeClient:
-        """Get or create OpenCode client for streaming."""
-        if self._opencode_client is None:
-            config = OpenCodeConfig(
-                model=self.model,
-                variant=self.variant,
-                opencode_path=self.opencode_path,
-            )
-            self._opencode_client = OpenCodeClient(config, self.project_root)
-            await self._opencode_client.connect()
-        return self._opencode_client
-
-    async def _get_opencode_pool(self) -> OpenCodePool:
-        """Get or create OpenCode pool for load balancing."""
-        if self._opencode_pool is None:
-            self._opencode_pool = create_pool_from_names(
-                profile_names=self.profiles or ["personal", "work"],
-                strategy=self.load_balance_strategy,
-                project_root=self.project_root,
-            )
-            await self._opencode_pool.start()
-        return self._opencode_pool
-
     async def _invoke_opencode_streaming(
         self,
         prompt: str,
@@ -490,8 +453,8 @@ class PartySession:
         """
         Invoke OpenCode with streaming output.
 
-        Uses pool with load balancing if profiles are configured,
-        otherwise uses a single client.
+        Uses `opencode run` with subprocess streaming for real-time output.
+        Supports load balancing across profiles via environment variables.
 
         Args:
             prompt: Prompt to send
@@ -502,45 +465,106 @@ class PartySession:
         """
         self._ensure_opencode_config()
 
+        # Get environment for the selected profile (for load balancing)
+        env = self._get_profile_env()
+
+        cmd = [
+            self.opencode_path,
+            "run",
+            "--model",
+            self.model,
+            prompt,
+        ]
+
         try:
+            # Use asyncio subprocess for streaming
+            process = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+                cwd=str(self.project_root),
+                env=env,
+            )
+
             full_response = []
 
-            if self._use_pool and self.profiles:
-                # Use load-balanced pool
-                pool = await self._get_opencode_pool()
-                async for event in pool.stream_prompt(prompt):
-                    if event.text:
-                        full_response.append(event.text)
-                        if on_text:
-                            on_text(event.text)
-            else:
-                # Use single client
-                client = await self._get_opencode_client()
-                async for event in client.stream_prompt(prompt):
-                    if event.text:
-                        full_response.append(event.text)
-                        if on_text:
-                            on_text(event.text)
+            # Stream stdout
+            while True:
+                # Read chunks as they come
+                chunk = await process.stdout.read(100)  # Read in small chunks
+                if not chunk:
+                    break
+
+                text = chunk.decode("utf-8", errors="replace")
+                full_response.append(text)
+
+                if on_text:
+                    on_text(text)
+
+            # Wait for process to complete
+            await process.wait()
+
+            if process.returncode != 0:
+                stderr = await process.stderr.read()
+                error_msg = stderr.decode("utf-8", errors="replace")
+                raise RuntimeError(f"OpenCode error: {error_msg}")
 
             return "".join(full_response)
-        except Exception as e:
-            # Fall back to non-streaming if server fails
-            return await self._invoke_opencode(prompt)
+
+        except FileNotFoundError:
+            raise RuntimeError(
+                f"OpenCode not found at: {self.opencode_path}\n"
+                "Install OpenCode from https://opencode.ai or specify path with --opencode-path"
+            )
+
+    def _get_profile_env(self) -> dict[str, str]:
+        """
+        Get environment variables for the selected profile.
+
+        Implements simple round-robin load balancing by selecting
+        the next profile in the list.
+        """
+        import os
+
+        env = os.environ.copy()
+        env["OPENCODE_DISABLE_AUTOUPDATE"] = "true"
+
+        if not self.profiles:
+            return env
+
+        # Simple round-robin: use turn count to select profile
+        profile_index = self.memory.current_turn % len(self.profiles)
+        profile_name = self.profiles[profile_index]
+
+        # Set XDG paths based on profile
+        if profile_name == "personal":
+            env["XDG_CONFIG_HOME"] = os.path.expanduser("~/.config/opencode-personal")
+            env["XDG_DATA_HOME"] = os.path.expanduser("~/.local/share/opencode-personal")
+        elif profile_name == "work":
+            env["XDG_CONFIG_HOME"] = os.path.expanduser("~/.config/opencode-work")
+            env["XDG_DATA_HOME"] = os.path.expanduser("~/.local/share/opencode-work")
+        # default profile uses standard paths
+
+        return env
 
     async def close(self) -> None:
         """Close the session and clean up resources."""
-        if self._opencode_client:
-            await self._opencode_client.disconnect()
-            self._opencode_client = None
-        if self._opencode_pool:
-            await self._opencode_pool.stop()
-            self._opencode_pool = None
+        # Save session state before closing
+        self.save()
 
     def get_pool_status(self) -> dict[str, Any] | None:
-        """Get load balancing pool status if using profiles."""
-        if self._opencode_pool:
-            return self._opencode_pool.get_status()
-        return None
+        """Get load balancing status for profiles."""
+        if not self.profiles:
+            return None
+
+        return {
+            "strategy": self.load_balance_strategy,
+            "profiles": self.profiles,
+            "current_turn": self.memory.current_turn,
+            "active_profile": self.profiles[self.memory.current_turn % len(self.profiles)]
+            if self.profiles
+            else None,
+        }
 
     async def transition_phase(self) -> PhaseTransition | None:
         """
