@@ -587,10 +587,16 @@ def party(
         help="Path to OpenCode executable",
     ),
     model: str = typer.Option(
-        "claude-4-opus",
+        "anthropic/claude-opus-4-5",
         "--model",
         "-m",
-        help="LLM model to use (claude-4-opus recommended for high quality)",
+        help="LLM model to use in provider/model format (e.g., anthropic/claude-opus-4-5)",
+    ),
+    variant: str = typer.Option(
+        "max",
+        "--variant",
+        "-v",
+        help="Model variant (e.g., 'max' for maximum thinking budget on Anthropic)",
     ),
 ):
     """
@@ -602,7 +608,7 @@ def party(
 
     Examples:
         bmad-claude party "Task Management App"
-        bmad-claude party "E-commerce Platform" --model claude-4-opus
+        bmad-claude party "E-commerce Platform" --model anthropic/claude-opus-4-5 --variant max
         bmad-claude party "My Project" --resume party-2026-01-16-my-project
     """
     print_party_banner()
@@ -613,6 +619,7 @@ def party(
             resume_session=resume_session,
             opencode_path=opencode_path,
             model=model,
+            variant=variant,
         )
     )
 
@@ -622,6 +629,7 @@ async def _run_party_session(
     resume_session: str | None,
     opencode_path: str,
     model: str,
+    variant: str,
 ):
     """Run the interactive party mode session."""
     from bmad_claude.party import PartySession
@@ -637,6 +645,7 @@ async def _run_party_session(
                 project_name=project_name,
                 opencode_path=opencode_path,
                 model=model,
+                variant=variant,
             )
 
         # Display welcome

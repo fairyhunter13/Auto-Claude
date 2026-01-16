@@ -74,7 +74,8 @@ class PartySession:
         memory: PartyMemory | None = None,
         phase_manager: PhaseManager | None = None,
         opencode_path: str = "opencode",
-        model: str = "claude-4-opus",  # OpenCode model ID
+        model: str = "anthropic/claude-opus-4-5",  # OpenCode model (provider/model)
+        variant: str = "max",  # Model variant (max = maximum thinking budget)
     ):
         self.project_name = project_name
         self.session_id = session_id
@@ -85,6 +86,7 @@ class PartySession:
         self.orchestrator = AgentOrchestrator(agents)
         self.opencode_path = opencode_path
         self.model = model
+        self.variant = variant
 
         # Session state
         self.started_at = datetime.now()
@@ -100,7 +102,8 @@ class PartySession:
         project_name: str,
         project_root: Path | None = None,
         opencode_path: str = "opencode",
-        model: str = "claude-4-opus",
+        model: str = "anthropic/claude-opus-4-5",
+        variant: str = "max",
     ) -> "PartySession":
         """
         Create a new party session.
@@ -143,6 +146,7 @@ class PartySession:
             agents=agents,
             opencode_path=opencode_path,
             model=model,
+            variant=variant,
         )
 
         # Create session directory
@@ -190,7 +194,8 @@ class PartySession:
             memory=memory,
             phase_manager=phase_manager,
             opencode_path=metadata.get("opencode_path", "opencode"),
-            model=metadata.get("model", "claude-4-opus"),
+            model=metadata.get("model", "anthropic/claude-opus-4-5"),
+            variant=metadata.get("variant", "max"),
         )
 
         session.started_at = datetime.fromisoformat(metadata["session"]["started_at"])
@@ -392,12 +397,21 @@ Use BMAD format with clear sections and markdown formatting.
         """
         Invoke OpenCode CLI for LLM execution.
 
+        Uses `opencode run` command with the configured model.
+
+        Note: Model variants (e.g., 'max' for Anthropic) are configured via
+        opencode.json in the project root. Use generate_opencode_config() to
+        create the config file with your preferred variant.
+
         Args:
             prompt: Prompt to send
 
         Returns:
             LLM response
         """
+        # Ensure opencode.json exists with variant config
+        self._ensure_opencode_config()
+
         cmd = [
             self.opencode_path,
             "run",
@@ -422,8 +436,79 @@ Use BMAD format with clear sections and markdown formatting.
         except FileNotFoundError:
             raise RuntimeError(
                 f"OpenCode not found at: {self.opencode_path}\n"
-                "Install OpenCode or specify path with --opencode-path"
+                "Install OpenCode from https://opencode.ai or specify path with --opencode-path"
             )
+
+    def _ensure_opencode_config(self) -> None:
+        """
+        Ensure opencode.json exists with variant configuration.
+
+        Creates or updates opencode.json to configure the model variant
+        (e.g., 'max' for maximum thinking budget on Anthropic models).
+        """
+        import json
+
+        config_path = self.project_root / "opencode.json"
+
+        # Build variant config based on provider
+        provider = self.model.split("/")[0] if "/" in self.model else "anthropic"
+        model_id = self.model.split("/")[1] if "/" in self.model else self.model
+
+        # Only add variant config if we have a non-default variant
+        if self.variant and self.variant != "high":  # 'high' is default for Anthropic
+            config = {
+                "$schema": "https://opencode.ai/config.json",
+                "model": self.model,
+                "provider": {
+                    provider: {
+                        "models": {
+                            model_id: {"options": self._get_variant_options(provider, self.variant)}
+                        }
+                    }
+                },
+            }
+
+            # Merge with existing config if present
+            if config_path.exists():
+                try:
+                    with open(config_path) as f:
+                        existing = json.load(f)
+                    # Only update if our model config isn't already there
+                    if "provider" not in existing:
+                        existing["provider"] = config["provider"]
+                    elif provider not in existing["provider"]:
+                        existing["provider"][provider] = config["provider"][provider]
+                    config = existing
+                except (json.JSONDecodeError, KeyError):
+                    pass  # Use our config if existing is invalid
+
+            with open(config_path, "w") as f:
+                json.dump(config, f, indent=2)
+
+    def _get_variant_options(self, provider: str, variant: str) -> dict:
+        """Get model options for a given variant."""
+        if provider == "anthropic":
+            # Anthropic variants control thinking budget
+            if variant == "max":
+                return {
+                    "thinking": {
+                        "type": "enabled",
+                        "budgetTokens": 32000,  # Maximum thinking budget
+                    }
+                }
+            elif variant == "high":
+                return {
+                    "thinking": {
+                        "type": "enabled",
+                        "budgetTokens": 16000,
+                    }
+                }
+        elif provider == "openai":
+            # OpenAI variants control reasoning effort
+            return {
+                "reasoningEffort": variant,
+            }
+        return {}
 
     def save(self) -> Path:
         """
@@ -448,6 +533,7 @@ Use BMAD format with clear sections and markdown formatting.
             "stats": self.memory.get_stats(),
             "opencode_path": self.opencode_path,
             "model": self.model,
+            "variant": self.variant,
         }
 
         with open(self.session_dir / "session.yaml", "w") as f:
