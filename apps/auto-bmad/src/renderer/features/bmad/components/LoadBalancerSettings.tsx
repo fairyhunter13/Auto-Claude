@@ -6,20 +6,20 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
-import { Badge } from '@/shared/ui/badge';
-import { Button } from '@/shared/ui/button';
-import { Switch } from '@/shared/ui/switch';
-import { Label } from '@/shared/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Badge } from '../../../components/ui/badge';
+import { Button } from '../../../components/ui/button';
+import { Switch } from '../../../components/ui/switch';
+import { Label } from '../../../components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/shared/ui/select';
-import { Progress } from '@/shared/ui/progress';
-import { Separator } from '@/shared/ui/separator';
+} from '../../../components/ui/select';
+import { Progress } from '../../../components/ui/progress';
+import { Separator } from '../../../components/ui/separator';
 import {
   RefreshCw,
   Server,
@@ -33,7 +33,7 @@ import {
   Activity,
   Settings2,
 } from 'lucide-react';
-import { cn } from '@/shared/lib/utils';
+import { cn } from '../../../lib/utils';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types

@@ -37,6 +37,11 @@
       "title": "Profils API",
       "description": "Profils d'endpoint API personnalisés"
     },
+    "loadBalancing": {
+      "title": "Répartition de charge",
+      "description": "Distribuer les workflows entre les profils OpenCode",
+      "previewMode": "Mode aperçu - API de répartition de charge non initialisée. Démarrez un workflow BMAD pour l'activer."
+    },
     "updates": {
       "title": "Mises à jour",
       "description": "Mises à jour Auto Claude"
