@@ -5,7 +5,11 @@ phase:
   current_phase: planning
   topics_covered:
     implementation: []
-    planning: []
+    planning:
+    - vision
+    - users
+    - success
+    - scope
     solutioning: []
 profiles:
 - personal
@@ -14,13 +18,13 @@ schema_version: 1
 session:
   id: party-2026-01-16-test-project
   project_name: Test Project
-  started_at: '2026-01-16T09:44:43.221623'
+  started_at: '2026-01-16T10:03:13.891880'
   status: active
-  updated_at: '2026-01-16T09:44:43.221626'
+  updated_at: '2026-01-16T10:04:21.063487'
 stats:
   artifacts_count: 0
-  current_turn: 1
+  current_turn: 0
   decisions_count: 0
-  messages_count: 1
+  messages_count: 10
   summaries_count: 0
 variant: max
