@@ -1,0 +1,367 @@
+# Discovery Mode Workflow for Unknown Languages
+# Version: 1.0.0
+#
+# This workflow activates when:
+# - Language is not in detection-rules.yaml (Tier 1 miss)
+# - Family inference has low confidence (Tier 2 uncertain)
+#
+# Discovery mode researches the unknown language to generate
+# a provisional testing strategy.
+
+name: language-discovery
+description: "Research unknown language to generate provisional test strategy"
+tier: 3
+
+# ============================================
+# ACTIVATION CONDITIONS
+# ============================================
+
+activation:
+  # When to trigger discovery mode
+  triggers:
+    - condition: language_not_recognized
+      description: "No match in detection-rules.yaml"
+    
+    - condition: family_confidence_low
+      threshold: 0.4
+      description: "Family inference confidence below threshold"
+    
+    - condition: user_requested
+      description: "User explicitly requested discovery"
+  
+  # Discovery mode settings
+  settings:
+    # Whether to auto-run or prompt user
+    mode: prompt  # auto | prompt | disabled
+    
+    # Allow web fetching for research
+    allow_web_fetch: true
+    
+    # Maximum research time (seconds)
+    timeout: 60
+    
+    # Save discovered strategies for future use
+    save_provisional: true
+    provisional_path: "languages/_provisional"
+
+# ============================================
+# DISCOVERY STEPS
+# ============================================
+
+steps:
+  # ─────────────────────────────────────────
+  # Step 1: Gather Evidence
+  # ─────────────────────────────────────────
+  - id: gather_evidence
+    name: "Gather Language Evidence"
+    description: "Collect information about the unknown language from project"
+    
+    actions:
+      - action: identify_file_extensions
+        description: "Find unique file extensions in project"
+        command: |
+          find . -type f -name "*.*" | 
+          sed 's/.*\.//' | 
+          sort | uniq -c | sort -rn | head -20
+        output: extensions_list
+      
+      - action: find_build_files
+        description: "Identify build/project configuration files"
+        patterns:
+          - "**/Makefile"
+          - "**/CMakeLists.txt"
+          - "**/*.toml"
+          - "**/*.yaml"
+          - "**/*.json"
+          - "**/build.*"
+          - "**/project.*"
+        output: build_files
+      
+      - action: extract_language_hints
+        description: "Look for language name in project files"
+        search_in:
+          - "README*"
+          - "*.toml"
+          - "*.json"
+          - "*.yaml"
+        patterns:
+          - "language:\\s*(\\w+)"
+          - "lang:\\s*(\\w+)"
+          - "written in (\\w+)"
+        output: language_hints
+      
+      - action: sample_source_code
+        description: "Extract sample source code for analysis"
+        rules:
+          - select_files: 5
+          - max_lines_per_file: 100
+          - exclude_tests: true
+          - exclude_generated: true
+        output: code_samples
+      
+      - action: find_existing_tests
+        description: "Look for existing test files"
+        patterns:
+          - "**/test*/**"
+          - "**/*test*"
+          - "**/*spec*"
+          - "**/tests/**"
+        output: existing_tests
+
+  # ─────────────────────────────────────────
+  # Step 2: Web Research (if enabled)
+  # ─────────────────────────────────────────
+  - id: web_research
+    name: "Research Language Online"
+    description: "Search for testing best practices for the language"
+    condition: "settings.allow_web_fetch == true"
+    
+    actions:
+      - action: search_testing_framework
+        description: "Find testing frameworks for the language"
+        queries:
+          - "{language_name} testing framework"
+          - "{language_name} unit test"
+          - "{language_name} test runner"
+        extract:
+          - framework_names
+          - test_commands
+          - file_patterns
+        output: framework_research
+      
+      - action: search_best_practices
+        description: "Find testing best practices"
+        queries:
+          - "{language_name} testing best practices"
+          - "{language_name} test patterns"
+          - "how to test {language_name}"
+        extract:
+          - recommended_patterns
+          - common_assertions
+          - setup_teardown
+        output: best_practices
+      
+      - action: search_official_docs
+        description: "Find official documentation"
+        queries:
+          - "{language_name} official documentation"
+          - "{language_name} language guide"
+        extract:
+          - official_test_docs
+          - standard_library_testing
+        output: official_docs
+
+  # ─────────────────────────────────────────
+  # Step 3: Analyze Existing Tests
+  # ─────────────────────────────────────────
+  - id: analyze_existing
+    name: "Analyze Existing Tests"
+    description: "Learn from any existing test files in the project"
+    condition: "existing_tests is not empty"
+    
+    actions:
+      - action: extract_test_patterns
+        description: "Identify testing patterns used"
+        analyze:
+          - file_naming: "Naming convention for test files"
+          - test_structure: "How tests are organized"
+          - assertion_style: "What assertion patterns are used"
+          - setup_teardown: "Fixture patterns"
+          - imports: "Test framework imports"
+        output: existing_patterns
+      
+      - action: extract_test_commands
+        description: "Find how tests are run"
+        search_in:
+          - "Makefile"
+          - "package.json"
+          - "*.toml"
+          - "README*"
+          - ".github/workflows/*"
+          - ".gitlab-ci.yml"
+        patterns:
+          - "test:"
+          - "npm test"
+          - "make test"
+          - "cargo test"
+        output: test_commands
+
+  # ─────────────────────────────────────────
+  # Step 4: Generate Provisional Strategy
+  # ─────────────────────────────────────────
+  - id: generate_strategy
+    name: "Generate Provisional Strategy"
+    description: "Create a provisional testing strategy based on research"
+    
+    actions:
+      - action: synthesize_findings
+        description: "Combine all research into coherent strategy"
+        inputs:
+          - extensions_list
+          - build_files
+          - language_hints
+          - code_samples
+          - existing_tests
+          - framework_research
+          - best_practices
+          - existing_patterns
+        output: synthesized_strategy
+      
+      - action: generate_strategy_document
+        description: "Create markdown strategy document"
+        template: |
+          # Provisional Strategy: {language_name}
+          
+          > **PROVISIONAL** - Auto-generated via discovery mode.
+          > Confidence: {confidence_level} | Generated: {timestamp}
+          > Please validate and update as needed.
+          
+          ## Discovery Summary
+          
+          - **Source**: {discovery_sources}
+          - **Confidence**: {confidence_level}
+          - **Evidence**: {evidence_summary}
+          
+          ## Detected Information
+          
+          ### File Extensions
+          {detected_extensions}
+          
+          ### Build System
+          {detected_build_system}
+          
+          ### Existing Tests Found
+          {existing_tests_summary}
+          
+          ## Recommended Test Framework
+          
+          **Primary**: {recommended_framework}
+          **Alternatives**: {alternative_frameworks}
+          
+          ### Test File Pattern
+          {test_file_pattern}
+          
+          ### Test Command
+          ```bash
+          {test_command}
+          ```
+          
+          ## Testing Strategy
+          
+          ### Test Structure
+          {test_structure_recommendation}
+          
+          ### Assertion Patterns
+          {assertion_patterns}
+          
+          ### Setup/Teardown
+          {setup_teardown_patterns}
+          
+          ## Validation Needed
+          
+          Please validate the following:
+          - [ ] Test framework is correct
+          - [ ] File patterns match project conventions
+          - [ ] Test command works
+          - [ ] Assertion style is appropriate
+          
+          ## Universal Fallback Applied
+          
+          The following universal principles were used:
+          {universal_principles_applied}
+        output: strategy_document
+
+  # ─────────────────────────────────────────
+  # Step 5: Save and Report
+  # ─────────────────────────────────────────
+  - id: save_and_report
+    name: "Save Provisional Strategy"
+    description: "Save the generated strategy for future use"
+    
+    actions:
+      - action: save_provisional_strategy
+        description: "Write strategy to provisional directory"
+        condition: "settings.save_provisional == true"
+        path: "{provisional_path}/{language_name}/_provisional.md"
+        content: strategy_document
+      
+      - action: report_to_user
+        description: "Inform user of discovery results"
+        message: |
+          ## Discovery Complete: {language_name}
+          
+          **Confidence**: {confidence_level}
+          
+          I've generated a provisional testing strategy based on:
+          - Project analysis: {project_analysis_summary}
+          - Web research: {web_research_summary}
+          - Existing tests: {existing_tests_summary}
+          
+          **Recommended Framework**: {recommended_framework}
+          **Test Command**: `{test_command}`
+          
+          ### Next Steps
+          1. Review the provisional strategy
+          2. Validate the recommendations
+          3. Run a test to confirm setup works
+          
+          Would you like to:
+          [A] Proceed with this strategy
+          [B] Modify the recommendations
+          [C] Use universal fallback instead
+          [D] Skip testing for this language
+
+# ============================================
+# CONFIDENCE CALCULATION
+# ============================================
+
+confidence:
+  # How to calculate confidence level
+  calculation:
+    base: 0.0
+    
+    factors:
+      - name: existing_tests_found
+        weight: 0.3
+        description: "Project has existing tests"
+      
+      - name: framework_identified
+        weight: 0.25
+        description: "Test framework clearly identified"
+      
+      - name: official_docs_found
+        weight: 0.15
+        description: "Official testing docs found"
+      
+      - name: build_system_identified
+        weight: 0.15
+        description: "Build/project system identified"
+      
+      - name: community_consensus
+        weight: 0.15
+        description: "Multiple sources agree on approach"
+  
+  levels:
+    high: 0.7
+    medium: 0.4
+    low: 0.0
+
+# ============================================
+# FALLBACK RULES
+# ============================================
+
+fallback:
+  # If discovery fails or has very low confidence
+  on_failure:
+    action: use_universal_fallback
+    file: "universal/universal-fallback.md"
+  
+  # If web fetch disabled or fails
+  on_no_web:
+    action: analyze_project_only
+    confidence_penalty: 0.2
+  
+  # If no existing tests found
+  on_no_existing_tests:
+    action: rely_on_research
+    confidence_penalty: 0.1

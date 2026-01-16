@@ -1,0 +1,531 @@
+# BMAD Target Registry
+# Version: 1.0.0
+#
+# Defines all valid target values for BMAD workflow execution.
+# The `target` field determines where BMAD stops execution.
+#
+# DESIGN DECISIONS (from Party Mode):
+# - CIS targets: EXCLUDED (creative workflows, separate concern)
+# - BMB targets: EXCLUDED (meta/builder workflows, separate concern)
+# - Diagram targets: EXCLUDED as main targets (sub-targets within parent workflows)
+# - Utility workflows: EXCLUDED (don't produce artifacts)
+
+# ============================================
+# TARGET REGISTRY
+# ============================================
+
+targets:
+
+  # ─────────────────────────────────────────
+  # PHASE 1: ANALYSIS (Optional)
+  # ─────────────────────────────────────────
+  
+  research:
+    phase: 1
+    workflow: research
+    workflow_path: "1-analysis/research"
+    agent: analyst
+    description: "Complete discovery research workflow"
+    output:
+      type: file
+      path: "research-findings.md"
+    required: false
+    
+  brief:
+    phase: 1
+    workflow: create-product-brief
+    workflow_path: "1-analysis/create-product-brief"
+    agent: analyst
+    description: "Create product vision brief"
+    output:
+      type: file
+      path: "product-brief.md"
+    required: false
+    
+  brainstorm:
+    phase: 1
+    workflow: brainstorming
+    workflow_path: "core/workflows/brainstorming"
+    agent: brainstorming-coach
+    description: "Complete brainstorming session"
+    output:
+      type: file
+      path: "brainstorm-notes.md"
+    required: false
+
+  # ─────────────────────────────────────────
+  # PHASE 2: PLANNING (Required)
+  # ─────────────────────────────────────────
+  
+  prd:
+    phase: 2
+    workflow: prd
+    workflow_path: "2-plan-workflows/prd"
+    agent: pm
+    description: "Create/validate Product Requirements Document"
+    output:
+      type: file
+      path: "prd.md"
+    required: true
+    
+  ux-design:
+    phase: 2
+    workflow: create-ux-design
+    workflow_path: "2-plan-workflows/create-ux-design"
+    agent: ux-designer
+    description: "Create UX design document"
+    output:
+      type: file
+      path: "ux-design.md"
+    required: false
+    conditional:
+      field: has_ui
+      value: true
+    # Sub-targets for diagrams (created within this workflow)
+    sub_targets:
+      - wireframe  # Excalidraw wireframes
+
+  # ─────────────────────────────────────────
+  # PHASE 3: SOLUTIONING (Required)
+  # ─────────────────────────────────────────
+  
+  architecture:
+    phase: 3
+    workflow: create-architecture
+    workflow_path: "3-solutioning/create-architecture"
+    agent: architect
+    description: "Create system architecture document"
+    output:
+      type: file
+      path: "architecture.md"
+    required: true
+    # Sub-targets for diagrams (created within this workflow)
+    sub_targets:
+      - diagram    # Architecture diagrams
+      - flowchart  # Process flowcharts
+      - dataflow   # Data flow diagrams
+    
+  test-design:
+    phase: 3
+    workflow: test-design
+    workflow_path: "testarch/test-design"
+    agent: tea
+    description: "Create system-level or epic-level test design"
+    output:
+      type: file
+      path: "test-design.md"
+    required: false
+    
+  epics:
+    phase: 3
+    workflow: create-epics-and-stories
+    workflow_path: "3-solutioning/create-epics-and-stories"
+    agent: pm
+    description: "Create epics and stories breakdown"
+    output:
+      type: directory
+      path: "epics/"
+      index: "epics/index.md"
+    required: true
+    
+  gate-check:
+    phase: 3
+    workflow: check-implementation-readiness
+    workflow_path: "3-solutioning/check-implementation-readiness"
+    agent: architect
+    description: "Validate implementation readiness (gate check)"
+    output:
+      type: validation
+      artifact: null  # No file output, just validation
+    required: true
+
+  # ─────────────────────────────────────────
+  # PHASE 4: IMPLEMENTATION
+  # ─────────────────────────────────────────
+  
+  sprint-ready:
+    phase: 4
+    workflow: sprint-planning
+    workflow_path: "4-implementation/sprint-planning"
+    agent: sm
+    description: "Complete sprint planning"
+    output:
+      type: file
+      path: "sprint-status.yaml"
+    required: true
+    
+  story-ready:
+    phase: 4
+    workflow: create-story
+    workflow_path: "4-implementation/create-story"
+    agent: sm
+    description: "Prepare story for development"
+    output:
+      type: file
+      path: "stories/{story-id}.md"
+    required: true
+    repeatable: true  # Can be called multiple times
+    
+  implemented:
+    phase: 4
+    workflow: dev-story
+    workflow_path: "4-implementation/dev-story"
+    agent: dev
+    description: "Implement story (code changes)"
+    output:
+      type: code
+      artifact: null  # Code changes, not a specific file
+    required: true
+    repeatable: true
+    
+  reviewed:
+    phase: 4
+    workflow: code-review
+    workflow_path: "4-implementation/code-review"
+    agent: dev
+    description: "Complete code review"
+    output:
+      type: validation
+      artifact: null  # Review passed
+    required: true
+    repeatable: true
+    
+  retro:
+    phase: 4
+    workflow: retrospective
+    workflow_path: "4-implementation/retrospective"
+    agent: sm
+    description: "Complete epic retrospective"
+    output:
+      type: file
+      path: "retrospectives/{epic-id}-retro.md"
+    required: false
+    repeatable: true
+
+  # ─────────────────────────────────────────
+  # TEA WORKFLOWS (Testing)
+  # ─────────────────────────────────────────
+  
+  test-framework:
+    phase: 4  # Can be done in solutioning or implementation
+    workflow: framework
+    workflow_path: "testarch/framework"
+    agent: tea
+    description: "Initialize test framework architecture"
+    output:
+      type: directory
+      path: "tests/"
+    required: false
+    
+  test-framework-polyglot:
+    phase: 4
+    workflow: framework-polyglot
+    workflow_path: "testarch/framework-polyglot"
+    agent: tea
+    description: "Initialize polyglot test framework"
+    output:
+      type: directory
+      path: "tests/"
+    required: false
+    
+  atdd:
+    phase: 4
+    workflow: atdd
+    workflow_path: "testarch/atdd"
+    agent: tea
+    description: "Generate acceptance tests (TDD red phase)"
+    output:
+      type: code
+      path: "tests/acceptance/"
+    required: false
+    repeatable: true
+    
+  test-coverage:
+    phase: 4
+    workflow: automate
+    workflow_path: "testarch/automate"
+    agent: tea
+    description: "Expand test automation coverage"
+    output:
+      type: code
+      path: "tests/"
+    required: false
+    repeatable: true
+    
+  test-reviewed:
+    phase: 4
+    workflow: test-review
+    workflow_path: "testarch/test-review"
+    agent: tea
+    description: "Review test quality"
+    output:
+      type: validation
+      artifact: null
+    required: false
+    repeatable: true
+    
+  trace:
+    phase: 4
+    workflow: trace
+    workflow_path: "testarch/trace"
+    agent: tea
+    description: "Generate traceability matrix"
+    output:
+      type: file
+      path: "traceability-matrix.md"
+    required: false
+    
+  nfr-tested:
+    phase: 4
+    workflow: nfr-assess
+    workflow_path: "testarch/nfr-assess"
+    agent: tea
+    description: "Assess non-functional requirements"
+    output:
+      type: file
+      path: "nfr-assessment.md"
+    required: false
+    
+  ci:
+    phase: 4
+    workflow: ci
+    workflow_path: "testarch/ci"
+    agent: tea
+    description: "Scaffold CI/CD quality pipeline"
+    output:
+      type: file
+      path: ".github/workflows/test.yml"
+      alternatives:
+        - ".gitlab-ci.yml"
+        - "Jenkinsfile"
+        - ".circleci/config.yml"
+    required: false
+
+  # ─────────────────────────────────────────
+  # QUICK FLOW (Lightweight Alternative)
+  # ─────────────────────────────────────────
+  
+  quick-spec:
+    phase: null  # Not part of standard phases
+    workflow: quick-spec
+    workflow_path: "bmad-quick-flow/quick-spec"
+    agent: quick-flow-solo-dev
+    description: "Conversational spec engineering"
+    output:
+      type: file
+      path: "tech-spec.md"
+    required: false
+    standalone: true  # Can be used independently
+    
+  quick-dev:
+    phase: null
+    workflow: quick-dev
+    workflow_path: "bmad-quick-flow/quick-dev"
+    agent: quick-flow-solo-dev
+    description: "Flexible development execution"
+    output:
+      type: code
+      artifact: null
+    required: false
+    standalone: true
+
+  # ─────────────────────────────────────────
+  # UTILITIES (Non-target workflows)
+  # ─────────────────────────────────────────
+  
+  documented:
+    phase: null  # Utility, not part of phases
+    workflow: document-project
+    workflow_path: "document-project"
+    agent: tech-writer
+    description: "Document existing (brownfield) project"
+    output:
+      type: file
+      path: "project-documentation.md"
+    required: false
+    standalone: true
+
+  # ─────────────────────────────────────────
+  # CONTROL TARGETS
+  # ─────────────────────────────────────────
+  
+  auto:
+    phase: null
+    workflow: null
+    agent: null
+    description: "Full automation - execute all required workflows until completion"
+    output:
+      type: completion
+      artifact: null
+    behavior: |
+      Execute workflows in phase order:
+      1. Skip Phase 1 unless artifacts missing
+      2. Execute Phase 2 (prd, ux-design if needed)
+      3. Execute Phase 3 (architecture, epics, gate-check)
+      4. Execute Phase 4 (sprint-ready, then story cycle)
+      5. For each story: story-ready → implemented → reviewed
+      6. Optionally: retro after each epic
+
+# ============================================
+# SUB-TARGETS (Diagrams - within parent workflows)
+# ============================================
+
+sub_targets:
+  # These are NOT standalone targets
+  # They are created as part of parent workflow execution
+  
+  diagram:
+    parent_targets: [architecture]
+    workflow: create-excalidraw-diagram
+    workflow_path: "excalidraw-diagrams/create-diagram"
+    agent: architect
+    description: "Create architecture/ERD/UML diagram"
+    output:
+      type: file
+      path: "diagrams/*.excalidraw"
+      
+  flowchart:
+    parent_targets: [architecture]
+    workflow: create-excalidraw-flowchart
+    workflow_path: "excalidraw-diagrams/create-flowchart"
+    agent: architect
+    description: "Create process flowchart"
+    output:
+      type: file
+      path: "diagrams/*.excalidraw"
+      
+  dataflow:
+    parent_targets: [architecture]
+    workflow: create-excalidraw-dataflow
+    workflow_path: "excalidraw-diagrams/create-dataflow"
+    agent: architect
+    description: "Create data flow diagram"
+    output:
+      type: file
+      path: "diagrams/*.excalidraw"
+      
+  wireframe:
+    parent_targets: [ux-design]
+    workflow: create-excalidraw-wireframe
+    workflow_path: "excalidraw-diagrams/create-wireframe"
+    agent: ux-designer
+    description: "Create UI wireframe"
+    output:
+      type: file
+      path: "wireframes/*.excalidraw"
+
+# ============================================
+# EXCLUDED FROM TARGET SYSTEM
+# ============================================
+
+excluded:
+  # CIS Module (Creative Innovation System)
+  # Reason: Creative workflows, not part of standard BMAD phases
+  cis_workflows:
+    - design-thinking
+    - problem-solving
+    - innovation-strategy
+    - storytelling
+  
+  # BMB Module (BMad Builder)
+  # Reason: Meta-workflows for building BMAD components
+  bmb_workflows:
+    - workflow-builder
+    - agent-builder
+    - module-builder
+  
+  # Utility workflows
+  # Reason: Don't produce artifacts, provide information
+  utility_workflows:
+    - workflow-status
+    - workflow-init
+    - sprint-status
+    - correct-course
+    - generate-project-context
+  
+  # Core orchestration
+  # Reason: Orchestration, not artifact production
+  core_workflows:
+    - party-mode
+
+# ============================================
+# TARGET DEPENDENCIES
+# ============================================
+
+dependencies:
+  # Defines what must exist before a target can be executed
+  
+  prd:
+    optional: [brief, research]
+    
+  ux-design:
+    required: [prd]
+    
+  architecture:
+    required: [prd]
+    optional: [ux-design]
+    
+  test-design:
+    required: [architecture]
+    optional: [prd]
+    
+  epics:
+    required: [prd, architecture]
+    optional: [ux-design, test-design]
+    
+  gate-check:
+    required: [prd, architecture, epics]
+    optional: [test-design]
+    
+  sprint-ready:
+    required: [epics, gate-check]
+    
+  story-ready:
+    required: [sprint-ready]
+    
+  implemented:
+    required: [story-ready]
+    optional: [atdd]
+    
+  reviewed:
+    required: [implemented]
+    
+  # TEA dependencies
+  test-framework:
+    required: [architecture]
+    
+  atdd:
+    required: [story-ready]
+    optional: [test-framework]
+    
+  trace:
+    required: [epics, test-coverage]
+    
+  ci:
+    required: [test-framework]
+
+# ============================================
+# PHASE EXECUTION ORDER
+# ============================================
+
+execution_order:
+  phase_1:
+    order: [research, brief, brainstorm]
+    required: false
+    
+  phase_2:
+    order: [prd, ux-design]
+    required: true
+    
+  phase_3:
+    order: [architecture, test-design, epics, gate-check]
+    required: true
+    
+  phase_4:
+    order: [test-framework, sprint-ready]
+    story_cycle:
+      order: [story-ready, atdd, implemented, test-coverage, reviewed]
+      repeat_until: all_stories_complete
+    epic_completion:
+      order: [trace, nfr-tested, retro]
+      trigger: epic_complete
