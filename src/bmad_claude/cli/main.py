@@ -1,7 +1,7 @@
 """
 BMAD-Claude CLI
 
-Command-line interface for BMAD workflow automation.
+Command-line interface for BMAD workflow automation and Party Mode.
 
 This CLI uses OpenCode's --agent flag to properly activate BMAD agents
 and execute workflows through the standard BMAD methodology.
@@ -14,6 +14,7 @@ Commands:
     bmad-claude workflow prd             # Run specific workflow
     bmad-claude list                     # List all workflows
     bmad-claude next                     # Show next workflow
+    bmad-claude party "Project Name"     # Start Party Mode
 
 BMAD Methodology Phases:
 - Phase 1: Analysis (Optional) - brainstorm, research, product-brief
@@ -31,20 +32,26 @@ import typer
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+from rich.prompt import Prompt
+from rich.markdown import Markdown
 
 from bmad_claude.workflow import (
     WorkflowRunner,
+    PartyOrchestrator,
     WORKFLOWS,
     PHASES,
     PHASE_ORDER,
+    AGENTS,
+    SLASH_COMMANDS,
     get_workflow,
     get_phase_workflows,
+    get_all_slash_commands,
 )
 
 # Initialize Typer app
 app = typer.Typer(
     name="bmad-claude",
-    help="BMAD-Claude: Workflow Automation via OpenCode Agents",
+    help="BMAD-Claude: Workflow Automation & Party Mode via OpenCode Agents",
     add_completion=False,
 )
 
@@ -64,7 +71,7 @@ def print_banner():
 ║   ██████╔╝██║ ╚═╝ ██║██║  ██║██████╔╝      ╚██████╗███████╗  ║
 ║   ╚═════╝ ╚═╝     ╚═╝╚═╝  ╚═╝╚═════╝        ╚═════╝╚══════╝  ║
 ║                                                              ║
-║         Workflow Automation via OpenCode Agents              ║
+║         Workflow Automation & Party Mode via OpenCode        ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
 [/bold blue]
@@ -79,8 +86,9 @@ def print_bmad_methodology():
             """[bold]BMAD Methodology Phases[/bold]
 
 [cyan]Phase 1: Analysis (Optional)[/cyan]
-  • product-brief (analyst) - Strategic product planning
+  • brainstorm-project (analyst) - Creative exploration
   • research (analyst) - Market/domain research
+  • product-brief (analyst) - Strategic product planning
 
 [green]Phase 2: Planning (Required)[/green]
   • prd (pm) - Product Requirements Document
@@ -89,6 +97,7 @@ def print_bmad_methodology():
 [yellow]Phase 3: Solutioning (Required)[/yellow]
   • architecture (architect) - System architecture
   • epics (pm) - Create epics and stories
+  • test-design (tea) - Testability review (optional)
   • implementation-readiness (architect) - Gate Check
 
 [magenta]Phase 4: Implementation (Required)[/magenta]
@@ -166,6 +175,7 @@ def init(
     console.print("  1. Run [cyan]bmad-claude status[/cyan] to see workflow status")
     console.print("  2. Run [cyan]bmad-claude run[/cyan] to execute all phases")
     console.print("  3. Run [cyan]bmad-claude workflow prd[/cyan] to start with PRD")
+    console.print("  4. Run [cyan]bmad-claude party[/cyan] to start collaborative Party Mode")
 
 
 @app.command()
@@ -230,9 +240,6 @@ def run(
     if include_optional:
         console.print("[dim]Including optional workflows[/dim]")
     console.print()
-
-    # Map phase numbers to IDs
-    phase_map = {1: "analysis", 2: "planning", 3: "solutioning", 4: "implementation"}
 
     # Determine which phases to run
     skip_analysis = start_phase > 1
@@ -334,23 +341,22 @@ def workflow(
 
     Available workflows (by phase):
         Phase 1 (Optional):
-            - product-brief: Strategic product planning
-            - research: Market/domain research
+            - brainstorm-project, research, product-brief
 
         Phase 2 (Planning):
-            - prd: Product Requirements Document
-            - ux-design: UX design (if has UI)
+            - prd, ux-design
 
         Phase 3 (Solutioning):
-            - architecture: System architecture
-            - epics: Create epics and stories
-            - implementation-readiness: Gate check
+            - architecture, epics, test-design, implementation-readiness
 
         Phase 4 (Implementation):
-            - sprint-planning: Sprint planning
-            - create-story: Create individual story
-            - dev-story: Develop a story
-            - code-review: Review implementation
+            - sprint-planning, create-story, dev-story, code-review
+
+        Utility:
+            - document-project, generate-project-context
+
+        Quick Flow:
+            - quick-spec, quick-dev
 
     Examples:
         bmad-claude workflow prd
@@ -399,9 +405,11 @@ def list_workflows():
     table.add_column("Workflow ID", style="green")
     table.add_column("Agent", style="yellow")
     table.add_column("Required", style="blue")
-    table.add_column("Command", style="dim")
+    table.add_column("Slash Command", style="dim")
 
-    for phase_id in PHASE_ORDER:
+    for phase_id in PHASE_ORDER + ["utility", "testarch", "quick-flow", "core"]:
+        if phase_id not in PHASES:
+            continue
         phase_config = PHASES[phase_id]
         workflows = get_phase_workflows(phase_id)
 
@@ -464,6 +472,53 @@ def show_next():
         )
 
 
+@app.command(name="commands")
+def list_commands():
+    """
+    List all available BMAD slash commands.
+    """
+    console.print("\n[bold]BMAD Slash Commands[/bold]\n")
+
+    table = Table()
+    table.add_column("Slash Command", style="green")
+    table.add_column("Workflow", style="cyan")
+    table.add_column("Agent", style="yellow")
+
+    for command in sorted(get_all_slash_commands()):
+        workflow_id = SLASH_COMMANDS.get(command)
+        wf = get_workflow(workflow_id) if workflow_id else None
+        if wf:
+            table.add_row(command, wf.name, wf.agent)
+
+    console.print(table)
+
+
+@app.command(name="agents")
+def list_agents():
+    """
+    List all available BMAD agents.
+    """
+    console.print("\n[bold]BMAD Agents[/bold]\n")
+
+    table = Table()
+    table.add_column("Icon", style="bold")
+    table.add_column("ID", style="cyan")
+    table.add_column("Name", style="green")
+    table.add_column("Title", style="yellow")
+    table.add_column("Module", style="dim")
+
+    for agent_id, agent in AGENTS.items():
+        table.add_row(
+            agent.icon,
+            agent.id,
+            agent.display_name,
+            agent.title[:40] + "..." if len(agent.title) > 40 else agent.title,
+            agent.module,
+        )
+
+    console.print(table)
+
+
 @app.command(name="info")
 def show_info():
     """
@@ -488,6 +543,9 @@ def show_info():
     table.add_row("_bmad exists", "✅ Yes" if bmad_path.exists() else "❌ No")
     table.add_row("_bmad-output", str(output_path))
     table.add_row("Output exists", "✅ Yes" if output_path.exists() else "❌ No")
+    table.add_row("Total Workflows", str(len(WORKFLOWS)))
+    table.add_row("Total Agents", str(len(AGENTS)))
+    table.add_row("Slash Commands", str(len(SLASH_COMMANDS)))
 
     console.print(table)
     console.print()
@@ -497,54 +555,144 @@ def show_info():
 
 
 # =============================================================================
-# DEPRECATED PARTY MODE (Archived)
+# PARTY MODE COMMANDS
 # =============================================================================
 
 
-@app.command(hidden=True)
+def print_party_banner():
+    """Print the party mode banner."""
+    banner = """
+[bold magenta]
+╔══════════════════════════════════════════════════════════════╗
+║                                                              ║
+║   🎉 BMAD-CLAUDE PARTY MODE 🎉                              ║
+║                                                              ║
+║   Multi-Agent Collaborative Discussions                      ║
+║   Following BMAD's Native Party Mode Design                  ║
+║                                                              ║
+╚══════════════════════════════════════════════════════════════╝
+[/bold magenta]
+"""
+    console.print(banner)
+
+
+@app.command()
 def party(
-    project_name: str = typer.Argument(...),
+    project_name: str = typer.Argument(
+        "My Project",
+        help="Name of the project to discuss",
+    ),
+    opencode_path: str = typer.Option(
+        "opencode",
+        "--opencode-path",
+        help="Path to OpenCode executable",
+    ),
 ):
     """
-    [DEPRECATED] Party mode has been replaced by workflow automation.
+    Start Party Mode - Multi-agent collaborative discussions.
 
-    Party mode attempted to simulate multiple agents in a single LLM call,
-    but this doesn't work reliably with OpenCode's system prompt.
+    Party Mode brings together multiple BMAD agents (PM, Architect, Analyst, etc.)
+    to discuss your project collaboratively, following BMAD's native party-mode
+    workflow design.
 
-    Use the new workflow commands instead:
-        bmad-claude workflow prd
-        bmad-claude phase 2
-        bmad-claude run
+    Features:
+    - Intelligent agent selection based on topic
+    - In-character responses maintaining agent personalities
+    - Natural cross-talk between agents
+    - All BMAD slash commands available
+    - Workflow execution during discussion
+
+    Commands in Party Mode:
+    - Type any message to discuss with the team
+    - /workflow <id> - Run a BMAD workflow
+    - /ask <agent> <question> - Ask a specific agent
+    - /agents - List all agents
+    - /help - Show help
+    - /exit - End party mode
+
+    Examples:
+        bmad-claude party "Task Management App"
+        bmad-claude party  # Uses default project name
     """
-    console.print(
-        Panel.fit(
-            """[bold yellow]⚠️ Party Mode Deprecated[/bold yellow]
+    print_party_banner()
 
-Party mode has been replaced by workflow automation.
-
-The new approach uses OpenCode's --agent flag to properly
-activate agents and execute BMAD workflows.
-
-[bold]Use these commands instead:[/bold]
-  bmad-claude workflow prd        # Run PRD workflow
-  bmad-claude phase 2             # Run Planning phase
-  bmad-claude run                 # Run all phases
-
-[dim]See: bmad-claude --help[/dim]
-""",
-            title="Deprecated",
-            style="yellow",
+    asyncio.run(
+        _run_party_session(
+            project_name=project_name,
+            opencode_path=opencode_path,
         )
     )
-    raise typer.Exit(1)
 
 
-@app.command(name="sessions", hidden=True)
-def list_sessions():
-    """[DEPRECATED] Party mode sessions are no longer supported."""
-    console.print("[yellow]Party mode sessions have been deprecated.[/yellow]")
-    console.print("Use 'bmad-claude status' to see workflow progress.")
-    raise typer.Exit(1)
+async def _run_party_session(
+    project_name: str,
+    opencode_path: str,
+):
+    """Run the interactive party mode session."""
+    from bmad_claude.workflow.party import PartyOrchestrator
+
+    try:
+        # Create orchestrator
+        orchestrator = PartyOrchestrator(
+            project_root=Path.cwd(),
+            opencode_path=opencode_path,
+        )
+
+        # Load agents
+        orchestrator.load_agents()
+
+        # Create session
+        session = orchestrator.create_session(project_name)
+
+        # Display welcome
+        console.print(Markdown(orchestrator.get_welcome_message()))
+        console.print()
+
+        # Main discussion loop
+        while session.active:
+            # Get user input
+            try:
+                user_input = Prompt.ask(
+                    "[bold green]You[/bold green]",
+                    default="",
+                )
+            except (KeyboardInterrupt, EOFError):
+                console.print("\n[yellow]Ending party mode...[/yellow]")
+                break
+
+            if not user_input:
+                continue
+
+            # Check for exit
+            if any(trigger in user_input.lower() for trigger in orchestrator.EXIT_TRIGGERS):
+                session.active = False
+                console.print(Markdown(orchestrator.get_farewell_message()))
+                break
+
+            # Run discussion
+            console.print("\n[dim]Agents are discussing...[/dim]\n")
+
+            def on_output(text: str) -> None:
+                console.print(text, end="", highlight=False)
+
+            turns = await orchestrator.discuss(user_input, on_output)
+
+            # Display turns (if not already streamed)
+            for turn in turns:
+                if turn.agent_id == "system":
+                    console.print(f"\n{turn.agent_icon} {turn.content}\n")
+
+            console.print()
+
+    except FileNotFoundError as e:
+        console.print(f"[red]Error: {e}[/red]")
+        console.print(
+            "[yellow]Make sure _bmad directory exists or run 'bmad-claude init' first.[/yellow]"
+        )
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]Error: {e}[/red]")
+        raise typer.Exit(1)
 
 
 # =============================================================================
