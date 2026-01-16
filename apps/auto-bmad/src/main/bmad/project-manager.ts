@@ -6,6 +6,7 @@
  * - Importing existing BMAD projects  
  * - Validating BMAD project structure
  * - Initializing bmm-workflow-status.yaml
+ * - Language detection for TEA polyglot support
  */
 
 import { app } from 'electron';
@@ -13,8 +14,9 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from 
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import YAML from 'yaml';
-import type { BmadConfig, BmadWorkflowStatus } from './types';
+import type { BmadConfig, BmadWorkflowStatus, DetectedLanguage } from './types';
 import { BmadConfigSchema, BmadWorkflowStatusSchema } from './types';
+import { getLanguageDetector } from './language-detector';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BMAD Project Types
@@ -31,6 +33,10 @@ export interface BmadProject {
   createdAt: Date;
   updatedAt: Date;
   lastOpenedAt: Date;
+  /** Detected languages in the project (for TEA polyglot support) */
+  detectedLanguages?: DetectedLanguage[];
+  /** Primary language of the project */
+  primaryLanguage?: string;
 }
 
 export interface CreateProjectOptions {
@@ -43,6 +49,8 @@ export interface CreateProjectOptions {
 
 export interface ImportProjectOptions {
   path: string;
+  /** Skip language detection during import */
+  skipLanguageDetection?: boolean;
 }
 
 export interface BmadProjectValidation {
@@ -52,6 +60,8 @@ export interface BmadProjectValidation {
   hasStatusFile: boolean;
   hasConfigFile: boolean;
   errors: string[];
+  /** Detected languages (if language detection was performed) */
+  detectedLanguages?: DetectedLanguage[];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -320,7 +330,7 @@ export class BmadProjectManager {
    */
   async importProject(options: ImportProjectOptions): Promise<{ success: boolean; project?: BmadProject; error?: string }> {
     try {
-      const { path: projectPath } = options;
+      const { path: projectPath, skipLanguageDetection } = options;
 
       // Validate it's a BMAD project
       const validation = this.validateProject(projectPath);
@@ -337,6 +347,17 @@ export class BmadProjectManager {
         existingProject.lastOpenedAt = new Date();
         existingProject.updatedAt = new Date();
         this.addToRecent(existingProject.id);
+        
+        // Update language detection if not skipped
+        if (!skipLanguageDetection && !existingProject.detectedLanguages) {
+          const languages = await this.detectProjectLanguages(projectPath);
+          if (languages.length > 0) {
+            existingProject.detectedLanguages = languages;
+            const sorted = [...languages].sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0));
+            existingProject.primaryLanguage = sorted[0]?.language;
+          }
+        }
+        
         this.save();
         return { success: true, project: existingProject };
       }
@@ -374,6 +395,18 @@ export class BmadProjectManager {
         }
       }
 
+      // Detect languages in the project
+      let detectedLanguages: DetectedLanguage[] | undefined;
+      let primaryLanguage: string | undefined;
+      
+      if (!skipLanguageDetection) {
+        detectedLanguages = await this.detectProjectLanguages(projectPath);
+        if (detectedLanguages.length > 0) {
+          const sorted = [...detectedLanguages].sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0));
+          primaryLanguage = sorted[0]?.language;
+        }
+      }
+
       // Create project entry
       const now = new Date();
       const project: BmadProject = {
@@ -385,13 +418,16 @@ export class BmadProjectManager {
         createdAt: now,
         updatedAt: now,
         lastOpenedAt: now,
+        detectedLanguages,
+        primaryLanguage,
       };
 
       this.data.projects.push(project);
       this.addToRecent(project.id);
       this.save();
 
-      console.log('[BmadProjectManager] Imported project:', project.name);
+      console.log('[BmadProjectManager] Imported project:', project.name, 
+        primaryLanguage ? `(primary language: ${primaryLanguage})` : '');
       return { success: true, project };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -477,6 +513,62 @@ export class BmadProjectManager {
       this.save();
     }
     return project;
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Language Detection
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Detect languages in a project
+   */
+  async detectProjectLanguages(projectPath: string): Promise<DetectedLanguage[]> {
+    try {
+      const detector = getLanguageDetector();
+      const bmadPath = path.join(projectPath, '_bmad');
+      
+      // Initialize detector if needed
+      if (!detector.isInitialized()) {
+        await detector.initialize(bmadPath);
+      }
+      
+      const result = await detector.detectLanguages(projectPath);
+      return result.languages;
+    } catch (error) {
+      console.warn('[BmadProjectManager] Language detection failed:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Update a project's detected languages
+   */
+  async updateProjectLanguages(projectId: string): Promise<DetectedLanguage[]> {
+    const project = this.data.projects.find(p => p.id === projectId);
+    if (!project) {
+      return [];
+    }
+
+    const languages = await this.detectProjectLanguages(project.path);
+    
+    if (languages.length > 0) {
+      project.detectedLanguages = languages;
+      // Set primary language to the one with highest confidence
+      const sorted = [...languages].sort((a, b) => (b.confidence ?? 0) - (a.confidence ?? 0));
+      project.primaryLanguage = sorted[0]?.language;
+      project.updatedAt = new Date();
+      this.save();
+    }
+
+    return languages;
+  }
+
+  /**
+   * Get detected languages for a project
+   */
+  getProjectLanguages(projectId: string): DetectedLanguage[] {
+    const project = this.data.projects.find(p => p.id === projectId);
+    return project?.detectedLanguages || [];
   }
 
   // ─────────────────────────────────────────────────────────────────────────

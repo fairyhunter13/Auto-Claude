@@ -3,6 +3,7 @@
  * 
  * Executes BMAD workflows via OpenCode CLI.
  * Manages workflow lifecycle and integrates with terminal.
+ * Supports load balancing across multiple OpenCode profiles.
  */
 
 import { spawn, type ChildProcess } from 'child_process';
@@ -18,6 +19,12 @@ import {
   errorResult,
 } from './types';
 import { getStatusManager } from './status-manager';
+import { 
+  OpenCodeLoadBalancer, 
+  getLoadBalancer, 
+  type OpenCodeProfile,
+  type ExecutionOptions as LoadBalancerOptions,
+} from './opencode-load-balancer';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -38,12 +45,28 @@ export interface WorkflowRunOptions {
   onExit?: (code: number | null) => void;
   /** Run in YOLO mode (autonomous, no confirmations) */
   yoloMode?: boolean;
+  /** Use load balancing across multiple OpenCode profiles */
+  useLoadBalancing?: boolean;
+  /** Preferred OpenCode profile (when using load balancing) */
+  preferredProfile?: OpenCodeProfile;
+  /** Force specific profile (ignores load balancing strategy) */
+  forceProfile?: OpenCodeProfile;
+  /** Enable automatic retry on rate limiting */
+  retryOnRateLimit?: boolean;
+  /** Maximum retries on rate limit (default: 3) */
+  maxRetries?: number;
 }
 
 export interface WorkflowRunResult {
   workflowId: string;
   exitCode: number | null;
   success: boolean;
+  /** The profile used for execution (when load balancing is enabled) */
+  profile?: OpenCodeProfile;
+  /** Whether the execution was rate limited */
+  rateLimited?: boolean;
+  /** Duration of execution in milliseconds */
+  duration?: number;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -154,6 +177,8 @@ export class WorkflowRunner extends EventEmitter {
   private activeProcess: ChildProcess | null = null;
   private activeWorkflowId: string | null = null;
   private openCodePath: string | null = null;
+  private loadBalancer: OpenCodeLoadBalancer | null = null;
+  private loadBalancingEnabled: boolean = false;
 
   constructor(projectPath: string) {
     super();
@@ -185,6 +210,60 @@ export class WorkflowRunner extends EventEmitter {
     const version = await getOpenCodeVersion();
     console.log(`[WorkflowRunner] Using OpenCode CLI: ${this.openCodePath} (version: ${version || 'unknown'})`);
     return successResult(undefined);
+  }
+
+  /**
+   * Enable load balancing across multiple OpenCode profiles
+   */
+  async enableLoadBalancing(): Promise<IpcResult<void>> {
+    try {
+      this.loadBalancer = getLoadBalancer();
+      await this.loadBalancer.initialize();
+      this.loadBalancingEnabled = true;
+      
+      const profiles = this.loadBalancer.getAvailableProfiles();
+      console.log(`[WorkflowRunner] Load balancing enabled with ${profiles.length} profiles`);
+      
+      // Forward load balancer events
+      this.loadBalancer.on('rate-limited', (event) => {
+        this.emit('rate-limited', event);
+      });
+      this.loadBalancer.on('execution-completed', (event) => {
+        this.emit('execution-completed', event);
+      });
+      
+      return successResult(undefined);
+    } catch (error) {
+      console.warn('[WorkflowRunner] Failed to enable load balancing:', error);
+      this.loadBalancingEnabled = false;
+      return errorResult(
+        'LOAD_BALANCING_ERROR',
+        `Failed to enable load balancing: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  /**
+   * Disable load balancing
+   */
+  disableLoadBalancing(): void {
+    this.loadBalancingEnabled = false;
+    console.log('[WorkflowRunner] Load balancing disabled');
+  }
+
+  /**
+   * Check if load balancing is enabled and available
+   */
+  isLoadBalancingEnabled(): boolean {
+    return this.loadBalancingEnabled && this.loadBalancer !== null;
+  }
+
+  /**
+   * Get profile statistics (when load balancing is enabled)
+   */
+  getProfileStats(): Record<OpenCodeProfile, unknown> | null {
+    if (!this.loadBalancer) return null;
+    return this.loadBalancer.getProfileStats();
   }
 
   /**
@@ -227,6 +306,7 @@ export class WorkflowRunner extends EventEmitter {
    * 
    * Executes the workflow using OpenCode CLI with the specified BMAD agent.
    * The workflow command (slash command) is passed as the prompt.
+   * Supports load balancing across multiple OpenCode profiles.
    */
   async startWorkflow(
     workflowId: string,
@@ -247,6 +327,13 @@ export class WorkflowRunner extends EventEmitter {
         'WORKFLOW_NOT_FOUND',
         `Unknown workflow: ${workflowId}`
       );
+    }
+
+    // Use load balancing if enabled or explicitly requested
+    const useLoadBalancing = options.useLoadBalancing ?? this.loadBalancingEnabled;
+    
+    if (useLoadBalancing && this.loadBalancer) {
+      return this.startWorkflowWithLoadBalancing(workflowId, workflow, options);
     }
 
     // Ensure OpenCode is available
@@ -402,6 +489,109 @@ export class WorkflowRunner extends EventEmitter {
   }
 
   /**
+   * Start a workflow using load balancing
+   */
+  private async startWorkflowWithLoadBalancing(
+    workflowId: string,
+    workflow: WorkflowDefinition,
+    options: WorkflowRunOptions
+  ): Promise<IpcResult<void>> {
+    if (!this.loadBalancer) {
+      return errorResult('LOAD_BALANCER_NOT_INITIALIZED', 'Load balancer not initialized');
+    }
+
+    const statusManager = getStatusManager(this.projectPath);
+    await statusManager.updateWorkflowStatus(workflow.phase, workflowId, 'in_progress');
+
+    // Build command arguments
+    const args: string[] = [];
+    if (workflow.agent) {
+      args.push('--agent', workflow.agent);
+    }
+    if (options.yoloMode) {
+      args.push('--yolo');
+    }
+    if (options.args) {
+      args.push(...options.args);
+    }
+    args.push(workflow.command);
+
+    // Build load balancer options
+    const lbOptions: LoadBalancerOptions = {
+      cwd: options.cwd || this.projectPath,
+      env: {
+        ...options.env,
+        BMAD_PROJECT_PATH: this.projectPath,
+      },
+      preferredProfile: options.preferredProfile,
+      forceProfile: options.forceProfile,
+      onStdout: options.onStdout,
+      onStderr: options.onStderr,
+    };
+
+    this.activeWorkflowId = workflowId;
+    this.emitProgress(workflowId, workflow.phase, 'in_progress', `Starting workflow with agent: ${workflow.agent} (load balanced)...`);
+
+    try {
+      // Execute with or without retry based on options
+      const result = options.retryOnRateLimit 
+        ? await this.loadBalancer.executeWithRetry(args, lbOptions, options.maxRetries || 3)
+        : await this.loadBalancer.execute(args, lbOptions);
+
+      const success = result.exitCode === 0 && !result.rateLimited;
+
+      // Update status
+      await statusManager.updateWorkflowStatus(
+        workflow.phase,
+        workflowId,
+        success ? 'completed' : 'pending',
+        workflow.outputFile ? { artifactPath: workflow.outputFile } : undefined
+      );
+
+      // Emit completion event
+      this.emitProgress(
+        workflowId,
+        workflow.phase,
+        success ? 'completed' : 'pending',
+        success 
+          ? `Workflow completed successfully via ${result.profile} profile` 
+          : result.rateLimited 
+            ? `Workflow rate limited on ${result.profile}`
+            : `Workflow failed with exit code ${result.exitCode}`
+      );
+
+      // Call exit callback
+      options.onExit?.(result.exitCode);
+      this.emit('exit', { 
+        workflowId, 
+        exitCode: result.exitCode, 
+        success,
+        profile: result.profile,
+        rateLimited: result.rateLimited,
+        duration: result.duration,
+      } as WorkflowRunResult);
+
+      this.activeWorkflowId = null;
+      return successResult(undefined);
+
+    } catch (error) {
+      this.activeWorkflowId = null;
+
+      await statusManager.updateWorkflowStatus(
+        workflow.phase,
+        workflowId,
+        'pending',
+        { note: `Load balanced execution failed: ${error instanceof Error ? error.message : 'Unknown error'}` }
+      );
+
+      return errorResult(
+        'WORKFLOW_EXECUTION_ERROR',
+        `Failed to execute workflow: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
+  }
+
+  /**
    * Cancel the currently running workflow
    */
   async cancelWorkflow(): Promise<IpcResult<void>> {
@@ -503,6 +693,11 @@ export class WorkflowRunner extends EventEmitter {
     if (this.activeProcess) {
       await this.cancelWorkflow();
     }
+    if (this.loadBalancer) {
+      this.loadBalancer.dispose();
+      this.loadBalancer = null;
+    }
+    this.loadBalancingEnabled = false;
     this.removeAllListeners();
   }
 }
