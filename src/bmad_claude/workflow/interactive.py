@@ -1,22 +1,20 @@
 """
-Party Mode - Multi-Agent Collaborative Discussion Orchestrator
+Interactive Mode - Sequential Workflow Automation with Chat Interface
 
-Implements BMAD's native party-mode workflow design:
+Provides an interactive chat interface for BMAD workflow automation:
 - Loads all agents from agent-manifest.csv
-- Orchestrates multi-agent discussions with intelligent agent selection
-- Maintains character consistency using merged agent personalities
+- Selects relevant agents based on topic analysis
+- Executes workflows sequentially via OpenCode's --agent flag
 - Supports all BMAD slash commands for workflow execution
-- Integrates with OpenCode's agent system
 
-This follows the design in:
-_bmad/core/workflows/party-mode/workflow.md
+Note: This is NOT multi-agent simulation in a single session.
+Each agent call is a separate OpenCode invocation.
 """
 
 from __future__ import annotations
 
 import asyncio
 import csv
-import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -27,16 +25,14 @@ from bmad_claude.workflow.config import (
     WORKFLOWS,
     SLASH_COMMANDS,
     AgentConfig,
-    WorkflowConfig,
     get_workflow,
     get_workflow_by_command,
-    get_agent,
 )
 
 
 @dataclass
-class PartyAgent:
-    """An agent participating in party mode."""
+class BMADAgent:
+    """A BMAD agent that can be invoked via OpenCode."""
 
     id: str
     display_name: str
@@ -50,8 +46,8 @@ class PartyAgent:
     path: str
 
     @classmethod
-    def from_csv_row(cls, row: dict[str, str]) -> "PartyAgent":
-        """Create PartyAgent from CSV row."""
+    def from_csv_row(cls, row: dict[str, str]) -> "BMADAgent":
+        """Create BMADAgent from CSV row."""
         return cls(
             id=row.get("name", ""),
             display_name=row.get("displayName", ""),
@@ -66,8 +62,8 @@ class PartyAgent:
         )
 
     @classmethod
-    def from_config(cls, config: AgentConfig) -> "PartyAgent":
-        """Create PartyAgent from AgentConfig."""
+    def from_config(cls, config: AgentConfig) -> "BMADAgent":
+        """Create BMADAgent from AgentConfig."""
         return cls(
             id=config.id,
             display_name=config.display_name,
@@ -83,8 +79,8 @@ class PartyAgent:
 
 
 @dataclass
-class DiscussionTurn:
-    """A single turn in the party discussion."""
+class InteractionTurn:
+    """A single turn in the interactive session."""
 
     agent_id: str
     agent_name: str
@@ -95,19 +91,19 @@ class DiscussionTurn:
 
 
 @dataclass
-class PartySession:
-    """A party mode session with conversation history."""
+class InteractiveSession:
+    """An interactive session with conversation history."""
 
     session_id: str
     project_name: str
-    agents: dict[str, PartyAgent]
-    conversation: list[DiscussionTurn] = field(default_factory=list)
+    agents: dict[str, BMADAgent]
+    conversation: list[InteractionTurn] = field(default_factory=list)
     active: bool = True
     current_topic: str = ""
     created_at: datetime = field(default_factory=datetime.now)
 
-    def add_turn(self, turn: DiscussionTurn) -> None:
-        """Add a discussion turn to the conversation."""
+    def add_turn(self, turn: InteractionTurn) -> None:
+        """Add a turn to the conversation."""
         self.conversation.append(turn)
 
     def get_context(self, max_turns: int = 10) -> str:
@@ -128,19 +124,18 @@ class PartySession:
         return "\n\n".join(context_parts)
 
 
-class PartyOrchestrator:
+class InteractiveOrchestrator:
     """
-    Orchestrates multi-agent party mode discussions.
+    Orchestrates interactive workflow automation sessions.
 
-    Follows BMAD's party-mode workflow design:
-    1. Load agent manifest and initialize party mode
-    2. Select relevant agents based on topic analysis
-    3. Generate in-character responses for each agent
-    4. Enable natural cross-talk and interactions
-    5. Handle slash commands for workflow execution
+    This provides a chat interface where:
+    1. Users can discuss topics with BMAD agents
+    2. Relevant agents are selected based on the topic
+    3. Each agent response is a separate OpenCode call
+    4. BMAD workflows can be executed via slash commands
     """
 
-    EXIT_TRIGGERS = ["*exit", "goodbye", "end party", "quit", "/exit"]
+    EXIT_TRIGGERS = ["exit", "quit", "bye", "/exit", "/quit"]
 
     def __init__(
         self,
@@ -151,15 +146,15 @@ class PartyOrchestrator:
         self.project_root = project_root or Path.cwd()
         self.opencode_path = opencode_path
         self.verbose = verbose
-        self.agents: dict[str, PartyAgent] = {}
-        self.session: PartySession | None = None
+        self.agents: dict[str, BMADAgent] = {}
+        self.session: InteractiveSession | None = None
 
     def _log(self, msg: str) -> None:
         """Log message if verbose."""
         if self.verbose:
             print(msg)
 
-    def load_agents(self) -> dict[str, PartyAgent]:
+    def load_agents(self) -> dict[str, BMADAgent]:
         """
         Load all agents from agent-manifest.csv.
 
@@ -172,24 +167,24 @@ class PartyOrchestrator:
             with open(manifest_path, newline="", encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 for row in reader:
-                    agent = PartyAgent.from_csv_row(row)
+                    agent = BMADAgent.from_csv_row(row)
                     if agent.id:
                         self.agents[agent.id] = agent
         else:
             self._log("Agent manifest not found, using built-in agents")
             for agent_id, config in AGENTS.items():
-                self.agents[agent_id] = PartyAgent.from_config(config)
+                self.agents[agent_id] = BMADAgent.from_config(config)
 
         self._log(f"Loaded {len(self.agents)} agents")
         return self.agents
 
-    def create_session(self, project_name: str) -> PartySession:
-        """Create a new party session."""
+    def create_session(self, project_name: str) -> InteractiveSession:
+        """Create a new interactive session."""
         if not self.agents:
             self.load_agents()
 
-        session_id = f"party-{datetime.now().strftime('%Y-%m-%d-%H%M%S')}"
-        self.session = PartySession(
+        session_id = f"interactive-{datetime.now().strftime('%Y-%m-%d-%H%M%S')}"
+        self.session = InteractiveSession(
             session_id=session_id,
             project_name=project_name,
             agents=self.agents,
@@ -197,7 +192,7 @@ class PartyOrchestrator:
         return self.session
 
     def get_welcome_message(self) -> str:
-        """Generate the party mode welcome message."""
+        """Generate the interactive mode welcome message."""
         if not self.session:
             return "No active session"
 
@@ -210,24 +205,26 @@ class PartyOrchestrator:
             ]
         )
 
-        return f"""🎉 **PARTY MODE ACTIVATED!** 🎉
+        return f"""🚀 **INTERACTIVE MODE** 🚀
 
-Welcome! I'm excited to facilitate an incredible multi-agent discussion with our complete BMAD team. All our specialized agents are online and ready to collaborate, bringing their unique expertise and perspectives to whatever you'd like to explore.
+Welcome to BMAD Interactive Mode! This provides a chat interface for 
+workflow automation where relevant agents respond to your questions.
 
-**Our Collaborating Agents Include:**
+**Available Agents:**
 
 {agent_intro}
 
-**{len(self.agents)} agents** are ready to contribute their expertise!
+**{len(self.agents)} agents** available for consultation.
 
 **Commands:**
-- Type any message to discuss with the team
-- Use `/workflow <id>` to run a specific BMAD workflow
-- Use `/ask <agent> <question>` to direct a question to a specific agent
-- Use `/agents` to list all available agents
-- Use `/exit` to end the party
+- Type any message to get agent responses
+- `/workflow <id>` - Run a BMAD workflow (e.g., `/workflow prd`)
+- `/ask <agent> <question>` - Ask a specific agent
+- `/agents` - List all available agents
+- `/help` - Show help
+- `/exit` - End session
 
-**What would you like to discuss with the team today?**
+**What would you like to discuss?**
 """
 
     def select_agents_for_topic(
@@ -235,7 +232,7 @@ Welcome! I'm excited to facilitate an incredible multi-agent discussion with our
         topic: str,
         user_mentioned_agent: str | None = None,
         max_agents: int = 3,
-    ) -> list[PartyAgent]:
+    ) -> list[BMADAgent]:
         """
         Select relevant agents based on topic analysis.
 
@@ -407,17 +404,17 @@ Welcome! I'm excited to facilitate an incredible multi-agent discussion with our
 
     def generate_agent_response_prompt(
         self,
-        agent: PartyAgent,
+        agent: BMADAgent,
         topic: str,
         conversation_context: str,
-        other_agents: list[PartyAgent],
+        other_agents: list[BMADAgent],
     ) -> str:
         """
         Generate a prompt for an agent to respond in character.
         """
         other_names = ", ".join([a.display_name for a in other_agents if a.id != agent.id])
 
-        return f"""You are {agent.display_name} ({agent.title}), participating in a collaborative BMAD team discussion.
+        return f"""You are {agent.display_name} ({agent.title}), responding to a user question.
 
 **Your Identity:**
 {agent.identity}
@@ -431,29 +428,28 @@ Welcome! I'm excited to facilitate an incredible multi-agent discussion with our
 **Your Role:**
 {agent.role}
 
-**Current Topic:**
+**User's Question:**
 {topic}
 
-**Other Agents in Discussion:**
+**Other Experts Available:**
 {other_names}
 
-**Recent Conversation:**
+**Recent Context:**
 {conversation_context}
 
 **Instructions:**
 1. Respond in character as {agent.display_name}
 2. Use your documented communication style
 3. Draw from your expertise and principles
-4. You may reference other agents by name
-5. Keep response focused and actionable (2-4 paragraphs max)
-6. If you have questions for the user, ask clearly
+4. Keep response focused and actionable (2-4 paragraphs max)
+5. If you have questions for the user, ask clearly
 
 **Now respond as {agent.display_name}:**
 """
 
     async def run_agent_response(
         self,
-        agent: PartyAgent,
+        agent: BMADAgent,
         prompt: str,
         on_output: Callable[[str], None] | None = None,
     ) -> str:
@@ -562,19 +558,18 @@ Welcome! I'm excited to facilitate an incredible multi-agent discussion with our
             self._log(f"Error running workflow: {e}")
             return False
 
-    async def discuss(
+    async def interact(
         self,
         user_message: str,
         on_output: Callable[[str], None] | None = None,
-    ) -> list[DiscussionTurn]:
+    ) -> list[InteractionTurn]:
         """
-        Generate a discussion round with multiple agents responding.
+        Process user input and generate agent responses.
 
-        This is the core party mode functionality:
         1. Parse user input for commands and mentions
         2. Select relevant agents for the topic
-        3. Generate in-character responses from each agent
-        4. Return discussion turns
+        3. Execute agent responses sequentially
+        4. Return interaction turns
         """
         if not self.session:
             return []
@@ -585,11 +580,11 @@ Welcome! I'm excited to facilitate an incredible multi-agent discussion with our
         # Handle exit
         if parsed["type"] == "exit":
             return [
-                DiscussionTurn(
+                InteractionTurn(
                     agent_id="system",
                     agent_name="System",
-                    agent_icon="🎊",
-                    content="Party Mode ending. Thank you for collaborating with the BMAD team!",
+                    agent_icon="👋",
+                    content="Session ended. Thank you for using BMAD Interactive Mode!",
                 )
             ]
 
@@ -599,7 +594,7 @@ Welcome! I'm excited to facilitate an incredible multi-agent discussion with our
             success = await self.run_workflow(workflow_id, on_output)
             status = "completed successfully" if success else "failed"
             return [
-                DiscussionTurn(
+                InteractionTurn(
                     agent_id="system",
                     agent_name="System",
                     agent_icon="⚡",
@@ -616,7 +611,7 @@ Welcome! I'm excited to facilitate an incredible multi-agent discussion with our
                 ]
             )
             return [
-                DiscussionTurn(
+                InteractionTurn(
                     agent_id="system",
                     agent_name="System",
                     agent_icon="🤖",
@@ -626,14 +621,14 @@ Welcome! I'm excited to facilitate an incredible multi-agent discussion with our
 
         # Handle /help command
         if parsed["type"] == "command" and parsed["command"] == "/help":
-            help_text = """**Party Mode Commands:**
+            help_text = """**Interactive Mode Commands:**
 
-- Type any message to discuss with the team
+- Type any message to get agent responses
 - `/workflow <id>` - Run a BMAD workflow (e.g., `/workflow prd`)
-- `/ask <agent> <question>` - Ask a specific agent (e.g., `/ask architect how should we handle auth?`)
+- `/ask <agent> <question>` - Ask a specific agent
 - `/agents` - List all available agents
 - `/status` - Show current session status
-- `/exit` - End party mode
+- `/exit` - End session
 
 **Available Workflows:**
 - `prd` - Create Product Requirements Document
@@ -643,7 +638,7 @@ Welcome! I'm excited to facilitate an incredible multi-agent discussion with our
 - Use `/bmad:bmm:workflows:<name>` for any BMAD workflow
 """
             return [
-                DiscussionTurn(
+                InteractionTurn(
                     agent_id="system",
                     agent_name="System",
                     agent_icon="❓",
@@ -652,7 +647,7 @@ Welcome! I'm excited to facilitate an incredible multi-agent discussion with our
             ]
 
         # Add user message to conversation
-        user_turn = DiscussionTurn(
+        user_turn = InteractionTurn(
             agent_id="user",
             agent_name="User",
             agent_icon="👤",
@@ -668,7 +663,7 @@ Welcome! I'm excited to facilitate an incredible multi-agent discussion with our
             user_mentioned_agent=parsed.get("mentioned_agent"),
         )
 
-        # Generate responses from each agent
+        # Generate responses from each agent (sequentially)
         turns = []
         conversation_context = self.session.get_context()
 
@@ -687,7 +682,7 @@ Welcome! I'm excited to facilitate an incredible multi-agent discussion with our
 
             response = await self.run_agent_response(agent, prompt, on_output)
 
-            turn = DiscussionTurn(
+            turn = InteractionTurn(
                 agent_id=agent.id,
                 agent_name=agent.display_name,
                 agent_icon=agent.icon,
@@ -701,33 +696,21 @@ Welcome! I'm excited to facilitate an incredible multi-agent discussion with our
 
         return turns
 
-    def get_farewell_message(self) -> str:
-        """Generate farewell messages from agents."""
+    def get_goodbye_message(self) -> str:
+        """Generate goodbye message."""
         if not self.session:
             return "Session ended."
 
-        # Select 2-3 agents for farewells
-        farewell_agents = list(self.agents.values())[:3]
+        return """👋 **Session Complete!**
 
-        farewells = []
-        for agent in farewell_agents:
-            farewells.append(
-                f"{agent.icon} **{agent.display_name}**: "
-                f"It was great collaborating with you! "
-                f"Remember: {agent.principles[:100]}..."
-            )
+Thank you for using BMAD Interactive Mode!
 
-        return f"""🎊 **Party Mode Session Complete!** 🎊
+**Next Steps:**
+- Run `bmad-claude workflow prd` to create a PRD
+- Run `bmad-claude run` to execute the full BMAD methodology
+- Run `bmad-claude status` to check workflow progress
 
-Thank you for bringing our BMAD agents together in this unique collaborative experience!
-
-**Agent Farewells:**
-
-{chr(10).join(farewells)}
-
-The diverse perspectives, expert insights, and dynamic interactions demonstrate the power of multi-agent thinking.
-
-**Until next time - keep collaborating, keep innovating!** 🚀
+Keep building great products! 🚀
 """
 
 
@@ -736,16 +719,16 @@ The diverse perspectives, expert insights, and dynamic interactions demonstrate 
 # =============================================================================
 
 
-def create_party_session(project_name: str) -> PartyOrchestrator:
-    """Create a new party mode session."""
-    orchestrator = PartyOrchestrator()
+def create_interactive_session(project_name: str) -> InteractiveOrchestrator:
+    """Create a new interactive session."""
+    orchestrator = InteractiveOrchestrator()
     orchestrator.create_session(project_name)
     return orchestrator
 
 
-async def run_party_discussion(
-    orchestrator: PartyOrchestrator,
+async def run_interaction(
+    orchestrator: InteractiveOrchestrator,
     user_message: str,
-) -> list[DiscussionTurn]:
-    """Run a party discussion round."""
-    return await orchestrator.discuss(user_message)
+) -> list[InteractionTurn]:
+    """Run an interaction round."""
+    return await orchestrator.interact(user_message)

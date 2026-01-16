@@ -12,29 +12,30 @@ This module orchestrates BMAD workflows by:
 3. Tracking workflow status and phase progression
 4. Managing artifacts and outputs
 
-## Party Mode
+## Interactive Mode
 
-Party Mode enables multi-agent collaborative discussions following BMAD's
-native party-mode workflow design. It:
+Interactive Mode provides a chat interface for workflow automation:
 1. Loads all agents from agent-manifest.csv
 2. Selects relevant agents based on topic analysis
-3. Generates in-character responses maintaining agent personalities
+3. Executes agent responses sequentially via OpenCode
 4. Supports all BMAD slash commands for workflow execution
+
+Note: Each agent call is a separate OpenCode invocation (sequential, not simultaneous).
 
 ## Usage
 
 ```python
-from bmad_claude.workflow import WorkflowRunner, PartyOrchestrator
+from bmad_claude.workflow import WorkflowRunner, InteractiveOrchestrator
 
 # Workflow automation
 runner = WorkflowRunner(project_root=".")
 await runner.run_workflow("prd")
 await runner.run_phase("planning")
 
-# Party mode
-party = PartyOrchestrator()
-party.create_session("My Project")
-turns = await party.discuss("How should we architect the auth system?")
+# Interactive mode
+interactive = InteractiveOrchestrator()
+interactive.create_session("My Project")
+turns = await interactive.interact("How should we architect the auth system?")
 ```
 
 ## CLI
@@ -44,7 +45,7 @@ bmad-claude workflow prd          # Run PRD workflow
 bmad-claude phase 2               # Run Planning phase
 bmad-claude run                   # Run full BMAD methodology
 bmad-claude status                # Check workflow status
-bmad-claude party "My Project"    # Start party mode
+bmad-claude interactive "My Project"  # Start interactive mode
 ```
 """
 
@@ -67,12 +68,12 @@ from bmad_claude.workflow.config import (
     get_all_agents,
     get_all_slash_commands,
 )
-from bmad_claude.workflow.party import (
-    PartyOrchestrator,
-    PartySession,
-    PartyAgent,
-    DiscussionTurn,
-    create_party_session,
+from bmad_claude.workflow.interactive import (
+    InteractiveOrchestrator,
+    InteractiveSession,
+    BMADAgent,
+    InteractionTurn,
+    create_interactive_session,
 )
 
 __all__ = [
@@ -98,10 +99,10 @@ __all__ = [
     "get_all_workflows",
     "get_all_agents",
     "get_all_slash_commands",
-    # Party Mode
-    "PartyOrchestrator",
-    "PartySession",
-    "PartyAgent",
-    "DiscussionTurn",
-    "create_party_session",
+    # Interactive Mode
+    "InteractiveOrchestrator",
+    "InteractiveSession",
+    "BMADAgent",
+    "InteractionTurn",
+    "create_interactive_session",
 ]
