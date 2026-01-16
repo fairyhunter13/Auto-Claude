@@ -233,6 +233,171 @@ detection_rules:
       - "languages/csharp/moq-patterns.md"
 
   # ============================================
+  # KOTLIN - JVM language, check before Java
+  # ============================================
+  - language: kotlin
+    display_name: "Kotlin"
+    priority: 35
+    indicators:
+      required_any:
+        - type: file
+          pattern: "build.gradle.kts"
+        - type: file_contains
+          pattern: "build.gradle"
+          contains: "kotlin"
+        - type: glob
+          pattern: "**/*.kt"
+      optional:
+        - type: glob
+          pattern: "**/*.kts"
+        - type: file
+          pattern: "settings.gradle.kts"
+    test_framework_default: kotest
+    test_frameworks_available:
+      - id: kotest
+        name: "Kotest"
+        description: "Kotlin-native testing framework"
+        config_file: null
+        test_command: "./gradlew test"
+        test_pattern: "**/*Spec.kt"
+        detection:
+          - type: file_contains
+            pattern: "build.gradle.kts"
+            contains: "io.kotest"
+      - id: junit5-kotlin
+        name: "JUnit 5 (Kotlin)"
+        description: "JUnit 5 with Kotlin"
+        config_file: null
+        test_command: "./gradlew test"
+        test_pattern: "**/*Test.kt"
+    strategy_file: "languages/kotlin/_strategy.md"
+    knowledge_fragments:
+      - "languages/kotlin/kotest-patterns.md"
+      - "languages/kotlin/mockk-patterns.md"
+
+  # ============================================
+  # SWIFT - Apple platforms
+  # ============================================
+  - language: swift
+    display_name: "Swift"
+    priority: 45
+    indicators:
+      required_any:
+        - type: file
+          pattern: "Package.swift"
+        - type: glob
+          pattern: "**/*.xcodeproj"
+        - type: glob
+          pattern: "**/*.xcworkspace"
+      optional:
+        - type: glob
+          pattern: "**/*.swift"
+    test_framework_default: xctest
+    test_frameworks_available:
+      - id: xctest
+        name: "XCTest"
+        description: "Apple's built-in testing framework"
+        config_file: null
+        test_command: "swift test"
+        alt_commands: ["xcodebuild test"]
+        test_pattern: "**/*Tests.swift"
+      - id: swift-testing
+        name: "Swift Testing"
+        description: "New Swift 6 testing framework"
+        config_file: null
+        test_command: "swift test"
+        test_pattern: "**/*Tests.swift"
+    strategy_file: "languages/swift/_strategy.md"
+    knowledge_fragments:
+      - "languages/swift/xctest-patterns.md"
+      - "languages/swift/async-testing.md"
+
+  # ============================================
+  # PHP - Web development
+  # ============================================
+  - language: php
+    display_name: "PHP"
+    priority: 55
+    indicators:
+      required_any:
+        - type: file
+          pattern: "composer.json"
+        - type: glob
+          pattern: "**/*.php"
+      optional:
+        - type: file
+          pattern: "composer.lock"
+        - type: file
+          pattern: "phpunit.xml"
+        - type: file
+          pattern: "phpunit.xml.dist"
+    test_framework_default: phpunit
+    test_frameworks_available:
+      - id: phpunit
+        name: "PHPUnit"
+        description: "De facto PHP testing framework"
+        config_file: "phpunit.xml"
+        alt_config_files: ["phpunit.xml.dist"]
+        test_command: "./vendor/bin/phpunit"
+        test_pattern: "**/*Test.php"
+      - id: pest
+        name: "Pest"
+        description: "Modern PHP testing framework"
+        config_file: "phpunit.xml"
+        test_command: "./vendor/bin/pest"
+        test_pattern: "**/*Test.php"
+        detection:
+          - type: file_contains
+            pattern: "composer.json"
+            contains: "pestphp/pest"
+    strategy_file: "languages/php/_strategy.md"
+    knowledge_fragments:
+      - "languages/php/phpunit-patterns.md"
+      - "languages/php/mockery-patterns.md"
+
+  # ============================================
+  # RUBY - Scripting and web
+  # ============================================
+  - language: ruby
+    display_name: "Ruby"
+    priority: 60
+    indicators:
+      required_any:
+        - type: file
+          pattern: "Gemfile"
+        - type: glob
+          pattern: "**/*.rb"
+      optional:
+        - type: file
+          pattern: "Gemfile.lock"
+        - type: file
+          pattern: ".rspec"
+        - type: file
+          pattern: "Rakefile"
+    test_framework_default: rspec
+    test_frameworks_available:
+      - id: rspec
+        name: "RSpec"
+        description: "BDD testing framework for Ruby"
+        config_file: ".rspec"
+        test_command: "bundle exec rspec"
+        test_pattern: "**/*_spec.rb"
+        detection:
+          - type: file_contains
+            pattern: "Gemfile"
+            contains: "rspec"
+      - id: minitest
+        name: "Minitest"
+        description: "Ruby built-in testing"
+        config_file: null
+        test_command: "ruby -Itest test/**/*_test.rb"
+        test_pattern: "**/*_test.rb"
+    strategy_file: "languages/ruby/_strategy.md"
+    knowledge_fragments:
+      - "languages/ruby/rspec-patterns.md"
+      - "languages/ruby/factory-bot-patterns.md"
+
+  # ============================================
   # TYPESCRIPT / JAVASCRIPT - Check last (most common, tooling everywhere)
   # ============================================
   - language: typescript
@@ -456,6 +621,22 @@ family_hints:
   csharp:
     families: [c-family]
     primary: c-family
+    
+  kotlin:
+    families: [c-family]
+    primary: c-family
+    
+  swift:
+    families: [c-family, systems-family]
+    primary: c-family
+    
+  php:
+    families: [c-family, scripting-family]
+    primary: scripting-family
+    
+  ruby:
+    families: [scripting-family]
+    primary: scripting-family
     
   # When inferring unknown languages, use these patterns
   inference_patterns:
