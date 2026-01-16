@@ -1,136 +1,140 @@
 # Sprint Status - Auto-BMAD Project
-# Sprint 2: Project Management
+# Sprint 3: Phase Dashboard & Navigation
 # Started: 2026-01-16
 # Completed: 2026-01-16
 
-sprint_number: 2
-sprint_name: "Project Management"
-sprint_goal: "Enable users to create, import, configure, and manage BMAD projects"
-epic: "Epic 2: Project Management"
+sprint_number: 3
+sprint_name: "Phase Dashboard & Navigation"
+sprint_goal: "Provide visual phase tracking and navigation through the 4-phase BMAD methodology"
+epic: "Epic 3: Phase Dashboard & Navigation"
 status: completed
-started_at: 2026-01-16T10:00:00
-completed_at: 2026-01-16T12:00:00
+started_at: 2026-01-16T12:00:00
+completed_at: 2026-01-16T13:00:00
 
 stories:
-  story-2.1:
-    title: "Create New Project Flow"
+  story-3.1:
+    title: "Create Phase Dashboard Component"
     status: completed
     assigned_to: dev
     priority: P0
-    completed_at: 2026-01-16T10:30:00
+    completed_at: 2026-01-16T12:15:00
     notes:
-      - "Created BmadProjectManager in src/main/bmad/project-manager.ts"
-      - "CreateProjectDialog component with name, type, folder picker"
-      - "Initializes _bmad-output/planning-artifacts/ and bmm-workflow-status.yaml"
-      - "Updates _bmad/bmm/config.yaml with project settings"
-      - "IPC handlers: bmad:create-project, bmad:select-folder"
+      - "PhaseDashboard.tsx with 4 phase cards"
+      - "Phase icons (Search, FileText, Boxes, Code)"
+      - "Current phase highlighted with ring"
+      - "Overall progress section with progress bars"
     
-  story-2.2:
-    title: "Import Existing Project"
+  story-3.2:
+    title: "Display Phase Status Indicators"
     status: completed
     assigned_to: dev
     priority: P0
-    completed_at: 2026-01-16T10:45:00
+    completed_at: 2026-01-16T12:25:00
     notes:
-      - "ImportProjectDialog component with folder validation"
-      - "Validates _bmad/ directory exists before import"
-      - "Reads existing status from bmm-workflow-status.yaml"
-      - "IPC handlers: bmad:import-project, bmad:validate-project"
+      - "Status colors: green (complete), blue (in_progress), gray (pending), red (blocked)"
+      - "Status icons: CheckCircle2, Loader2 (spinning), Circle, Lock"
+      - "Workflow completion counts (X/Y workflows)"
+      - "Progress bar per phase"
     
-  story-2.3:
-    title: "View Project List"
+  story-3.3:
+    title: "Enable Phase Navigation"
     status: completed
     assigned_to: dev
     priority: P0
-    completed_at: 2026-01-16T11:00:00
+    completed_at: 2026-01-16T12:35:00
     notes:
-      - "ProjectList component with cards showing project info"
-      - "Shows name, path, current phase, last opened date"
-      - "Sorted by last opened (most recent first)"
-      - "Click to select and open project"
-      - "Zustand store: useBmadProjectStore"
+      - "PhaseDetail.tsx for expanded phase view"
+      - "Click phase card to expand"
+      - "Back button to return to dashboard"
+      - "WorkflowCard for each workflow with status"
+      - "Shows agent name, output file, completion time"
     
-  story-2.4:
-    title: "Delete Project from Auto-BMAD"
+  story-3.4:
+    title: "Enforce Phase Prerequisites"
     status: completed
     assigned_to: dev
     priority: P1
-    completed_at: 2026-01-16T11:15:00
+    completed_at: 2026-01-16T12:45:00
     notes:
-      - "Confirmation dialog with AlertDialog"
-      - "Removes project from store (files NOT deleted)"
-      - "IPC handler: bmad:remove-project"
-      - "Updates recent projects list"
+      - "canAdvanceToPhase() checks previous required workflows"
+      - "Alert banner when prerequisites not met"
+      - "Lists specific blockers"
+      - "Phase 1 (Analysis) always skippable"
+      - "Workflow-level blocking via dependsOn"
     
-  story-2.5:
-    title: "Configure Project Settings"
+  story-3.5:
+    title: "Allow Phase Reset"
     status: completed
     assigned_to: dev
     priority: P1
-    completed_at: 2026-01-16T11:30:00
+    completed_at: 2026-01-16T12:50:00
     notes:
-      - "ProjectSettingsDialog with General and Advanced tabs"
-      - "Edit project name, communication language"
-      - "Configure OpenCode CLI path"
-      - "Settings persisted via IPC: bmad:get-settings, bmad:update-settings"
+      - "Reset button on completed phases"
+      - "AlertDialog confirmation"
+      - "Warns about subsequent phases also resetting"
+      - "Artifacts NOT deleted"
+      - "resetPhase() in phase-store.ts"
     
-  story-2.6:
-    title: "Browse Project Files"
+  story-3.6:
+    title: "Show Recommended Next Workflow"
     status: completed
     assigned_to: dev
     priority: P1
-    completed_at: 2026-01-16T11:45:00
+    completed_at: 2026-01-16T12:55:00
     notes:
-      - "ProjectFileBrowser component with tree view"
-      - "Highlights _bmad-output/ folder with star icon"
-      - "Auto-expands important directories"
-      - "Double-click to open in external editor"
-      - "Uses existing listDirectory IPC handler"
+      - "getRecommendedWorkflow() finds first incomplete required"
+      - "Prominent card at top of dashboard"
+      - "Shows workflow name and phase"
+      - "Start Workflow button"
+      - "Skips optional Analysis phase for recommendations"
 
 velocity:
   planned_stories: 6
   completed_stories: 6
-  story_points_completed: 21
+  story_points_completed: 18
 
 blockers: []
 
 files_created:
-  main_process:
-    - "src/main/bmad/project-manager.ts (350+ lines)"
-    - "Updated src/main/ipc-handlers/bmad-handlers.ts (+100 lines)"
-    - "Updated src/main/bmad/index.ts (exports)"
-  preload:
-    - "Updated src/preload/api/bmad-api.ts (+80 lines for project API)"
   renderer:
-    - "src/renderer/features/bmad/stores/project-store.ts (250 lines)"
-    - "src/renderer/features/bmad/components/CreateProjectDialog.tsx (200 lines)"
-    - "src/renderer/features/bmad/components/ImportProjectDialog.tsx (180 lines)"
-    - "src/renderer/features/bmad/components/ProjectList.tsx (250 lines)"
-    - "src/renderer/features/bmad/components/ProjectSettingsDialog.tsx (230 lines)"
-    - "src/renderer/features/bmad/components/ProjectFileBrowser.tsx (280 lines)"
+    - "src/renderer/features/bmad/stores/phase-store.ts (300+ lines)"
+    - "src/renderer/features/bmad/components/PhaseDashboard.tsx (250 lines)"
+    - "src/renderer/features/bmad/components/PhaseDetail.tsx (280 lines)"
     - "Updated src/renderer/features/bmad/index.ts (exports)"
+
+key_features:
+  - "4-phase visual dashboard with cards"
+  - "Real-time status from bmm-workflow-status.yaml"
+  - "Phase expansion with workflow details"
+  - "Prerequisite enforcement with blockers list"
+  - "Phase reset with confirmation"
+  - "Recommended next workflow suggestion"
+  - "Agent names and output files displayed"
+  - "Progress bars per phase and overall"
 
 retrospective:
   went_well:
-    - "All 6 stories completed efficiently"
-    - "Reused existing IPC patterns from Auto-Claude"
-    - "Clean separation between BMAD and Auto-Claude project management"
-    - "Comprehensive validation for BMAD projects"
+    - "All 6 stories completed quickly"
+    - "Clean separation of dashboard/detail views"
+    - "Comprehensive phase/workflow status tracking"
+    - "Good UX with recommended actions"
   improvements:
-    - "Need to verify TypeScript compilation"
-    - "UI components need integration testing"
+    - "Could add keyboard navigation"
+    - "Could add phase timeline visualization"
   action_items:
-    - "Run full build in Sprint 3"
-    - "Create main app shell to integrate components"
+    - "Integrate with workflow execution in Sprint 4"
 
-previous_sprint:
-  sprint_number: 1
-  sprint_name: "Project Foundation & Core Infrastructure"
-  status: completed
-  completed_at: 2026-01-16T23:59:00
-  completed_stories: 5
+previous_sprints:
+  - sprint_number: 1
+    sprint_name: "Project Foundation & Core Infrastructure"
+    status: completed
+    completed_stories: 5
+  - sprint_number: 2
+    sprint_name: "Project Management"
+    status: completed
+    completed_stories: 6
 
 notes:
-  - "Sprint 2 COMPLETE - Project Management features delivered"
-  - "Total new code: ~1,500 lines across 8 files"
-  - "Next: Sprint 3 - Epic 3: Phase Dashboard & Navigation"
+  - "Sprint 3 COMPLETE - Phase Dashboard delivered"
+  - "Total new code: ~850 lines across 3 files"
+  - "Next: Sprint 4 - Epic 4: Workflow Execution"
