@@ -1,11 +1,11 @@
 {
   "wizard": {
     "title": "Setup Wizard",
-    "description": "Configure your Auto Claude environment in a few simple steps",
+    "description": "Configure your Auto BMAD environment in a few simple steps",
     "helpText": "This wizard will help you set up your environment in just a few steps. You can configure your Claude OAuth token, set up memory features, and create your first task."
   },
   "welcome": {
-    "title": "Welcome to Auto Claude",
+    "title": "Welcome to Auto BMAD",
     "subtitle": "Build software autonomously with AI-powered agents",
     "getStarted": "Get Started",
     "skip": "Skip Setup",
@@ -16,7 +16,7 @@
       },
       "specDriven": {
         "title": "Spec-Driven Workflow",
-        "description": "Define tasks with clear specifications and let Auto Claude handle the implementation"
+        "description": "Define tasks with clear specifications and let Auto BMAD handle the implementation"
       },
       "memory": {
         "title": "Memory & Context",
@@ -79,7 +79,7 @@
   "memory": {
     "title": "Memory",
     "description": "Configure persistent cross-session memory for agents",
-    "contextDescription": "Auto Claude Memory helps remember context across your coding sessions",
+    "contextDescription": "Auto BMAD Memory helps remember context across your coding sessions",
     "enableMemory": "Enable Memory",
     "enableMemoryDescription": "Persistent cross-session memory using LadybugDB (embedded database)",
     "memoryDisabledInfo": "Memory is disabled. Session insights will be stored in local files only. Enable Memory for persistent cross-session context with semantic search.",
@@ -117,13 +117,13 @@
   },
   "completion": {
     "title": "You're All Set!",
-    "subtitle": "Auto Claude is ready to help you build amazing software",
+    "subtitle": "Auto BMAD is ready to help you build amazing software",
     "setupComplete": "Setup Complete",
     "setupCompleteDescription": "Your environment is configured and ready. You can start creating tasks immediately or explore the application at your own pace.",
     "whatsNext": "What's Next?",
     "createTask": {
       "title": "Create a Task",
-      "description": "Start by creating your first task to see Auto Claude in action.",
+      "description": "Start by creating your first task to see Auto BMAD in action.",
       "action": "Open Task Creator"
     },
     "customizeSettings": {
@@ -142,14 +142,14 @@
     "welcome": "Welcome",
     "authChoice": "Auth Method",
     "auth": "Auth",
-    "claudeCode": "CLI",
+    "openCode": "CLI",
     "devtools": "Dev Tools",
     "privacy": "Privacy",
     "memory": "Memory",
     "done": "Done"
   },
   "privacy": {
-    "title": "Help Improve Auto Claude",
+    "title": "Help Improve Auto BMAD",
     "subtitle": "Anonymous error reporting helps us fix bugs faster",
     "whatWeCollect": {
       "title": "What we collect",
@@ -169,13 +169,13 @@
       "description": "Help us identify and fix issues"
     }
   },
-  "claudeCode": {
-    "title": "Claude Code CLI",
-    "description": "Install or update the Claude Code CLI to enable AI-powered features",
-    "detecting": "Checking Claude Code installation...",
+  "openCode": {
+    "title": "OpenCode CLI",
+    "description": "Install or update the OpenCode CLI to enable AI-powered BMAD workflows",
+    "detecting": "Checking OpenCode installation...",
     "info": {
-      "title": "What is Claude Code?",
-      "description": "Claude Code is Anthropic's official CLI that powers Auto Claude's AI features. It provides secure authentication and direct access to Claude models."
+      "title": "What is OpenCode?",
+      "description": "OpenCode is the AI coding assistant CLI that powers Auto BMAD's workflows. It provides secure AI-assisted development capabilities."
     },
     "status": {
       "installed": "Installed",
@@ -187,29 +187,29 @@
       "latest": "Latest Version"
     },
     "install": {
-      "button": "Install Claude Code",
-      "updating": "Update Claude Code",
+      "button": "Install OpenCode",
+      "updating": "Update OpenCode",
       "inProgress": "Installing...",
       "success": "Installation command sent to terminal. Please complete the installation there.",
-      "instructions": "The installer will open in your terminal. Follow the prompts to complete installation."
+      "instructions": "The installer will open in your terminal. Make sure Go is installed on your system."
     },
-    "learnMore": "Learn more about Claude Code"
+    "learnMore": "Learn more about OpenCode"
   },
   "devtools": {
     "title": "Developer Tools",
-    "description": "Choose your preferred IDE and terminal for working with Auto Claude worktrees",
+    "description": "Choose your preferred IDE and terminal for working with Auto BMAD worktrees",
     "detecting": "Detecting installed tools...",
     "detectAgain": "Detect Again",
     "whyConfigure": "Why configure these?",
-    "whyConfigureDescription": "When Auto Claude builds features in isolated worktrees, you can open them directly in your preferred IDE or terminal to test and review changes.",
+    "whyConfigureDescription": "When Auto BMAD builds features in isolated worktrees, you can open them directly in your preferred IDE or terminal to test and review changes.",
     "ide": {
       "label": "Preferred IDE",
-      "description": "Auto Claude will open worktrees in this editor",
+      "description": "Auto BMAD will open worktrees in this editor",
       "customPath": "Custom IDE Path"
     },
     "terminal": {
       "label": "Preferred Terminal",
-      "description": "Auto Claude will open terminal sessions here",
+      "description": "Auto BMAD will open terminal sessions here",
       "customPath": "Custom Terminal Path"
     },
     "detectedSummary": "Detected on your system:",

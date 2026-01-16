@@ -29,7 +29,7 @@ import { registerInsightsHandlers } from './insights-handlers';
 import { registerMemoryHandlers } from './memory-handlers';
 import { registerAppUpdateHandlers } from './app-update-handlers';
 import { registerDebugHandlers } from './debug-handlers';
-import { registerClaudeCodeHandlers } from './claude-code-handlers';
+import { registerOpenCodeHandlers } from './opencode-handlers';
 import { registerMcpHandlers } from './mcp-handlers';
 import { registerProfileHandlers } from './profile-handlers';
 import { registerTerminalWorktreeIpcHandlers } from './terminal';
@@ -110,8 +110,8 @@ export function setupIpcHandlers(
   // Debug handlers (logs, debug info, etc.)
   registerDebugHandlers();
 
-  // Claude Code CLI handlers (version checking, installation)
-  registerClaudeCodeHandlers();
+  // OpenCode CLI handlers (version checking, installation)
+  registerOpenCodeHandlers();
 
   // MCP server health check handlers
   registerMcpHandlers();
@@ -146,7 +146,7 @@ export {
   registerMemoryHandlers,
   registerAppUpdateHandlers,
   registerDebugHandlers,
-  registerClaudeCodeHandlers,
+  registerOpenCodeHandlers,
   registerMcpHandlers,
   registerProfileHandlers,
   registerBmadHandlers

@@ -14,7 +14,7 @@ import { WizardProgress, WizardStep } from './WizardProgress';
 import { WelcomeStep } from './WelcomeStep';
 import { AuthChoiceStep } from './AuthChoiceStep';
 import { OAuthStep } from './OAuthStep';
-import { ClaudeCodeStep } from './ClaudeCodeStep';
+import { OpenCodeStep } from './OpenCodeStep';
 import { DevToolsStep } from './DevToolsStep';
 import { PrivacyStep } from './PrivacyStep';
 import { GraphitiStep } from './GraphitiStep';
@@ -29,14 +29,14 @@ interface OnboardingWizardProps {
 }
 
 // Wizard step identifiers
-type WizardStepId = 'welcome' | 'auth-choice' | 'oauth' | 'claude-code' | 'devtools' | 'privacy' | 'graphiti' | 'completion';
+type WizardStepId = 'welcome' | 'auth-choice' | 'oauth' | 'opencode' | 'devtools' | 'privacy' | 'graphiti' | 'completion';
 
 // Step configuration with translation keys
 const WIZARD_STEPS: { id: WizardStepId; labelKey: string }[] = [
   { id: 'welcome', labelKey: 'steps.welcome' },
   { id: 'auth-choice', labelKey: 'steps.authChoice' },
   { id: 'oauth', labelKey: 'steps.auth' },
-  { id: 'claude-code', labelKey: 'steps.claudeCode' },
+  { id: 'opencode', labelKey: 'steps.openCode' },
   { id: 'devtools', labelKey: 'steps.devtools' },
   { id: 'privacy', labelKey: 'steps.privacy' },
   { id: 'graphiti', labelKey: 'steps.memory' },
@@ -199,9 +199,9 @@ export function OnboardingWizard({
             onSkip={skipWizard}
           />
         );
-      case 'claude-code':
+      case 'opencode':
         return (
-          <ClaudeCodeStep
+          <OpenCodeStep
             onNext={goToNextStep}
             onBack={goToPreviousStep}
             onSkip={skipWizard}

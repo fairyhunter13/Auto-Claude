@@ -229,52 +229,52 @@ const browserMockAPI: ElectronAPI = {
     onAnalyzePreviewError: () => () => {}
   },
 
-  // Claude Code Operations
-  checkClaudeCodeVersion: async () => ({
+  // OpenCode Operations
+  checkOpenCodeVersion: async () => ({
     success: true,
     data: {
-      installed: '1.0.0',
-      latest: '1.0.0',
+      installed: '0.1.0',
+      latest: '0.1.0',
       isOutdated: false,
-      path: '/usr/local/bin/claude',
+      path: '/home/user/go/bin/opencode',
       detectionResult: {
         found: true,
-        version: '1.0.0',
-        path: '/usr/local/bin/claude',
-        source: 'system-path' as const,
-        message: 'Claude Code CLI found'
+        version: '0.1.0',
+        path: '/home/user/go/bin/opencode',
+        source: 'go-install' as const,
+        message: 'OpenCode CLI found'
       }
     }
   }),
-  installClaudeCode: async () => ({
+  installOpenCode: async () => ({
     success: true,
-    data: { command: 'npm install -g @anthropic-ai/claude-code' }
+    data: { command: 'go install github.com/opencode-ai/opencode@latest' }
   }),
-  getClaudeCodeVersions: async () => ({
+  getOpenCodeVersions: async () => ({
     success: true,
     data: {
-      versions: ['1.0.5', '1.0.4', '1.0.3', '1.0.2', '1.0.1', '1.0.0']
+      versions: ['0.1.5', '0.1.4', '0.1.3', '0.1.2', '0.1.1', '0.1.0']
     }
   }),
-  installClaudeCodeVersion: async (version: string) => ({
+  installOpenCodeVersion: async (version: string) => ({
     success: true,
-    data: { command: `npm install -g @anthropic-ai/claude-code@${version}`, version }
+    data: { command: `go install github.com/opencode-ai/opencode@v${version}`, version }
   }),
-  getClaudeCodeInstallations: async () => ({
+  getOpenCodeInstallations: async () => ({
     success: true,
     data: {
       installations: [
         {
-          path: '/usr/local/bin/claude',
-          version: '1.0.0',
-          source: 'system-path' as const,
+          path: '/home/user/go/bin/opencode',
+          version: '0.1.0',
+          source: 'go-install' as const,
           isActive: true,
         }
       ],
-      activePath: '/usr/local/bin/claude',
+      activePath: '/home/user/go/bin/opencode',
     }
   }),
-  setClaudeCodeActivePath: async (cliPath: string) => ({
+  setOpenCodeActivePath: async (cliPath: string) => ({
     success: true,
     data: { path: cliPath }
   }),
