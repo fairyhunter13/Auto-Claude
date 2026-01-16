@@ -30,6 +30,7 @@ from bmad_claude.party.opencode_pool import (
     BUILTIN_PROFILES,
     create_pool_from_names,
 )
+from bmad_claude.party.feedback import FeedbackHandler, FeedbackType
 
 
 @dataclass
@@ -113,6 +114,9 @@ class PartySession:
         self._opencode_pool: OpenCodePool | None = None
         self._use_streaming = True  # Enable streaming by default
         self._use_pool = profiles is not None and len(profiles) > 0
+
+        # User feedback handler
+        self.feedback = FeedbackHandler()
 
     @classmethod
     async def create(
@@ -276,12 +280,15 @@ class PartySession:
             user_directed=lead_agent,
         )
 
-        # Build context
+        # Build context with user feedback
+        feedback_section = self.feedback.format_feedback_for_prompt()
         context = f"""**Project:** {self.project_name}
 **Current Phase:** {self.phase_manager.get_current_phase().name}
 **Discussion Topic:** {topic}
 
 {self.memory.get_context()}
+
+{feedback_section}
 """
 
         # Build and execute prompt
@@ -291,6 +298,10 @@ class PartySession:
             context=context,
             user_message=user_message,
         )
+
+        # Mark feedback as processed after incorporating into prompt
+        for fb in self.feedback.get_pending_feedback():
+            self.feedback.mark_feedback_processed(fb.id)
 
         # Invoke OpenCode
         llm_response = await self._invoke_opencode(prompt)
@@ -383,12 +394,15 @@ class PartySession:
             user_directed=lead_agent,
         )
 
-        # Build context
+        # Build context with user feedback
+        feedback_section = self.feedback.format_feedback_for_prompt()
         context = f"""**Project:** {self.project_name}
 **Current Phase:** {self.phase_manager.get_current_phase().name}
 **Discussion Topic:** {topic}
 
 {self.memory.get_context()}
+
+{feedback_section}
 """
 
         # Build prompt
@@ -398,6 +412,10 @@ class PartySession:
             context=context,
             user_message=user_message,
         )
+
+        # Mark feedback as processed after incorporating into prompt
+        for fb in self.feedback.get_pending_feedback():
+            self.feedback.mark_feedback_processed(fb.id)
 
         # Stream response
         llm_response = await self._invoke_opencode_streaming(prompt, on_text)

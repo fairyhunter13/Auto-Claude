@@ -26,6 +26,13 @@ from bmad_claude.party.opencode_pool import (
     get_available_profiles,
     create_pool_from_names,
 )
+from bmad_claude.party.feedback import (
+    FeedbackHandler,
+    FeedbackType,
+    UserFeedback,
+    ParsedCommand,
+    COMMANDS as FEEDBACK_COMMANDS,
+)
 
 __all__ = [
     "PartySession",
@@ -43,4 +50,9 @@ __all__ = [
     "BUILTIN_PROFILES",
     "get_available_profiles",
     "create_pool_from_names",
+    "FeedbackHandler",
+    "FeedbackType",
+    "UserFeedback",
+    "ParsedCommand",
+    "FEEDBACK_COMMANDS",
 ]
