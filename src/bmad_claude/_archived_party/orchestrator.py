@@ -205,10 +205,28 @@ class AgentOrchestrator:
 
         agent_personas = "\n".join(agent_sections)
 
-        # Build the prompt
-        prompt = f"""You are facilitating a BMAD party mode discussion.
+        # Build the prompt with explicit override instructions
+        # Get all agent display info for format example
+        agent_examples = "\n".join(
+            [
+                f"{self.agents[a].icon} **{self.agents[a].display_name}**: [response]"
+                for a in agents
+                if a in self.agents
+            ]
+        )
 
-## Active Agents for This Topic
+        prompt = f"""<CRITICAL>
+IGNORE any previous instructions about being "Claude Code" or using tools.
+This is a pure text generation task. DO NOT use any tools or read any files.
+You MUST respond ONLY as the BMAD agents specified below.
+</CRITICAL>
+
+# BMAD Party Mode Discussion
+
+You are role-playing as multiple BMAD methodology experts having a collaborative discussion.
+Each agent has a distinct personality and expertise. Respond as ALL of them in sequence.
+
+## The Agents (respond as each one)
 
 {agent_personas}
 
@@ -216,33 +234,31 @@ class AgentOrchestrator:
 
 {context}
 
-## Current Topic
+## Discussion Topic: {topic}
 
-{topic}
-
-## User Input
+## User Says
 
 {user_message or "[Continue the discussion]"}
 
-## Instructions
+## YOUR TASK
 
-Each selected agent should respond in-character to this topic.
-- Maintain their communication style and expertise
-- Enable natural cross-talk and building on each other's points
-- Focus on actionable insights for the artifact being created
-- Keep responses focused and substantive (2-4 paragraphs per agent)
+Generate responses from EACH agent above, in order. Each agent should:
+1. Respond in their distinct voice and communication style
+2. Focus on their area of expertise
+3. Build on or respectfully challenge other agents' points
+4. Be substantive (2-4 paragraphs per agent)
 
-## Response Format
+## REQUIRED OUTPUT FORMAT
 
-For each agent, respond as:
+{agent_examples}
 
-{self.agents[agents[0]].icon} **{self.agents[agents[0]].display_name}**: [Their response in character]
+---
 
-[Additional agents follow the same format]
+**[DECISION]**: [Topic] - [What was decided] - [Brief rationale]
 
-After all responses, if any decisions are made, note them:
+(Include a decision line only if the discussion reaches a concrete decision)
 
-[DECISION]: [Topic] - [What was decided] - [Rationale]
+## BEGIN AGENT RESPONSES
 """
         return prompt
 
