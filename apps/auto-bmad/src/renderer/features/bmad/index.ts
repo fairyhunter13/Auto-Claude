@@ -18,6 +18,12 @@ export {
   type BmadProjectValidation,
   type BmadSettings,
 } from './stores/project-store';
+export {
+  usePhaseStore,
+  initializePhaseStoreListeners,
+  type PhaseInfo,
+  type WorkflowInfo,
+} from './stores/phase-store';
 
 // Hooks
 export { useWorkflowTerminal } from './hooks/useWorkflowTerminal';
@@ -31,3 +37,5 @@ export { ImportProjectDialog } from './components/ImportProjectDialog';
 export { ProjectList } from './components/ProjectList';
 export { ProjectSettingsDialog } from './components/ProjectSettingsDialog';
 export { ProjectFileBrowser } from './components/ProjectFileBrowser';
+export { PhaseDashboard } from './components/PhaseDashboard';
+export { PhaseDetail } from './components/PhaseDetail';
