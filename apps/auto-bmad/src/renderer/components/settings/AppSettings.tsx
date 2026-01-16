@@ -19,7 +19,8 @@ import {
   Globe,
   Code,
   Bug,
-  Server
+  Server,
+  Scale
 } from 'lucide-react';
 
 // GitLab icon component (lucide-react doesn't have one)
@@ -55,6 +56,7 @@ import { DebugSettings } from './DebugSettings';
 import { ProfileList } from './ProfileList';
 import { ProjectSelector } from './ProjectSelector';
 import { ProjectSettingsContent, ProjectSettingsSection } from './ProjectSettingsContent';
+import { LoadBalancerSettingsSection } from './LoadBalancerSettingsSection';
 import { useProjectStore } from '../../stores/project-store';
 import type { UseProjectSettingsReturn } from '../project-settings/hooks/useProjectSettings';
 
@@ -67,7 +69,7 @@ interface AppSettingsDialogProps {
 }
 
 // App-level settings sections
-export type AppSection = 'appearance' | 'display' | 'language' | 'devtools' | 'agent' | 'paths' | 'integrations' | 'api-profiles' | 'updates' | 'notifications' | 'debug';
+export type AppSection = 'appearance' | 'display' | 'language' | 'devtools' | 'agent' | 'paths' | 'integrations' | 'api-profiles' | 'load-balancing' | 'updates' | 'notifications' | 'debug';
 
 interface NavItemConfig<T extends string> {
   id: T;
@@ -83,6 +85,7 @@ const appNavItemsConfig: NavItemConfig<AppSection>[] = [
   { id: 'paths', icon: FolderOpen },
   { id: 'integrations', icon: Key },
   { id: 'api-profiles', icon: Server },
+  { id: 'load-balancing', icon: Scale },
   { id: 'updates', icon: Package },
   { id: 'notifications', icon: Bell },
   { id: 'debug', icon: Bug }
@@ -196,6 +199,8 @@ export function AppSettingsDialog({ open, onOpenChange, initialSection, initialP
         return <IntegrationSettings settings={settings} onSettingsChange={setSettings} isOpen={open} />;
       case 'api-profiles':
         return <ProfileList />;
+      case 'load-balancing':
+        return <LoadBalancerSettingsSection />;
       case 'updates':
         return <AdvancedSettings settings={settings} onSettingsChange={setSettings} section="updates" version={version} />;
       case 'notifications':

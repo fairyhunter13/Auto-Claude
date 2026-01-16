@@ -37,6 +37,11 @@
       "title": "API Profiles",
       "description": "Custom API endpoint profiles"
     },
+    "loadBalancing": {
+      "title": "Load Balancing",
+      "description": "Distribute workflows across OpenCode profiles",
+      "previewMode": "Preview mode - Load balancer API not yet initialized. Start a BMAD workflow to enable."
+    },
     "updates": {
       "title": "Updates",
       "description": "Auto Claude updates"
