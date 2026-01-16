@@ -28,7 +28,7 @@
     "help": "Help & Feedback"
   },
   "messages": {
-    "initializeToCreateTasks": "Initialize Auto Claude to create tasks"
+    "initializeToCreateTasks": "Initialize Auto BMAD to create tasks"
   },
   "updateBanner": {
     "title": "Update Available",
@@ -39,12 +39,12 @@
     "dismiss": "Dismiss",
     "downloadError": "Failed to download update"
   },
-  "claudeCode": {
-    "checking": "Checking Claude Code...",
-    "upToDate": "Claude Code is up to date",
-    "updateAvailable": "Claude Code update available",
-    "notInstalled": "Claude Code not installed",
-    "error": "Error checking Claude Code",
+  "openCode": {
+    "checking": "Checking OpenCode...",
+    "upToDate": "OpenCode is up to date",
+    "updateAvailable": "OpenCode update available",
+    "notInstalled": "OpenCode not installed",
+    "error": "Error checking OpenCode",
     "installed": "Installed",
     "outdated": "Update available",
     "missing": "Not installed",
@@ -52,12 +52,10 @@
     "latest": "Latest",
     "path": "Path",
     "lastChecked": "Last checked",
-    "learnMore": "Learn more about Claude Code",
-    "learnMoreAriaLabel": "Learn more about Claude Code (opens in new window)",
-    "viewChangelog": "View Claude Code Changelog",
-    "viewChangelogAriaLabel": "View Claude Code Changelog (opens in new window)",
-    "updateWarningTitle": "Update Claude Code?",
-    "updateWarningDescription": "Updating will close all running Claude Code sessions. Any unsaved work in those sessions may be lost. Make sure to save your work before proceeding.",
+    "learnMore": "Learn more about OpenCode",
+    "learnMoreAriaLabel": "Learn more about OpenCode (opens in new window)",
+    "updateWarningTitle": "Update OpenCode?",
+    "updateWarningDescription": "Updating will install the latest version of OpenCode. Make sure to save your work before proceeding.",
     "updateAnyway": "Update Anyway",
     "switchVersion": "Switch Version",
     "selectVersion": "Select version",
@@ -65,7 +63,7 @@
     "failedToLoadVersions": "Failed to load versions",
     "installingVersion": "Installing version {{version}}...",
     "rollbackWarningTitle": "Switch to version {{version}}?",
-    "rollbackWarningDescription": "Switching versions will close all running Claude Code sessions. Any unsaved work in those sessions may be lost. Make sure to save your work before proceeding.",
+    "rollbackWarningDescription": "Switching versions will install the selected version of OpenCode. Make sure to save your work before proceeding.",
     "switchAnyway": "Switch Anyway",
     "currentVersion": "Current",
     "switchInstallation": "Switch Installation",
@@ -74,7 +72,7 @@
     "failedToLoadInstallations": "Failed to load installations",
     "activeInstallation": "Active",
     "pathChangeWarningTitle": "Switch CLI installation?",
-    "pathChangeWarningDescription": "Switching CLI installations will use a different Claude Code binary. Any running sessions will continue using the previous installation until restarted.",
+    "pathChangeWarningDescription": "Switching CLI installations will use a different OpenCode binary.",
     "switchInstallationConfirm": "Switch",
     "versionUnknown": "version unknown"
   }

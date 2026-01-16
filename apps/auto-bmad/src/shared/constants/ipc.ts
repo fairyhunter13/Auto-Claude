@@ -505,13 +505,13 @@ export const IPC_CHANNELS = {
   DEBUG_GET_RECENT_ERRORS: 'debug:getRecentErrors',
   DEBUG_LIST_LOG_FILES: 'debug:listLogFiles',
 
-  // Claude Code CLI operations
-  CLAUDE_CODE_CHECK_VERSION: 'claudeCode:checkVersion',
-  CLAUDE_CODE_INSTALL: 'claudeCode:install',
-  CLAUDE_CODE_GET_VERSIONS: 'claudeCode:getVersions',
-  CLAUDE_CODE_INSTALL_VERSION: 'claudeCode:installVersion',
-  CLAUDE_CODE_GET_INSTALLATIONS: 'claudeCode:getInstallations',
-  CLAUDE_CODE_SET_ACTIVE_PATH: 'claudeCode:setActivePath',
+  // OpenCode CLI operations
+  OPENCODE_CHECK_VERSION: 'opencode:checkVersion',
+  OPENCODE_INSTALL: 'opencode:install',
+  OPENCODE_GET_VERSIONS: 'opencode:getVersions',
+  OPENCODE_INSTALL_VERSION: 'opencode:installVersion',
+  OPENCODE_GET_INSTALLATIONS: 'opencode:getInstallations',
+  OPENCODE_SET_ACTIVE_PATH: 'opencode:setActivePath',
 
   // MCP Server health checks
   MCP_CHECK_HEALTH: 'mcp:checkHealth',           // Quick connectivity check
