@@ -17,7 +17,9 @@ export default defineConfig({
   reporter: 'html',
   use: {
     trace: 'on-first-retry',
-    screenshot: 'only-on-failure'
+    screenshot: 'on',
+    video: 'on',
+    headless: false, // Show the UI
   },
   projects: [
     {
