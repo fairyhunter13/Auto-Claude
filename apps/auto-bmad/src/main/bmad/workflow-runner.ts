@@ -261,10 +261,10 @@ export class WorkflowRunner extends EventEmitter {
   /**
    * Get profile statistics (when load balancing is enabled)
    */
-  getProfileStats(): Record<OpenCodeProfile, unknown> | null {
+  getProfileStats(): Record<string, unknown> | null {
     if (!this.loadBalancer) return null;
     const stats = this.loadBalancer.getProfileStats();
-    return stats as Record<OpenCodeProfile, unknown> | null;
+    return stats ? (stats as Record<string, unknown>) : null;
   }
 
   /**
@@ -357,27 +357,22 @@ export class WorkflowRunner extends EventEmitter {
     await statusManager.updateWorkflowStatus(workflow.phase, workflowId, 'in_progress');
 
     // Build command arguments for OpenCode
-    // OpenCode CLI syntax: opencode run --command "/slash-command" [flags]
-    // Using --agent to specify the BMAD agent
+    // OpenCode CLI syntax: opencode run [message..] --agent <agent>
+    // The slash command goes as the message positional argument
     const args: string[] = ['run'];
-
-    // The workflow command must be passed via --command flag for slash commands
-    args.push('--command', workflow.command);
 
     // Specify the agent to use
     if (workflow.agent) {
       args.push('--agent', workflow.agent);
     }
 
-    // Add YOLO mode flag if requested (autonomous execution)
-    if (options.yoloMode) {
-      args.push('--yolo');
+    // Add any additional user-specified args (excluding --yolo which isn't valid)
+    if (options.args) {
+      args.push(...options.args.filter(arg => arg !== '--yolo'));
     }
 
-    // Add any additional user-specified args
-    if (options.args) {
-      args.push(...options.args);
-    }
+    // The workflow command (slash command) goes as the message
+    args.push(workflow.command);
 
     // Set up environment
     const env: Record<string, string> = {
@@ -504,22 +499,18 @@ export class WorkflowRunner extends EventEmitter {
     const statusManager = getStatusManager(this.projectPath);
     await statusManager.updateWorkflowStatus(workflow.phase, workflowId, 'in_progress');
 
-    // Build command arguments for OpenCode run
-    // OpenCode CLI syntax: opencode run --command "/slash-command" [flags]
+    // Build command arguments
+    // OpenCode CLI syntax: opencode run [message..] --agent <agent>
     const args: string[] = ['run'];
-    
-    // The workflow command must be passed via --command flag for slash commands
-    args.push('--command', workflow.command);
-    
     if (workflow.agent) {
       args.push('--agent', workflow.agent);
     }
-    if (options.yoloMode) {
-      args.push('--yolo');
-    }
+    // Note: --yolo is not a valid opencode flag, skip it
     if (options.args) {
-      args.push(...options.args);
+      args.push(...options.args.filter(arg => arg !== '--yolo'));
     }
+    // The workflow command (slash command) goes as the message
+    args.push(workflow.command);
 
     // Build load balancer options
     const lbOptions: LoadBalancerOptions = {
