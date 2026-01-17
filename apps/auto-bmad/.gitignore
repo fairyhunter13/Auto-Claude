@@ -81,3 +81,5 @@ e2e/auto-test-runner.mjs
 e2e/playwright-visible-test.mjs
 e2e/record-and-test.sh
 e2e/screen-record-test.sh
+# E2E test project artifacts
+e2e/test-projects/

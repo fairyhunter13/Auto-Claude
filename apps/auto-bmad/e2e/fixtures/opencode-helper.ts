@@ -186,15 +186,15 @@ export async function executeOpenCode(
   const startTime = Date.now();
 
   // Build command arguments
-  const cmdArgs: string[] = [];
+  // OpenCode CLI syntax: opencode run [message..] --agent <agent>
+  const cmdArgs: string[] = ['run'];
 
   if (agent) {
     cmdArgs.push('--agent', agent);
   }
 
-  if (yoloMode) {
-    cmdArgs.push('--yolo');
-  }
+  // Note: --yolo is not a valid opencode flag, skip it
+  // YOLO mode is handled by BMAD agent configuration
 
   cmdArgs.push(...args);
 

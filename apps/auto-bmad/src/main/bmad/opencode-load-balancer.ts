@@ -623,19 +623,19 @@ export async function executeWorkflowWithLoadBalancing(
   const lb = getLoadBalancer();
   await lb.initialize();
 
-  // OpenCode CLI syntax: opencode run --command "/slash-command" [flags]
+  // OpenCode CLI syntax: opencode run [message..] --agent <agent>
+  // The slash command goes as the message positional argument
   const args: string[] = ['run'];
-  
-  // The workflow command must be passed via --command flag for slash commands
-  args.push('--command', command);
   
   if (agent) {
     args.push('--agent', agent);
   }
   
-  if (options.yoloMode) {
-    args.push('--yolo');
-  }
+  // Note: --yolo is not a valid opencode flag, remove if present
+  // YOLO mode is handled by BMAD agent configuration, not CLI
+  
+  // The workflow command (slash command) goes as the message
+  args.push(command);
 
   return lb.executeWithRetry(args, options);
 }
