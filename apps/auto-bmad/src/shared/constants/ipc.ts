@@ -504,6 +504,18 @@ export const IPC_CHANNELS = {
   DEBUG_COPY_DEBUG_INFO: 'debug:copyDebugInfo',
   DEBUG_GET_RECENT_ERRORS: 'debug:getRecentErrors',
   DEBUG_LIST_LOG_FILES: 'debug:listLogFiles',
+  
+  // Debug Logger operations (runtime debug mode)
+  DEBUG_LOGGER_SET_ENABLED: 'debugLogger:setEnabled',
+  DEBUG_LOGGER_GET_CONFIG: 'debugLogger:getConfig',
+  DEBUG_LOGGER_SET_CONFIG: 'debugLogger:setConfig',
+  DEBUG_LOGGER_GET_LOGS: 'debugLogger:getLogs',
+  DEBUG_LOGGER_CLEAR_LOGS: 'debugLogger:clearLogs',
+  DEBUG_LOGGER_GET_STATS: 'debugLogger:getStats',
+  
+  // Debug Logger events (main -> renderer)
+  DEBUG_LOGGER_LOG_ENTRY: 'debugLogger:logEntry',
+  DEBUG_LOGGER_CONFIG_CHANGED: 'debugLogger:configChanged',
 
   // OpenCode CLI operations
   OPENCODE_CHECK_VERSION: 'opencode:checkVersion',

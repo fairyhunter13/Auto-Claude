@@ -8,11 +8,12 @@
 import { useState, useCallback } from 'react';
 import {
   Panel,
-  PanelGroup,
-  PanelResizeHandle,
+  Group as PanelGroup,
+  Separator as PanelResizeHandle,
 } from 'react-resizable-panels';
 import { GripHorizontal } from 'lucide-react';
-import { cn } from '../../../../lib/utils';
+import { cn } from '@/lib/utils';
+import type { PanelSize } from 'react-resizable-panels';
 import { WorkflowTerminal } from './WorkflowTerminal';
 
 interface WorkflowTerminalPanelProps {
@@ -67,9 +68,9 @@ export function WorkflowTerminalPanel({
   const [panelSize, setPanelSize] = useState(defaultSize);
 
   // Handle panel resize
-  const handleResize = useCallback((size: number) => {
-    setPanelSize(size);
-  }, []);
+  const handleResize = useCallback((size: PanelSize) => {
+    setPanelSize(size.asPercentage ?? defaultSize);
+  }, [defaultSize]);
 
   // Handle expand toggle
   const handleToggleExpand = useCallback(() => {
@@ -83,7 +84,7 @@ export function WorkflowTerminalPanel({
 
   return (
     <div className={cn('flex flex-col h-full', className)}>
-      <PanelGroup direction="vertical" className="h-full">
+      <PanelGroup orientation="vertical" className="h-full">
         {/* Main content area (placeholder for other panels) */}
         <Panel defaultSize={100 - defaultSize} minSize={30}>
           <div className="h-full" />

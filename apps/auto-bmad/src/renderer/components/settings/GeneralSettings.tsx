@@ -63,6 +63,7 @@ function ToolDetectionDisplay({ info, isLoading, t }: ToolDetectionDisplayProps)
       'system-path': t('general.sourceSystemPath'),
       'bundled': t('general.sourceBundled'),
       'fallback': t('general.sourceFallback'),
+      'go-install': t('general.sourceGoInstall') || 'Go Install',
     };
     return sourceMap[source] || source;
   };

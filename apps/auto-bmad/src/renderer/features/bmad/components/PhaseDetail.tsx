@@ -6,9 +6,9 @@
  */
 
 import { useCallback, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
-import { Button } from '@/shared/ui/button';
-import { Badge } from '@/shared/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,8 +18,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/shared/ui/alert-dialog';
-import { Alert, AlertDescription, AlertTitle } from '@/shared/ui/alert';
+} from '@/components/ui/alert-dialog';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   ArrowLeft,
   Play,
@@ -33,7 +33,7 @@ import {
   User,
   Clock,
 } from 'lucide-react';
-import { cn } from '@/shared/lib/utils';
+import { cn } from '@/lib/utils';
 import { usePhaseStore, type WorkflowInfo } from '../stores/phase-store';
 import { PHASE_METADATA, type BmadPhase } from '../types';
 

@@ -32,7 +32,7 @@ export function LoadBalancerSettingsSection() {
     const checkApiAvailability = async () => {
       try {
         // Check if the bmad API has load balancer methods
-        if (window.electronAPI?.bmad?.getLoadBalancerState) {
+        if (typeof window.electronAPI?.bmad?.getLoadBalancerState === 'function') {
           setIsApiAvailable(true);
           await loadState();
         } else {
@@ -89,13 +89,10 @@ export function LoadBalancerSettingsSection() {
     // If API is available, sync to backend
     if (isApiAvailable) {
       try {
-        if (changes.enabled !== undefined) {
-          if (changes.enabled) {
-            await window.electronAPI.bmad.enableLoadBalancing();
-          } else {
-            await window.electronAPI.bmad.disableLoadBalancing();
-          }
-        }
+        // Note: enableLoadBalancing/disableLoadBalancing require a project path
+        // This settings section is for viewing global state only
+        // Per-project load balancing is managed via the BMAD workflow runner
+        console.log('[LoadBalancerSettings] Config changed (global settings view only):', changes);
         // TODO: Add more granular config updates via IPC
       } catch (err) {
         console.error('[LoadBalancerSettings] Failed to update config:', err);

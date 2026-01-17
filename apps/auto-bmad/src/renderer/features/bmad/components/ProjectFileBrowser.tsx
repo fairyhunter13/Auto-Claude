@@ -6,9 +6,9 @@
  */
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { Button } from '@/shared/ui/button';
-import { ScrollArea } from '@/shared/ui/scroll-area';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/ui/collapsible';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   ChevronRight,
   ChevronDown,
@@ -21,7 +21,7 @@ import {
   ExternalLink,
   Star,
 } from 'lucide-react';
-import { cn } from '@/shared/lib/utils';
+import { cn } from '@/lib/utils';
 import type { BmadProject } from '../stores/project-store';
 
 // File type icons

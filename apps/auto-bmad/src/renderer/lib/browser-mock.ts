@@ -326,7 +326,105 @@ const browserMockAPI: ElectronAPI = {
   openLogsFolder: async () => ({ success: false, error: 'Not available in browser mode' }),
   copyDebugInfo: async () => ({ success: false, error: 'Not available in browser mode' }),
   getRecentErrors: async () => [],
-  listLogFiles: async () => []
+  listLogFiles: async () => [],
+
+  // File Operations
+  openPath: async (_filePath: string) => ({ success: false, error: 'Not available in browser mode' }),
+
+  // BMAD API (nested object)
+  bmad: {
+    // Project Management
+    selectFolder: async () => ({ success: true, data: { canceled: true, path: null } }),
+    validateProject: async () => ({ success: true, data: { valid: false, hasBmadDir: false, hasBmadOutput: false, hasStatusFile: false, hasConfigFile: false, errors: ['Not available in browser mode'] } }),
+    createProject: async () => ({ success: false, error: { code: 'BROWSER_MOCK', message: 'Not available in browser mode' } }),
+    importProject: async () => ({ success: false, error: { code: 'BROWSER_MOCK', message: 'Not available in browser mode' } }),
+    getProjects: async () => ({ success: true, data: [] }),
+    getProject: async () => ({ success: true, data: undefined }),
+    getRecentProjects: async () => ({ success: true, data: [] }),
+    openProject: async () => ({ success: true, data: undefined }),
+    removeProject: async () => ({ success: true, data: true }),
+    updateProject: async () => ({ success: true, data: undefined }),
+    getSettings: async () => ({ success: true, data: {} }),
+    updateSettings: async () => ({ success: true, data: undefined }),
+    
+    // Project Detection
+    isProject: async () => false,
+    hasConfig: async () => false,
+    hasStatus: async () => false,
+    
+    // Configuration
+    getConfig: async () => ({ success: false, error: { code: 'BROWSER_MOCK', message: 'Not available in browser mode' } }),
+    getDefaultConfig: async () => ({ success: false, error: { code: 'BROWSER_MOCK', message: 'Not available in browser mode' } }),
+    
+    // Status Management
+    initStatus: async () => ({ success: false, error: { code: 'BROWSER_MOCK', message: 'Not available in browser mode' } }),
+    getStatus: async () => ({ success: false, error: { code: 'BROWSER_MOCK', message: 'Not available in browser mode' } }),
+    updateStatus: async () => ({ success: false, error: { code: 'BROWSER_MOCK', message: 'Not available in browser mode' } }),
+    
+    // Artifact Management
+    initArtifacts: async () => ({ success: true, data: [] }),
+    listArtifacts: async () => ({ success: true, data: [] }),
+    getArtifactsByType: async () => ({ success: true, data: [] }),
+    
+    // Workflow Execution
+    checkOpenCode: async () => ({ success: true, data: { available: false } }),
+    initWorkflowRunner: async () => ({ success: true, data: undefined }),
+    getWorkflows: async () => ({ success: true, data: [] }),
+    getWorkflowsForPhase: async () => ({ success: true, data: [] }),
+    startWorkflow: async () => ({ success: false, error: { code: 'BROWSER_MOCK', message: 'Not available in browser mode' } }),
+    cancelWorkflow: async () => ({ success: true, data: undefined }),
+    isWorkflowRunning: async () => ({ success: true, data: { running: false, workflowId: null } }),
+    writeToWorkflow: async () => ({ success: true, data: undefined }),
+    
+    // Agent Management
+    getAgents: async () => ({ success: true, data: [] }),
+    getAgentsByModule: async () => ({ success: true, data: [] }),
+    loadAllAgents: async () => ({ success: true, data: [] }),
+    loadAgent: async () => ({ success: false, error: { code: 'BROWSER_MOCK', message: 'Not available in browser mode' } }),
+    
+    // Cleanup
+    dispose: async () => ({ success: true, data: undefined }),
+    
+    // Load Balancer
+    initLoadBalancer: async () => ({ success: true, data: { initialized: false } }),
+    getLoadBalancerState: async () => ({
+      success: true,
+      data: {
+        initialized: false,
+        profiles: [],
+        config: {
+          enabled: false,
+          strategy: 'round-robin' as const,
+          maxConcurrentPerProfile: 2,
+          rateLimitCooldown: 60000,
+          skipRateLimited: true,
+          enabledProfiles: []
+        }
+      }
+    }),
+    getProfileStats: async () => ({
+      success: true,
+      data: {
+        personal: { id: 'personal' as const, name: 'Personal', available: false, currentLoad: 0, rateLimitedUntil: null, lastUsed: 0, successCount: 0, failureCount: 0 },
+        work: { id: 'work' as const, name: 'Work', available: false, currentLoad: 0, rateLimitedUntil: null, lastUsed: 0, successCount: 0, failureCount: 0 },
+        default: { id: 'default' as const, name: 'Default', available: false, currentLoad: 0, rateLimitedUntil: null, lastUsed: 0, successCount: 0, failureCount: 0 }
+      }
+    }),
+    clearRateLimit: async () => ({ success: true, data: undefined }),
+    enableLoadBalancing: async () => ({ success: true, data: undefined }),
+    disableLoadBalancing: async () => ({ success: true, data: undefined }),
+    isLoadBalancingEnabled: async () => ({ success: true, data: { enabled: false } }),
+    
+    // Event Subscriptions
+    onStatusChanged: () => () => {},
+    onArtifactChanged: () => () => {},
+    onWorkflowProgress: () => () => {},
+    onWorkflowStdout: () => () => {},
+    onWorkflowStderr: () => () => {},
+    onWorkflowExit: () => () => {},
+    onRateLimited: () => () => {},
+    onExecutionCompleted: () => () => {},
+  }
 };
 
 /**

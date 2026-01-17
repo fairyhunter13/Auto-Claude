@@ -1,22 +1,25 @@
 /**
- * AgentManager - Slim re-export facade
+ * AgentManager - BMAD-based agent management
  *
- * This file maintains backward compatibility for imports using the old path.
- * The actual implementation has been refactored into modular components in ./agent/
+ * This file provides the AgentManager (which is BmadAgentManager).
+ * All task execution goes through BMAD workflows via OpenCode CLI.
  *
- * For new code, prefer importing directly from './agent':
- *   import { AgentManager } from './agent'
- *
- * This facade ensures existing imports continue to work:
+ * Import:
  *   import { AgentManager } from './agent-manager'
  */
 
 export {
   AgentManager,
+  BmadAgentManager,
+  getBmadAgentManager,
+  disposeBmadAgentManager,
   AgentState,
   AgentEvents,
   AgentProcessManager,
-  AgentQueueManager
+  AgentQueueManager,
+  TaskWorkflowBridge,
+  getTaskWorkflowBridge,
+  disposeTaskWorkflowBridge,
 } from './agent';
 
 export type {
@@ -28,5 +31,13 @@ export type {
   TaskExecutionOptions,
   SpecCreationMetadata,
   IdeationProgressData,
-  RoadmapProgressData
+  RoadmapProgressData,
+  BmadTask,
+  BmadTaskStatus,
+  BmadTaskMetadata,
+  TaskProgressEvent,
+  TaskExecutionResult,
+  BmadAgentManagerConfig,
+  TaskStartOptions,
+  AgentStatus,
 } from './agent';

@@ -105,6 +105,31 @@ export {
   type TargetExecutionPlan,
 } from './target-runner';
 
+// Task Workflow Bridge (Kanban → BMAD)
+export {
+  TaskWorkflowBridge,
+  getTaskWorkflowBridge,
+  disposeTaskWorkflowBridge,
+  disposeAllBridges,
+  type BmadTask,
+  type BmadTaskStatus,
+  type BmadTaskMetadata,
+  type TaskExecutionOptions as BmadTaskExecutionOptions,
+  type TaskProgressEvent,
+  type TaskExecutionResult,
+} from './task-workflow-bridge';
+
+// BMAD Agent Manager (Replaces Python runners)
+export {
+  BmadAgentManager,
+  getBmadAgentManager,
+  disposeBmadAgentManager,
+  isBmadModeAvailable,
+  type BmadAgentManagerConfig,
+  type TaskStartOptions,
+  type AgentStatus,
+} from './bmad-agent-manager';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Convenience Functions
 // ─────────────────────────────────────────────────────────────────────────────
@@ -115,6 +140,8 @@ import { disposeWorkflowRunner } from './workflow-runner';
 import { clearLanguageDetector } from './language-detector';
 import { clearRegistryCache } from './target-runner';
 import { disposeLoadBalancer } from './opencode-load-balancer';
+import { disposeAllBridges } from './task-workflow-bridge';
+import { disposeBmadAgentManager } from './bmad-agent-manager';
 
 /**
  * Dispose all BMAD resources
@@ -125,6 +152,8 @@ export async function disposeBmadResources(): Promise<void> {
     disposeStatusManager(),
     disposeArtifactWatcher(),
     disposeWorkflowRunner(),
+    disposeAllBridges(),
+    disposeBmadAgentManager(),
   ]);
   
   // Clear caches and dispose singletons

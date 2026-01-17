@@ -6,19 +6,19 @@
  */
 
 import { useState } from 'react';
-import { Badge } from '@/shared/ui/badge';
-import { Button } from '@/shared/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/shared/ui/popover';
+} from '@/components/ui/popover';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/shared/ui/tooltip';
+} from '@/components/ui/tooltip';
 import {
   Code,
   AlertCircle,
@@ -30,7 +30,7 @@ import {
   Globe,
   Beaker,
 } from 'lucide-react';
-import { cn } from '@/shared/lib/utils';
+import { cn } from '@/lib/utils';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types

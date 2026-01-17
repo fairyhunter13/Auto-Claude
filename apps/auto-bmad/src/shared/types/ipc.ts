@@ -775,13 +775,19 @@ export interface ElectronAPI {
   // GitHub API (nested for organized access)
   github: import('../../preload/api/modules/github-api').GitHubAPI;
 
-  // Claude Code CLI operations
-  checkClaudeCodeVersion: () => Promise<IPCResult<import('./cli').ClaudeCodeVersionInfo>>;
-  installClaudeCode: () => Promise<IPCResult<{ command: string }>>;
-  getClaudeCodeVersions: () => Promise<IPCResult<import('./cli').ClaudeCodeVersionList>>;
-  installClaudeCodeVersion: (version: string) => Promise<IPCResult<{ command: string; version: string }>>;
-  getClaudeCodeInstallations: () => Promise<IPCResult<import('./cli').ClaudeInstallationList>>;
-  setClaudeCodeActivePath: (cliPath: string) => Promise<IPCResult<{ path: string }>>;
+  // BMAD API (nested for organized access)
+  bmad: import('../../preload/api/bmad-api').BmadAPI;
+
+  // File operations
+  openPath: (filePath: string) => Promise<{ success: boolean; error?: string }>;
+
+  // OpenCode CLI operations (for BMAD workflows)
+  checkOpenCodeVersion: () => Promise<IPCResult<import('./cli').OpenCodeVersionInfo>>;
+  installOpenCode: () => Promise<IPCResult<{ command: string }>>;
+  getOpenCodeVersions: () => Promise<IPCResult<import('./cli').OpenCodeVersionList>>;
+  installOpenCodeVersion: (version: string) => Promise<IPCResult<{ command: string; version: string }>>;
+  getOpenCodeInstallations: () => Promise<IPCResult<import('./cli').OpenCodeInstallationList>>;
+  setOpenCodeActivePath: (cliPath: string) => Promise<IPCResult<{ path: string }>>;
 
   // Debug operations
   getDebugInfo: () => Promise<{

@@ -88,7 +88,7 @@ export function useWorkflowHistory() {
       const result = await window.electronAPI.getSettings();
       if (result.success && result.data) {
         const key = `bmad-workflow-history-${hashPath(projectPath)}`;
-        const history = (result.data as Record<string, WorkflowHistory>)[key];
+        const history = (result.data as unknown as Record<string, WorkflowHistory>)[key];
         return history?.entries || [];
       }
     } catch (error) {
@@ -103,7 +103,7 @@ export function useWorkflowHistory() {
 
     try {
       const key = `bmad-workflow-history-${hashPath(projectPath)}`;
-      await window.electronAPI.updateSettings({ [key]: null });
+      await window.electronAPI.saveSettings({ [key]: null } as any);
     } catch (error) {
       console.error('[WorkflowHistory] Failed to clear history:', error);
     }
@@ -129,7 +129,7 @@ async function saveHistoryEntry(projectPath: string, entry: WorkflowHistoryEntry
     };
 
     if (result.success && result.data) {
-      const existingHistory = (result.data as Record<string, WorkflowHistory>)[key];
+      const existingHistory = (result.data as unknown as Record<string, WorkflowHistory>)[key];
       if (existingHistory) {
         history = existingHistory;
       }
@@ -144,7 +144,7 @@ async function saveHistoryEntry(projectPath: string, entry: WorkflowHistoryEntry
     }
 
     // Save
-    await window.electronAPI.updateSettings({ [key]: history });
+    await window.electronAPI.saveSettings({ [key]: history } as any);
   } catch (error) {
     console.error('[WorkflowHistory] Failed to save history:', error);
   }

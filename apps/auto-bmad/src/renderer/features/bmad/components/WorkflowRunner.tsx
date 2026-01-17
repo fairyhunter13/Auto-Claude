@@ -6,7 +6,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/shared/ui/resizable';
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { useBmadStore } from '../stores/bmad-store';
 import { usePhaseStore } from '../stores/phase-store';
 import { WorkflowList } from './WorkflowList';
@@ -68,7 +68,7 @@ export function WorkflowRunner({
 
   return (
     <div className={className}>
-      <ResizablePanelGroup direction="horizontal" className="h-full">
+      <ResizablePanelGroup orientation="horizontal" className="h-full">
         {/* Workflow list panel */}
         <ResizablePanel defaultSize={30} minSize={20} maxSize={40}>
           <WorkflowList

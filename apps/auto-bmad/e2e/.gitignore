@@ -1,0 +1,6 @@
+# E2E test artifacts
+test-projects/
+kanban-test/
+workflow-runner-test/
+screenshots/
+test-results/
