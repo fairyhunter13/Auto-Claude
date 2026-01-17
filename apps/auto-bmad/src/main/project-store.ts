@@ -642,11 +642,18 @@ export class ProjectStore {
         // This prevents 'in_progress' from overriding 'human_review' when all work is done
         const hasRemainingWork = allSubtasks.length === 0 || allSubtasks.some((s) => s.status !== 'completed');
 
+        // IMPORTANT: Explicit user-set statuses should be trusted!
+        // These statuses are set via updateTaskStatus IPC call and represent deliberate user action.
+        // We should only override them when there's a clear reason (e.g., regression protection).
+        const isExplicitUserStatus = storedStatus === 'ai_review' || storedStatus === 'human_review' || storedStatus === 'backlog';
+
         const isStoredStatusValid =
           (storedStatus === calculatedStatus) || // Matches calculated
           (storedStatus === 'human_review' && (calculatedStatus === 'ai_review' || calculatedStatus === 'in_progress')) || // Human review is more advanced than ai_review or in_progress (fixes status loop bug)
           (storedStatus === 'human_review' && isPlanReviewStage) || // Plan review stage (awaiting spec approval)
-          (isActiveProcessStatus && storedStatus === 'in_progress' && hasRemainingWork); // Planning/coding phases should show as in_progress ONLY when there's remaining work
+          (storedStatus === 'ai_review') || // ai_review is an explicit user-set status - always trust it
+          (isActiveProcessStatus && storedStatus === 'in_progress' && hasRemainingWork) || // Planning/coding phases should show as in_progress ONLY when there's remaining work
+          (isExplicitUserStatus && calculatedStatus === 'backlog'); // Trust explicit status when calculated is just 'backlog' (no subtask progress)
 
         if (isStoredStatusValid) {
           // Preserve reviewReason for human_review status

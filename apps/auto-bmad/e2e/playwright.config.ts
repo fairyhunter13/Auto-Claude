@@ -29,7 +29,7 @@ export default defineConfig({
     trace: 'on', // Always capture trace
     screenshot: 'on', // Capture screenshots
     video: 'on', // Always record video
-    headless: false, // Show the UI
+    headless: true, // Run headless for faster execution
   },
   projects: [
     {

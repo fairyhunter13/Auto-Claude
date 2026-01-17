@@ -159,8 +159,12 @@ async function handleWelcomeScreen(page: Page): Promise<boolean> {
     // Use the store's addProject function which updates both backend AND React state
     const result = await page.evaluate(async (projectPath) => {
       // First, add the project via IPC
-      // @ts-ignore - electronAPI is exposed via preload
-      const response = await window.electronAPI.addProject(projectPath);
+      // electronAPI is exposed via preload
+      const response = await (window as Window & { electronAPI: { addProject: (path: string) => Promise<unknown> } }).electronAPI.addProject(projectPath) as { 
+        success: boolean; 
+        data?: { id: string; name: string; path: string }; 
+        error?: string 
+      };
       
       if (!response.success || !response.data) {
         return { success: false, error: response.error };
@@ -173,8 +177,15 @@ async function handleWelcomeScreen(page: Page): Promise<boolean> {
       // We'll dispatch a custom event to trigger a project refresh
       
       // Try to get the store and update it
-      // @ts-ignore - accessing React internals
-      const zustandStore = window.__ZUSTAND_PROJECT_STORE__;
+      // accessing React internals
+      const zustandStore = (window as Window & { __ZUSTAND_PROJECT_STORE__?: unknown }).__ZUSTAND_PROJECT_STORE__ as {
+        getState: () => {
+          addProject: (p: { id: string }) => void;
+          selectProject: (id: string) => void;
+          openProjectTab: (id: string) => void;
+          setActiveProject: (id: string) => void;
+        };
+      } | undefined;
       if (zustandStore) {
         const state = zustandStore.getState();
         state.addProject(project);
@@ -186,12 +197,14 @@ async function handleWelcomeScreen(page: Page): Promise<boolean> {
       return { success: true, data: project };
     }, testProjectPath);
     
-    console.log('>>> addProject result:', JSON.stringify(result, null, 2));
+    // Cast result to the expected type with name property
+    const typedResult = result as { success: boolean; data?: { id: string; name: string } };
+    console.log('>>> addProject result:', JSON.stringify(typedResult, null, 2));
     
-    if (result?.success && result?.data) {
+    if (typedResult?.success && typedResult?.data) {
       console.log('>>> Project added successfully!');
-      console.log('>>> Project ID:', result.data.id);
-      console.log('>>> Project name:', result.data.name);
+      console.log('>>> Project ID:', typedResult.data.id);
+      console.log('>>> Project name:', typedResult.data.name);
       
       // Wait for UI to update
       await page.waitForTimeout(2000);
@@ -213,7 +226,7 @@ async function handleWelcomeScreen(page: Page): Promise<boolean> {
       if (!isEnabled) {
         // Try clicking on the project tab in the PROJECT header
         console.log('>>> Looking for project tabs...');
-        const projectTab = page.locator(`text=${result.data.name}`).first();
+        const projectTab = page.locator(`text=${typedResult.data.name}`).first();
         if (await projectTab.isVisible().catch(() => false)) {
           console.log('>>> Found project tab, clicking...');
           await projectTab.click();

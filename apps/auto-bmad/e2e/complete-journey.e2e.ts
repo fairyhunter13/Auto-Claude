@@ -243,10 +243,10 @@ test.describe('Complete User Journey - Showroom to Cross-Country Rally', () => {
       
       try {
         const result = await page.evaluate(async (projectPath) => {
-          // @ts-ignore
+          // @ts-ignore - electronAPI is exposed via preload
           const response = await window.electronAPI.addProject(projectPath);
           return response;
-        }, TEST_PROJECT_PATH);
+        }, TEST_PROJECT_PATH) as { success: boolean; data?: { id: string; name: string }; error?: string };
         
         if (result?.success && result?.data) {
           projectId = result.data.id;
@@ -270,12 +270,12 @@ test.describe('Complete User Journey - Showroom to Cross-Country Rally', () => {
         
         // Try to get existing projects
         const projects = await page.evaluate(async () => {
-          // @ts-ignore
+          // @ts-ignore - electronAPI is exposed via preload
           const response = await window.electronAPI.getProjects();
           return response;
-        });
+        }) as { success: boolean; data?: Array<{ id: string; name: string }>; error?: string };
         
-        if (projects?.success && projects?.data?.length > 0) {
+        if (projects?.success && projects?.data && projects.data.length > 0) {
           projectId = projects.data[0].id;
           log(`Using existing project: ${projectId}`);
         }
