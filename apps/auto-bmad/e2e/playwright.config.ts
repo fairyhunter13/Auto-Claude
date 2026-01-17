@@ -21,7 +21,7 @@ export default defineConfig({
   retries: 0, // No retries - we want to see real results
   workers: 1, // Single worker for Electron
   reporter: [
-    ['html', { outputFolder: path.join(__dirname, 'test-results', 'html-report') }],
+    ['html', { outputFolder: path.join(__dirname, 'playwright-report') }],
     ['list'],
   ],
   outputDir: path.join(__dirname, 'test-results'),
