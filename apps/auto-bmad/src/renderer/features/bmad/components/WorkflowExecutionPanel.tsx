@@ -6,9 +6,9 @@
  */
 
 import { useCallback, useRef, useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
-import { Button } from '@/shared/ui/button';
-import { Badge } from '@/shared/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,7 +18,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/shared/ui/alert-dialog';
+} from '@/components/ui/alert-dialog';
 import {
   Play,
   Square,
@@ -33,7 +33,7 @@ import {
   Loader2,
   AlertTriangle,
 } from 'lucide-react';
-import { cn } from '@/shared/lib/utils';
+import { cn } from '@/lib/utils';
 import { useBmadStore } from '../stores/bmad-store';
 import { useWorkflowTerminal } from '../hooks/useWorkflowTerminal';
 import type { WorkflowDefinition, BmadPhase } from '../types';

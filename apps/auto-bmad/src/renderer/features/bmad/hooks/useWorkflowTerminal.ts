@@ -13,7 +13,7 @@ import { useBmadStore } from '../stores/bmad-store';
 
 interface UseWorkflowTerminalOptions {
   /** Container element ref */
-  containerRef: React.RefObject<HTMLDivElement>;
+  containerRef: React.RefObject<HTMLDivElement | null>;
   /** Whether to auto-scroll on new output */
   autoScroll?: boolean;
 }

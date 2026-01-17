@@ -6,10 +6,10 @@
  */
 
 import { useCallback, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card';
-import { Button } from '@/shared/ui/button';
-import { Badge } from '@/shared/ui/badge';
-import { Progress } from '@/shared/ui/progress';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import {
   Search,
   FileText,
@@ -23,7 +23,7 @@ import {
   ChevronRight,
   RefreshCw,
 } from 'lucide-react';
-import { cn } from '@/shared/lib/utils';
+import { cn } from '@/lib/utils';
 import { usePhaseStore, type PhaseInfo } from '../stores/phase-store';
 import { PhaseDetail } from './PhaseDetail';
 import type { BmadPhase } from '../types';

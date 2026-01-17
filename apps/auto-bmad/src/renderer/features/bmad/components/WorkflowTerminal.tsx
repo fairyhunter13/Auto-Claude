@@ -8,8 +8,8 @@
 import { useRef, useEffect } from 'react';
 import { Play, Square, Trash2, Maximize2, Minimize2 } from 'lucide-react';
 import '@xterm/xterm/css/xterm.css';
-import { cn } from '../../../../lib/utils';
-import { Button } from '../../../../components/ui/button';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 import { useBmadStore } from '../stores/bmad-store';
 import { useWorkflowTerminal } from '../hooks/useWorkflowTerminal';
 import type { WorkflowDefinition } from '../types';

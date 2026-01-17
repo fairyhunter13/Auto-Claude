@@ -28,7 +28,7 @@ import { registerChangelogHandlers } from './changelog-handlers';
 import { registerInsightsHandlers } from './insights-handlers';
 import { registerMemoryHandlers } from './memory-handlers';
 import { registerAppUpdateHandlers } from './app-update-handlers';
-import { registerDebugHandlers } from './debug-handlers';
+import { registerDebugHandlers, setupDebugLoggerForwarding } from './debug-handlers';
 import { registerOpenCodeHandlers } from './opencode-handlers';
 import { registerMcpHandlers } from './mcp-handlers';
 import { registerProfileHandlers } from './profile-handlers';
@@ -109,6 +109,7 @@ export function setupIpcHandlers(
 
   // Debug handlers (logs, debug info, etc.)
   registerDebugHandlers();
+  setupDebugLoggerForwarding(getMainWindow);
 
   // OpenCode CLI handlers (version checking, installation)
   registerOpenCodeHandlers();
@@ -146,6 +147,7 @@ export {
   registerMemoryHandlers,
   registerAppUpdateHandlers,
   registerDebugHandlers,
+  setupDebugLoggerForwarding,
   registerOpenCodeHandlers,
   registerMcpHandlers,
   registerProfileHandlers,

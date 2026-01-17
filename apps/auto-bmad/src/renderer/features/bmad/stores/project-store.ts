@@ -12,7 +12,7 @@ import type {
   CreateProjectOptions,
   BmadProjectValidation,
   BmadSettings,
-} from '../../../preload/api/bmad-api';
+} from '../../../../preload/api/bmad-api';
 
 // Re-export types for convenience
 export type { BmadProject, BmadProjectType, CreateProjectOptions, BmadProjectValidation, BmadSettings };

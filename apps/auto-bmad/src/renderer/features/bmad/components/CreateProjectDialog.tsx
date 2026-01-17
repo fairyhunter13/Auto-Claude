@@ -13,19 +13,19 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/shared/ui/dialog';
-import { Button } from '@/shared/ui/button';
-import { Input } from '@/shared/ui/input';
-import { Label } from '@/shared/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/shared/ui/radio-group';
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/shared/ui/select';
-import { Alert, AlertDescription } from '@/shared/ui/alert';
+} from '@/components/ui/select';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Folder, AlertCircle, Loader2 } from 'lucide-react';
 import { useBmadProjectStore, type BmadProjectType, type CreateProjectOptions } from '../stores/project-store';
 

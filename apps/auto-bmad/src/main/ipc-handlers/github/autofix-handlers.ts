@@ -27,7 +27,7 @@ import {
   buildRunnerArgs,
   parseJSONFromOutput,
 } from './utils/subprocess-runner';
-import { AgentManager } from '../../agent/agent-manager';
+import { AgentManager } from '../../agent';
 import { getRunnerEnv } from './utils/runner-env';
 
 // Debug logging

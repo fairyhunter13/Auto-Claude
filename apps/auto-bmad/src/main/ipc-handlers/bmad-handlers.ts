@@ -421,7 +421,7 @@ export function registerBmadHandlers(
       
       return successResult({
         initialized: profiles.length > 0,
-        profiles: Object.values(stats),
+        profiles: stats ? Object.values(stats) : [],
         config: {
           enabled: true, // Will be managed by WorkflowRunner
           strategy: 'least-loaded' as const,

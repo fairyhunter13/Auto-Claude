@@ -1,15 +1,40 @@
 /**
- * Agent module - modular agent management system
+ * Agent module - BMAD-based agent management system
  *
- * This module provides a clean separation of concerns for agent process management:
- * - AgentManager: Main facade for orchestrating agent lifecycle
- * - AgentState: Process tracking and state management
- * - AgentEvents: Event handling and progress parsing
- * - AgentProcessManager: Process spawning and lifecycle
- * - AgentQueueManager: Ideation and roadmap queue management
+ * This module provides AI-powered task execution via OpenCode CLI and BMAD methodology.
+ * All task execution goes through BMAD workflows - no Python runners or Claude CLI.
+ * 
+ * Architecture:
+ * - AgentManager (BmadAgentManager): Main orchestrator for all AI task execution
+ * - TaskWorkflowBridge: Bridges Kanban tasks to BMAD workflows
+ * - WorkflowRunner: Executes workflows via OpenCode CLI
  */
 
-export { AgentManager } from './agent-manager';
+// Main export - AgentManager IS BmadAgentManager
+export { 
+  BmadAgentManager,
+  BmadAgentManager as AgentManager,
+  getBmadAgentManager,
+  disposeBmadAgentManager,
+  isBmadModeAvailable,
+  type BmadAgentManagerConfig,
+  type TaskStartOptions,
+  type AgentStatus,
+} from '../bmad/bmad-agent-manager';
+
+// Task Workflow Bridge
+export {
+  TaskWorkflowBridge,
+  getTaskWorkflowBridge,
+  disposeTaskWorkflowBridge,
+  type BmadTask,
+  type BmadTaskStatus,
+  type BmadTaskMetadata,
+  type TaskProgressEvent,
+  type TaskExecutionResult,
+} from '../bmad/task-workflow-bridge';
+
+// Internal components (still used for state tracking)
 export { AgentState } from './agent-state';
 export { AgentEvents } from './agent-events';
 export { AgentProcessManager } from './agent-process';

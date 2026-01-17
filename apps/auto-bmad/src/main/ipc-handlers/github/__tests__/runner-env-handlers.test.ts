@@ -5,7 +5,7 @@ import path from 'path';
 import type { Project } from '../../../../shared/types';
 import { IPC_CHANNELS } from '../../../../shared/constants';
 import type { BrowserWindow } from 'electron';
-import type { AgentManager } from '../../../agent/agent-manager';
+import type { AgentManager } from '../../../agent';
 import type { createIPCCommunicators as createIPCCommunicatorsType } from '../utils/ipc-communicator';
 
 const mockIpcMain = vi.hoisted(() => {
@@ -226,7 +226,7 @@ describe('GitHub runner env usage', () => {
 
   it('passes runner env to autofix analyze preview subprocess', async () => {
     const { registerAutoFixHandlers } = await import('../autofix-handlers');
-    const { AgentManager: MockedAgentManager } = await import('../../../agent/agent-manager');
+    const { getBmadAgentManager } = await import('../../../agent');
 
     mockRunPythonSubprocess.mockReturnValue({
       process: { pid: 125 },
@@ -244,7 +244,7 @@ describe('GitHub runner env usage', () => {
       }),
     });
 
-    const agentManager: AgentManager = new MockedAgentManager();
+    const agentManager = getBmadAgentManager();
     const getMainWindow: () => BrowserWindow | null = () => createMockWindow();
 
     registerAutoFixHandlers(agentManager, getMainWindow);

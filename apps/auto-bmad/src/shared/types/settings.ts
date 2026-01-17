@@ -9,6 +9,47 @@ import type { SupportedLanguage } from '../constants/i18n';
 // Color theme types for multi-theme support
 export type ColorTheme = 'default' | 'dusk' | 'lime' | 'ocean' | 'retro' | 'neo' | 'forest';
 
+// Debug Logger types (for runtime debug mode)
+export type DebugCategory =
+  | 'IPC'           // IPC handler calls
+  | 'WORKFLOW'      // BMAD workflow execution
+  | 'OPENCODE'      // OpenCode CLI operations
+  | 'BMAD'          // BMAD methodology operations
+  | 'TERMINAL'      // Terminal operations
+  | 'INSIGHTS'      // Insights/Conversation feature
+  | 'TASK'          // Task operations
+  | 'GIT'           // Git operations
+  | 'SETTINGS'      // Settings changes
+  | 'APP'           // General app events
+  | 'E2E';          // E2E test markers
+
+export type DebugLevel = 'debug' | 'info' | 'warn' | 'error';
+
+export interface DebugLogEntry {
+  id: string;
+  timestamp: string;  // ISO string for serialization
+  category: DebugCategory;
+  level: DebugLevel;
+  message: string;
+  data?: Record<string, unknown>;
+  duration?: number;  // For timed operations (ms)
+  stack?: string;     // For errors
+}
+
+export interface DebugLoggerConfig {
+  enabled: boolean;
+  categories: DebugCategory[];  // Empty = all categories
+  level: DebugLevel;
+  maxBufferSize: number;        // Max entries in ring buffer
+  persistToFile: boolean;       // Also write to electron-log
+}
+
+export interface DebugLoggerStats {
+  total: number;
+  byCategory: Record<string, number>;
+  byLevel: Record<string, number>;
+}
+
 // Developer tools preferences - IDE and terminal selection
 // Comprehensive list based on Stack Overflow Developer Survey 2024, JetBrains Survey, and market research
 export type SupportedIDE =
@@ -283,6 +324,10 @@ export interface AppSettings {
   dangerouslySkipPermissions?: boolean;
   // Anonymous error reporting (Sentry) - enabled by default to help improve the app
   sentryEnabled?: boolean;
+  // Debug Logger settings (for runtime debug mode)
+  debugLoggerEnabled?: boolean;
+  debugLoggerCategories?: DebugCategory[];
+  debugLoggerLevel?: DebugLevel;
 }
 
 // Auto-Claude Source Environment Configuration (for auto-claude repo .env)

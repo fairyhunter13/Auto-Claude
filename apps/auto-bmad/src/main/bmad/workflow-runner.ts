@@ -4,6 +4,8 @@
  * Executes BMAD workflows via OpenCode CLI.
  * Manages workflow lifecycle and integrates with terminal.
  * Supports load balancing across multiple OpenCode profiles.
+ * 
+ * Debug logging is integrated throughout for comprehensive tracing.
  */
 
 import { spawn, type ChildProcess } from 'child_process';
@@ -25,6 +27,7 @@ import {
   type OpenCodeProfile,
   type ExecutionOptions as LoadBalancerOptions,
 } from './opencode-load-balancer';
+import { debugLogger } from '../debug-logger';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -77,6 +80,8 @@ export interface WorkflowRunResult {
  * Find the OpenCode CLI executable
  */
 async function findOpenCode(): Promise<string | null> {
+  debugLogger.opencode('Searching for OpenCode CLI...');
+  
   // Try common paths
   const candidates = [
     'opencode',           // In PATH
@@ -103,6 +108,8 @@ async function findOpenCode(): Promise<string | null> {
     );
   }
 
+  debugLogger.opencode('OpenCode CLI candidates', { candidates, platform: process.platform });
+
   // Check each candidate
   for (const candidate of candidates) {
     try {
@@ -116,6 +123,7 @@ async function findOpenCode(): Promise<string | null> {
       });
 
       if (result) {
+        debugLogger.opencode('OpenCode CLI found', { path: candidate });
         return candidate;
       }
     } catch {
@@ -123,6 +131,7 @@ async function findOpenCode(): Promise<string | null> {
     }
   }
 
+  debugLogger.log('OPENCODE', 'OpenCode CLI not found in any location', { candidates }, 'warn');
   return null;
 }
 
@@ -196,11 +205,14 @@ export class WorkflowRunner extends EventEmitter {
    * Initialize the workflow runner
    */
   async initialize(): Promise<IpcResult<void>> {
+    debugLogger.workflow('Initializing WorkflowRunner', { projectPath: this.projectPath });
+    debugLogger.startTimer('workflow-runner-init');
+    
     // Find OpenCode CLI
     this.openCodePath = await findOpenCode();
     
     if (!this.openCodePath) {
-      console.warn('[WorkflowRunner] OpenCode CLI not found in PATH');
+      debugLogger.error('WORKFLOW', 'OpenCode CLI not found in PATH');
       return errorResult(
         'OPENCODE_NOT_FOUND',
         'OpenCode CLI not found. Please install OpenCode (https://github.com/opencode-ai/opencode) or ensure it is in your PATH.'
@@ -208,7 +220,10 @@ export class WorkflowRunner extends EventEmitter {
     }
 
     const version = await getOpenCodeVersion();
-    console.log(`[WorkflowRunner] Using OpenCode CLI: ${this.openCodePath} (version: ${version || 'unknown'})`);
+    debugLogger.endTimer('workflow-runner-init', 'WORKFLOW', 'WorkflowRunner initialized', {
+      openCodePath: this.openCodePath,
+      version: version || 'unknown',
+    });
     return successResult(undefined);
   }
 
@@ -313,8 +328,23 @@ export class WorkflowRunner extends EventEmitter {
     workflowId: string,
     options: WorkflowRunOptions = {}
   ): Promise<IpcResult<void>> {
+    debugLogger.workflow('Starting workflow', { 
+      workflowId, 
+      projectPath: this.projectPath,
+      options: {
+        yoloMode: options.yoloMode,
+        useLoadBalancing: options.useLoadBalancing,
+        cwd: options.cwd,
+      }
+    });
+    debugLogger.startTimer(`workflow-${workflowId}`);
+    
     // Check if already running
     if (this.isRunning()) {
+      debugLogger.log('WORKFLOW', 'Workflow blocked - another already running', {
+        requestedWorkflow: workflowId,
+        activeWorkflow: this.activeWorkflowId,
+      }, 'warn');
       return errorResult(
         'WORKFLOW_ALREADY_RUNNING',
         `A workflow is already running: ${this.activeWorkflowId}`
@@ -324,16 +354,25 @@ export class WorkflowRunner extends EventEmitter {
     // Get workflow definition
     const workflow = this.getWorkflow(workflowId);
     if (!workflow) {
+      debugLogger.error('WORKFLOW', 'Workflow not found', undefined, { workflowId });
       return errorResult(
         'WORKFLOW_NOT_FOUND',
         `Unknown workflow: ${workflowId}`
       );
     }
 
+    debugLogger.workflow('Workflow definition loaded', {
+      workflowId,
+      agent: workflow.agent,
+      command: workflow.command,
+      phase: workflow.phase,
+    });
+
     // Use load balancing if enabled or explicitly requested
     const useLoadBalancing = options.useLoadBalancing ?? this.loadBalancingEnabled;
     
     if (useLoadBalancing && this.loadBalancer) {
+      debugLogger.workflow('Using load balancing for workflow execution', { workflowId });
       return this.startWorkflowWithLoadBalancing(workflowId, workflow, options);
     }
 
@@ -399,6 +438,7 @@ export class WorkflowRunner extends EventEmitter {
       // Handle stdout
       this.activeProcess.stdout?.on('data', (data: Buffer) => {
         const text = data.toString();
+        debugLogger.log('OPENCODE', 'stdout', { workflowId, output: text.substring(0, 500) }, 'debug');
         options.onStdout?.(text);
         this.emit('stdout', text);
       });
@@ -406,6 +446,7 @@ export class WorkflowRunner extends EventEmitter {
       // Handle stderr
       this.activeProcess.stderr?.on('data', (data: Buffer) => {
         const text = data.toString();
+        debugLogger.log('OPENCODE', 'stderr', { workflowId, output: text.substring(0, 500) }, 'debug');
         options.onStderr?.(text);
         this.emit('stderr', text);
       });
@@ -414,6 +455,11 @@ export class WorkflowRunner extends EventEmitter {
       this.activeProcess.on('close', async (code) => {
         const exitCode = code ?? 1;
         const success = exitCode === 0;
+        
+        const duration = debugLogger.endTimer(`workflow-${workflowId}`, 'WORKFLOW', 
+          success ? 'Workflow completed successfully' : `Workflow failed with exit code ${exitCode}`,
+          { workflowId, exitCode, success }
+        );
 
         // Update status
         await statusManager.updateWorkflowStatus(
@@ -422,6 +468,13 @@ export class WorkflowRunner extends EventEmitter {
           success ? 'completed' : 'pending',
           workflow.outputFile ? { artifactPath: workflow.outputFile } : undefined
         );
+
+        debugLogger.workflow('Workflow status updated', {
+          workflowId,
+          phase: workflow.phase,
+          status: success ? 'completed' : 'pending',
+          duration,
+        });
 
         // Emit completion event
         this.emitProgress(
@@ -442,7 +495,7 @@ export class WorkflowRunner extends EventEmitter {
 
       // Handle error
       this.activeProcess.on('error', async (error) => {
-        console.error('[WorkflowRunner] Process error:', error);
+        debugLogger.error('WORKFLOW', 'Process error during workflow execution', error, { workflowId });
         
         await statusManager.updateWorkflowStatus(
           workflow.phase,
@@ -591,7 +644,10 @@ export class WorkflowRunner extends EventEmitter {
    * Cancel the currently running workflow
    */
   async cancelWorkflow(): Promise<IpcResult<void>> {
+    debugLogger.workflow('Cancel workflow requested', { activeWorkflowId: this.activeWorkflowId });
+    
     if (!this.activeProcess || !this.activeWorkflowId) {
+      debugLogger.log('WORKFLOW', 'No workflow to cancel', undefined, 'warn');
       return errorResult(
         'NO_WORKFLOW_RUNNING',
         'No workflow is currently running'
@@ -600,6 +656,7 @@ export class WorkflowRunner extends EventEmitter {
 
     const workflowId = this.activeWorkflowId;
     const workflow = this.getWorkflow(workflowId);
+    debugLogger.workflow('Cancelling workflow', { workflowId, phase: workflow?.phase });
 
     try {
       // Kill the process
@@ -709,15 +766,28 @@ let activeRunner: WorkflowRunner | null = null;
  */
 export function getWorkflowRunner(projectPath: string): WorkflowRunner {
   const resolvedPath = resolve(projectPath);
+  debugLogger.workflow('Getting WorkflowRunner', { 
+    requestedPath: projectPath, 
+    resolvedPath,
+    hasActiveRunner: !!activeRunner,
+    activeRunnerPath: activeRunner?.getProjectPath(),
+  });
   
   // If we have an active runner for a different project, dispose it
   if (activeRunner && activeRunner.getProjectPath() !== resolvedPath) {
-    activeRunner.dispose().catch(console.error);
+    debugLogger.workflow('Disposing existing runner for different project', {
+      oldPath: activeRunner.getProjectPath(),
+      newPath: resolvedPath,
+    });
+    activeRunner.dispose().catch((err) => {
+      debugLogger.error('WORKFLOW', 'Failed to dispose previous runner', err);
+    });
     activeRunner = null;
   }
 
   // Create new runner if needed
   if (!activeRunner) {
+    debugLogger.workflow('Creating new WorkflowRunner', { projectPath: resolvedPath });
     activeRunner = new WorkflowRunner(resolvedPath);
   }
 
@@ -728,8 +798,14 @@ export function getWorkflowRunner(projectPath: string): WorkflowRunner {
  * Dispose the active workflow runner
  */
 export async function disposeWorkflowRunner(): Promise<void> {
+  debugLogger.workflow('Disposing WorkflowRunner', { 
+    hasActiveRunner: !!activeRunner,
+    projectPath: activeRunner?.getProjectPath(),
+  });
+  
   if (activeRunner) {
     await activeRunner.dispose();
     activeRunner = null;
+    debugLogger.workflow('WorkflowRunner disposed');
   }
 }

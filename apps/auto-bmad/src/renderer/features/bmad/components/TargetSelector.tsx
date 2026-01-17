@@ -14,8 +14,8 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from '@/shared/ui/select';
-import { Badge } from '@/shared/ui/badge';
+} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 import { 
   Search, 
   FileText, 
@@ -26,7 +26,7 @@ import {
   FileCheck,
   Play,
 } from 'lucide-react';
-import { cn } from '@/shared/lib/utils';
+import { cn } from '@/lib/utils';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types

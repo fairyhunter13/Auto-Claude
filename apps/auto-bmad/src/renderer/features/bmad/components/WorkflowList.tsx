@@ -6,11 +6,11 @@
  */
 
 import { useMemo, useCallback } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card';
-import { Button } from '@/shared/ui/button';
-import { Badge } from '@/shared/ui/badge';
-import { ScrollArea } from '@/shared/ui/scroll-area';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/shared/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Play,
   CheckCircle2,
@@ -23,7 +23,7 @@ import {
   Boxes,
   Code,
 } from 'lucide-react';
-import { cn } from '@/shared/lib/utils';
+import { cn } from '@/lib/utils';
 import { useBmadStore } from '../stores/bmad-store';
 import { usePhaseStore } from '../stores/phase-store';
 import { PHASE_METADATA, type BmadPhase, type WorkflowDefinition } from '../types';
