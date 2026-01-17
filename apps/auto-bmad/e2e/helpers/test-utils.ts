@@ -219,19 +219,20 @@ export async function captureState(
 export async function addProjectViaIPC(page: Page, projectPath: string): Promise<{
   success: boolean;
   projectId?: string;
+  projectName?: string;
   error?: string;
 }> {
   try {
     const result = await page.evaluate(async (path) => {
-      // @ts-ignore
+      // @ts-ignore - electronAPI is exposed via preload
       const response = await window.electronAPI.addProject(path);
       return response;
-    }, projectPath);
+    }, projectPath) as { success: boolean; data?: { id: string; name: string }; error?: string };
     
     if (result?.success && result?.data) {
-      return { success: true, projectId: result.data.id };
+      return { success: true, projectId: result.data.id, projectName: result.data.name };
     }
-    return { success: false, error: result?.error?.message || 'Unknown error' };
+    return { success: false, error: result?.error || 'Unknown error' };
   } catch (err) {
     return { success: false, error: String(err) };
   }
@@ -246,12 +247,12 @@ export async function initializeProjectViaIPC(page: Page, projectId: string): Pr
 }> {
   try {
     const result = await page.evaluate(async (id) => {
-      // @ts-ignore
+      // @ts-ignore - electronAPI is exposed via preload
       const response = await window.electronAPI.initializeProject(id);
       return response;
-    }, projectId);
+    }, projectId) as { success: boolean; error?: string };
     
-    return { success: result?.success ?? false, error: result?.error?.message };
+    return { success: result?.success ?? false, error: result?.error };
   } catch (err) {
     return { success: false, error: String(err) };
   }
@@ -267,15 +268,15 @@ export async function getProjectsViaIPC(page: Page): Promise<{
 }> {
   try {
     const result = await page.evaluate(async () => {
-      // @ts-ignore
+      // @ts-ignore - electronAPI is exposed via preload
       const response = await window.electronAPI.getProjects();
       return response;
-    });
+    }) as { success: boolean; data?: Array<{ id: string; name: string; path: string }>; error?: string };
     
-    if (result?.success) {
+    if (result?.success && result.data) {
       return { success: true, projects: result.data };
     }
-    return { success: false, error: result?.error?.message };
+    return { success: false, error: result?.error };
   } catch (err) {
     return { success: false, error: String(err) };
   }

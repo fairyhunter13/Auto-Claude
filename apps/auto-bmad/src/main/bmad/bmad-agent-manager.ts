@@ -30,6 +30,7 @@ import {
   TaskProgressEvent,
   TaskExecutionResult,
 } from './task-workflow-bridge';
+import type { ExecutionProgressData } from '../agent/types';
 import { 
   WorkflowRunner, 
   getWorkflowRunner,
@@ -106,6 +107,35 @@ const DEFAULT_CONFIG: BmadAgentManagerConfig = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Helper Functions
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Convert TaskProgressEvent to ExecutionProgressData for compatibility with existing event handlers.
+ * Maps BMAD phases to the legacy phase names expected by the UI.
+ */
+function convertToExecutionProgress(event: TaskProgressEvent): ExecutionProgressData {
+  // Map BMAD phases to legacy phases
+  const phaseMap: Record<TaskProgressEvent['phase'], ExecutionProgressData['phase']> = {
+    'planning': 'planning',
+    'coding': 'coding',
+    'testing': 'qa_review',  // Map testing to qa_review
+    'review': 'qa_fixing',   // Map review to qa_fixing
+    'complete': 'complete',
+    'failed': 'failed',
+  };
+
+  return {
+    phase: phaseMap[event.phase] || 'planning',
+    phaseProgress: event.progress,
+    overallProgress: event.progress,
+    message: event.message,
+    currentSubtask: undefined,
+    completedPhases: [],
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // BMAD Agent Manager Class
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -156,10 +186,14 @@ export class BmadAgentManager extends EventEmitter {
       const bridge = getTaskWorkflowBridge(resolvedPath);
       await bridge.initialize();
       
-      // Forward events
+      // Forward events with format conversion for compatibility
       bridge.on('stdout', (data) => this.emit('log', data));
       bridge.on('stderr', (data) => this.emit('log', data));
-      bridge.on('task-progress', (event) => this.emit('execution-progress', event.taskId, event));
+      bridge.on('task-progress', (event: TaskProgressEvent) => {
+        // Convert to ExecutionProgressData format for existing event handlers
+        const progressData = convertToExecutionProgress(event);
+        this.emit('execution-progress', event.taskId, progressData);
+      });
       bridge.on('task-complete', (result) => this.handleTaskComplete(result));
       bridge.on('error', (error) => this.emit('error', null, error.message));
       
@@ -191,7 +225,17 @@ export class BmadAgentManager extends EventEmitter {
     if (!this.initialized) {
       const initResult = await this.initialize();
       if (!initResult.success) {
-        this.emit('error', taskId, initResult.error?.message || 'Failed to initialize');
+        const errorMessage = initResult.error?.message || 'Failed to initialize';
+        // Emit both error and failed progress for proper UI update
+        this.emit('error', taskId, errorMessage);
+        // Emit a failed execution progress so UI shows task as failed
+        const failedProgress: ExecutionProgressData = {
+          phase: 'failed',
+          phaseProgress: 0,
+          overallProgress: 0,
+          message: errorMessage,
+        };
+        this.emit('execution-progress', taskId, failedProgress);
         return;
       }
     }
@@ -227,11 +271,23 @@ export class BmadAgentManager extends EventEmitter {
       maxRetries: this.config.maxRetries,
       onStdout: (data) => this.emit('log', taskId, data),
       onStderr: (data) => this.emit('log', taskId, data),
-      onProgress: (event) => this.emit('execution-progress', taskId, event),
+      onProgress: (event: TaskProgressEvent) => {
+        const progressData = convertToExecutionProgress(event);
+        this.emit('execution-progress', taskId, progressData);
+      },
     });
 
     if (!result.success) {
-      this.emit('error', taskId, result.error?.message || 'Failed to start task');
+      const errorMessage = result.error?.message || 'Failed to start task';
+      this.emit('error', taskId, errorMessage);
+      // Also emit failed progress so UI updates properly
+      const failedProgress: ExecutionProgressData = {
+        phase: 'failed',
+        phaseProgress: 0,
+        overallProgress: 0,
+        message: errorMessage,
+      };
+      this.emit('execution-progress', taskId, failedProgress);
       this.activeTasks.delete(taskId);
     }
   }
@@ -256,7 +312,17 @@ export class BmadAgentManager extends EventEmitter {
     if (!this.initialized) {
       const initResult = await this.initialize();
       if (!initResult.success) {
-        this.emit('error', taskId, initResult.error?.message || 'Failed to initialize');
+        const errorMessage = initResult.error?.message || 'Failed to initialize';
+        // Emit both error and failed progress for proper UI update
+        this.emit('error', taskId, errorMessage);
+        // Emit a failed execution progress so UI shows task as failed
+        const failedProgress: ExecutionProgressData = {
+          phase: 'failed',
+          phaseProgress: 0,
+          overallProgress: 0,
+          message: errorMessage,
+        };
+        this.emit('execution-progress', taskId, failedProgress);
         return;
       }
     }
@@ -291,11 +357,23 @@ export class BmadAgentManager extends EventEmitter {
       maxRetries: this.config.maxRetries,
       onStdout: (data) => this.emit('log', taskId, data),
       onStderr: (data) => this.emit('log', taskId, data),
-      onProgress: (event) => this.emit('execution-progress', taskId, event),
+      onProgress: (event: TaskProgressEvent) => {
+        const progressData = convertToExecutionProgress(event);
+        this.emit('execution-progress', taskId, progressData);
+      },
     });
 
     if (!result.success) {
-      this.emit('error', taskId, result.error?.message || 'Failed to start task');
+      const errorMessage = result.error?.message || 'Failed to start task';
+      this.emit('error', taskId, errorMessage);
+      // Also emit failed progress so UI updates properly
+      const failedProgress: ExecutionProgressData = {
+        phase: 'failed',
+        phaseProgress: 0,
+        overallProgress: 0,
+        message: errorMessage,
+      };
+      this.emit('execution-progress', taskId, failedProgress);
       this.activeTasks.delete(taskId);
     }
   }

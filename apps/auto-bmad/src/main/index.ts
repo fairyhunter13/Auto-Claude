@@ -190,8 +190,11 @@ function createWindow(): void {
   });
 
   // Show window when ready to avoid visual flash
+  // Skip showing window in test mode (E2E_HEADLESS=1) for headless testing
   mainWindow.on('ready-to-show', () => {
-    mainWindow?.show();
+    if (process.env.E2E_HEADLESS !== '1') {
+      mainWindow?.show();
+    }
   });
 
   // Handle external links
@@ -207,8 +210,8 @@ function createWindow(): void {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'));
   }
 
-  // Open DevTools in development
-  if (is.dev) {
+  // Open DevTools in development (but not in headless E2E tests)
+  if (is.dev && process.env.E2E_HEADLESS !== '1') {
     mainWindow.webContents.openDevTools({ mode: 'right' });
   }
 
