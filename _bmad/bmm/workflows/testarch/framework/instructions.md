@@ -23,22 +23,47 @@ Initialize a production-ready test framework architecture (Playwright or Cypress
 
 ---
 
-## Step 1: Run Preflight Checks
+## Step 1: Run Preflight Checks and Project Maturity Detection
 
 ### Actions
 
-1. **Validate package.json**
-   - Read `{project-root}/package.json`
-   - Extract project type (React, Vue, Angular, Next.js, Node, etc.)
-   - Identify bundler (Vite, Webpack, Rollup, esbuild)
+1. **Validate Project Configuration**
+   - Read `{project-root}/package.json` or `pyproject.toml` or language-specific config
+   - Extract project type (React, Vue, Angular, Next.js, Node, CLI, API, etc.)
+   - Identify bundler or build system
    - Note existing test dependencies
 
-2. **Check for Existing Framework**
+2. **Detect Project Maturity Level** ⭐ NEW
+
+   **Knowledge Base Reference**: `testarch/knowledge/project-maturity-detection.md`
+
+   Run maturity detection algorithm to determine appropriate test strategy:
+   
+   **Signal Collection:**
+   - Check README.md for keywords: "experiment", "spike", "pilot", "POC", "MVP", "beta", "production"
+   - Parse version from package.json/pyproject.toml (0.0.x = experiment, 0.x.x = pilot/MVP, 1.x.x+ = production)
+   - Check for CI/CD configuration (.github/workflows, .gitlab-ci.yml)
+   - Analyze git history if available (age, commits, contributors)
+   - Look for BMAD artifacts (product-brief.md, prd.md, architecture.md, sprint-status.yaml)
+   - Check for production environment indicators (monitoring, multi-env configs)
+
+   **Maturity Levels:**
+   | Level | Stage | Strategy | Coverage |
+   |-------|-------|----------|----------|
+   | L1 | Experiment/Spike | Minimal smoke tests | 20-30% |
+   | L2 | Pilot/POC | Core happy paths | 40-50% |
+   | L3 | MVP | Happy paths + edge cases | 60-70% |
+   | L4 | Production | Comprehensive suite | 80-90% |
+   | L5 | Enterprise | Full + compliance | 90%+ |
+
+   **Output maturity detection results before proceeding.**
+
+3. **Check for Existing Framework**
    - Search for `playwright.config.*`, `cypress.config.*`, `cypress.json`
    - Check `package.json` for `@playwright/test` or `cypress` dependencies
    - If found, HALT with message: "Existing test framework detected. Use workflow `upgrade-framework` instead."
 
-3. **Gather Context**
+4. **Gather Context**
    - Look for architecture documents (`architecture.md`, `tech-spec*.md`)
    - Check for API documentation or endpoint lists
    - Identify authentication requirements
@@ -47,11 +72,57 @@ Initialize a production-ready test framework architecture (Playwright or Cypress
 
 ---
 
-## Step 2: Scaffold Framework
+## Step 2: Scaffold Framework (Maturity-Adapted)
 
 ### Actions
 
-1. **Framework Selection**
+1. **Apply Maturity-Based Strategy** ⭐ NEW
+
+   Based on detected maturity level from Step 1, adapt the scaffolding:
+
+   **L1 (Experiment):**
+   ```yaml
+   scaffold_level: minimal
+   create_fixtures: false
+   create_factories: false
+   sample_tests: 1-2 smoke tests only
+   skip_documentation: true
+   message: "Experiment detected - minimal scaffolding applied"
+   ```
+
+   **L2 (Pilot/POC):**
+   ```yaml
+   scaffold_level: basic
+   create_fixtures: basic (no composition)
+   create_factories: false
+   sample_tests: 3-5 happy path tests
+   skip_documentation: false (but minimal)
+   message: "Pilot project detected - basic scaffolding applied"
+   ```
+
+   **L3 (MVP):**
+   ```yaml
+   scaffold_level: standard
+   create_fixtures: true (full composition)
+   create_factories: true (basic factory)
+   sample_tests: 5-10 tests (happy + edge)
+   skip_documentation: false
+   message: "MVP detected - standard scaffolding applied"
+   ```
+
+   **L4+ (Production/Enterprise):**
+   ```yaml
+   scaffold_level: comprehensive
+   create_fixtures: true (full architecture)
+   create_factories: true (full with cleanup)
+   sample_tests: 10+ tests (full coverage patterns)
+   skip_documentation: false (comprehensive)
+   include_performance: true
+   include_security: true
+   message: "Production project detected - comprehensive scaffolding applied"
+   ```
+
+2. **Framework Selection**
 
    **Default Logic:**
    - **Playwright** (recommended for):

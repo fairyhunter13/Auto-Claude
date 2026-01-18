@@ -866,6 +866,135 @@ detection_rules:
       - "languages/typescript/jest-patterns.md"
 
 # ============================================
+# PROJECT MATURITY DETECTION
+# ============================================
+
+project_maturity:
+  levels:
+    - id: L1
+      name: "Experiment/Spike"
+      test_strategy: minimal
+      coverage_target: 0.25
+      signals:
+        strong:
+          - type: readme_contains
+            patterns: ["experiment", "spike", "exploration", "prototype", "throwaway", "POC draft"]
+            weight: 5
+          - type: version_pattern
+            pattern: "^0\\.0\\."
+            weight: 5
+          - type: no_ci
+            weight: 5
+          - type: no_test_directory
+            weight: 5
+        weak:
+          - type: repo_age_days
+            max: 7
+            weight: 2
+          - type: commit_count
+            max: 10
+            weight: 2
+
+    - id: L2
+      name: "Pilot/POC"
+      test_strategy: happy_paths
+      coverage_target: 0.50
+      signals:
+        strong:
+          - type: readme_contains
+            patterns: ["pilot", "POC", "proof of concept", "demo", "evaluation"]
+            weight: 5
+          - type: version_pattern
+            pattern: "^0\\.[1-4]\\."
+            weight: 5
+          - type: basic_ci
+            weight: 5
+        weak:
+          - type: repo_age_days
+            range: [7, 30]
+            weight: 2
+          - type: commit_count
+            range: [10, 50]
+            weight: 2
+
+    - id: L3
+      name: "MVP"
+      test_strategy: balanced
+      coverage_target: 0.70
+      signals:
+        strong:
+          - type: readme_contains
+            patterns: ["MVP", "minimum viable", "beta", "early access", "alpha"]
+            weight: 5
+          - type: version_pattern
+            pattern: "^0\\.[5-9]\\.|^1\\.0\\.0-(alpha|beta)"
+            weight: 5
+          - type: ci_with_tests
+            weight: 5
+          - type: bmad_artifacts
+            patterns: ["prd.md", "architecture.md"]
+            weight: 5
+        weak:
+          - type: repo_age_days
+            range: [30, 90]
+            weight: 2
+          - type: commit_count
+            range: [50, 200]
+            weight: 2
+
+    - id: L4
+      name: "Production"
+      test_strategy: comprehensive
+      coverage_target: 0.85
+      signals:
+        strong:
+          - type: version_pattern
+            pattern: "^[1-9]\\."
+            weight: 5
+          - type: ci_with_quality_gates
+            weight: 5
+          - type: multiple_environments
+            weight: 5
+          - type: contributor_count
+            min: 10
+            weight: 5
+        weak:
+          - type: monitoring_configured
+            weight: 2
+          - type: documentation_comprehensive
+            weight: 2
+
+    - id: L5
+      name: "Enterprise"
+      test_strategy: compliance
+      coverage_target: 0.95
+      signals:
+        strong:
+          - type: compliance_indicators
+            patterns: ["SOC2", "HIPAA", "PCI", "GDPR", "ISO27001"]
+            weight: 5
+          - type: multi_region
+            weight: 5
+          - type: change_advisory_board
+            weight: 5
+
+  detection_algorithm:
+    threshold_scores:
+      L5: 15
+      L4: 15
+      L3: 10
+      L2: 10
+      L1: 0  # Default fallback
+    
+    bmad_boost:
+      # BMAD artifacts boost maturity detection
+      product_brief_only: +1  # L1 → L2
+      prd_present: +1         # L2 → L3
+      architecture_present: +1
+      sprint_status_present: +1
+      implementation_artifacts: +1
+
+# ============================================
 # GLOBAL CONFIGURATION
 # ============================================
 
