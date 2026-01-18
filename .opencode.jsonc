@@ -1,0 +1,64 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  // Auto-BMAD Project Configuration
+  // This config enables full autonomous operation for BMAD workflows
+
+  // Disable autoupdate during workflow execution
+  "autoupdate": false,
+
+  // Compaction settings for long-running workflows
+  "compaction": {
+    "auto": true,
+    "prune": true
+  },
+
+  // Default model for workflows
+  "provider": {
+    "default": "anthropic"
+  },
+  "model": {
+    "default": "anthropic/claude-sonnet-4-20250514"
+  },
+
+  // Permissions - Allow all operations for autonomous BMAD execution
+  "permission": {
+    // Allow all operations by default
+    "*": "allow",
+
+    // Explicitly allow external directory access (prevents permission prompts)
+    "external_directory": "allow",
+
+    // Allow all file operations
+    "read": "allow",
+    "write": "allow",
+    "edit": "allow",
+    "bash": "allow",
+    "glob": "allow",
+    "grep": "allow",
+
+    // Allow web operations for research workflows
+    "webfetch": "allow",
+    "websearch": "allow",
+
+    // Allow task/agent operations
+    "task": "allow",
+
+    // Allow question prompts (for interactive mode)
+    "question": "allow",
+
+    // Allow planning operations
+    "plan_enter": "allow",
+    "plan_exit": "allow",
+
+    // Doom loop protection - still ask to prevent infinite loops
+    "doom_loop": "ask"
+  },
+
+  // Agent-specific overrides
+  "agent": {
+    // Compaction agent with token limit
+    "compaction": {
+      "prompt": "You are a helpful AI assistant tasked with summarizing conversations.\n\nIMPORTANT: Your summary MUST be under 7500 tokens. Be concise and prioritize the most critical information.\n\nWhen asked to summarize, provide a focused summary of the conversation including:\n- What was done\n- What is currently being worked on\n- Which files are being modified\n- What needs to be done next\n- Key user requests, constraints, or preferences that should persist\n- Important technical decisions and why they were made\n\nYour summary should be comprehensive enough to provide context but strictly concise to stay within the 7500 token limit."
+    }
+  }
+}

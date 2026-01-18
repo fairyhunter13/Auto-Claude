@@ -90,15 +90,26 @@ export interface ExecutionResult {
 // Constants
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Default load balancer configuration
+ * Uses only 'personal' and 'work' profiles (not 'default')
+ * This matches the user's ~/.bash_aliases setup for opencode-personal and opencode-work
+ */
 const DEFAULT_CONFIG: LoadBalancerConfig = {
   strategy: 'least-loaded',
   maxConcurrentPerProfile: 2,
   rateLimitCooldown: 60000, // 1 minute
   skipRateLimited: true,
-  enabledProfiles: ['personal', 'work', 'default'],
+  enabledProfiles: ['personal', 'work'], // Only use personal and work profiles
   enabled: true,
 };
 
+/**
+ * OpenCode profile definitions matching ~/.bash_aliases configuration
+ * 
+ * Personal: OPENCODE_DISABLE_AUTOUPDATE=true XDG_CONFIG_HOME=$HOME/.config/opencode-personal XDG_DATA_HOME=$HOME/.local/share/opencode-personal
+ * Work: OPENCODE_DISABLE_AUTOUPDATE=true XDG_CONFIG_HOME=$HOME/.config/opencode-work XDG_DATA_HOME=$HOME/.local/share/opencode-work
+ */
 const PROFILE_DEFINITIONS: Record<OpenCodeProfile, Omit<ProfileConfig, 'available' | 'currentLoad' | 'rateLimitedUntil' | 'lastUsed' | 'successCount' | 'failureCount'>> = {
   personal: {
     id: 'personal',
@@ -115,14 +126,6 @@ const PROFILE_DEFINITIONS: Record<OpenCodeProfile, Omit<ProfileConfig, 'availabl
     shortAlias: 'ocw',
     configHome: join(process.env.HOME || '', '.config/opencode-work'),
     dataHome: join(process.env.HOME || '', '.local/share/opencode-work'),
-  },
-  default: {
-    id: 'default',
-    name: 'Default Account',
-    alias: 'opencode-default',
-    shortAlias: 'ocd',
-    configHome: join(process.env.HOME || '', '.config/opencode'),
-    dataHome: join(process.env.HOME || '', '.local/share/opencode'),
   },
 };
 
@@ -230,6 +233,7 @@ export class OpenCodeLoadBalancer extends EventEmitter {
   private async findOpenCode(): Promise<string | null> {
     const candidates = [
       'opencode',
+      join(process.env.HOME || '', '.opencode/bin/opencode'), // Primary install location
       '/usr/local/bin/opencode',
       '/usr/bin/opencode',
       join(process.env.HOME || '', '.local/bin/opencode'),
@@ -613,23 +617,33 @@ export function disposeLoadBalancer(): void {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
+ * Default model for BMAD workflow execution
+ * Uses Anthropic Claude Sonnet as specified in project requirements
+ */
+export const DEFAULT_OPENCODE_MODEL = 'anthropic/claude-sonnet-4-20250514';
+
+/**
  * Execute a BMAD workflow with load balancing
  */
 export async function executeWorkflowWithLoadBalancing(
   command: string,
   agent: string,
-  options: ExecutionOptions & { yoloMode?: boolean } = {}
+  options: ExecutionOptions & { yoloMode?: boolean; model?: string } = {}
 ): Promise<ExecutionResult> {
   const lb = getLoadBalancer();
   await lb.initialize();
 
-  // OpenCode CLI syntax: opencode run [message..] --agent <agent>
+  // OpenCode CLI syntax: opencode run [message..] --agent <agent> --model <model>
   // The slash command goes as the message positional argument
   const args: string[] = ['run'];
   
   if (agent) {
     args.push('--agent', agent);
   }
+  
+  // Specify the model to use (default: anthropic/claude-sonnet-4-20250514)
+  const model = options.model || DEFAULT_OPENCODE_MODEL;
+  args.push('--model', model);
   
   // Note: --yolo is not a valid opencode flag, remove if present
   // YOLO mode is handled by BMAD agent configuration, not CLI
