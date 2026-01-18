@@ -230,6 +230,10 @@
     "autoClaudePath": "Chemin Auto BMAD",
     "autoBmadPathDescription": "Chemin relatif vers le répertoire auto-bmad dans les projets",
     "autoBmadPathPlaceholder": "auto-bmad (par défaut)",
+    "customBmadPath": "Source _bmad personnalisée",
+    "customBmadPathDescription": "Chemin vers un répertoire _bmad personnalisé avec des workflows améliorés (remplace le package npm par défaut)",
+    "customBmadPathPlaceholder": "/chemin/vers/votre/_bmad/amélioré",
+    "customBmadPathWarning": "Les nouveaux projets copieront _bmad depuis cette source personnalisée au lieu d'utiliser npx bmad-method@alpha",
     "autoNameTerminals": "Nommer automatiquement les terminaux",
     "autoNameTerminalsDescription": "Utiliser l'IA pour générer des noms descriptifs pour les onglets de terminal en fonction de leur activité"
   },

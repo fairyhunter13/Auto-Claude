@@ -29,6 +29,7 @@ import {
 import { Sidebar, type SidebarView } from './components/Sidebar';
 import { KanbanBoard } from './components/KanbanBoard';
 import { BMadPhaseBoard } from './components/bmad-phases';
+import { AgentRoster } from './features/bmad';
 import { TaskDetailModal } from './components/task-detail/TaskDetailModal';
 import { TaskCreationWizard } from './components/TaskCreationWizard';
 import { AppSettingsDialog, type AppSection } from './components/settings/AppSettings';
@@ -816,6 +817,9 @@ export function App() {
                     onRefresh={handleRefreshTasks}
                     isRefreshing={isRefreshingTasks}
                   />
+                )}
+                {activeView === 'agent-roster' && (
+                  <AgentRoster projectPath={selectedProject.path} />
                 )}
                 {activeView === 'kanban' && (
                   <KanbanBoard

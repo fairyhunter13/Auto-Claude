@@ -230,6 +230,10 @@
     "autoClaudePath": "Auto BMAD Path",
     "autoBmadPathDescription": "Relative path to auto-bmad directory in projects",
     "autoBmadPathPlaceholder": "auto-bmad (default)",
+    "customBmadPath": "Custom _bmad Source",
+    "customBmadPathDescription": "Path to a custom _bmad directory with enhanced workflows (overrides default npm package)",
+    "customBmadPathPlaceholder": "/path/to/your/enhanced/_bmad",
+    "customBmadPathWarning": "New projects will copy _bmad from this custom source instead of using npx bmad-method@alpha",
     "autoNameTerminals": "Automatically name terminals",
     "autoNameTerminalsDescription": "Use AI to generate descriptive names for terminal tabs based on their activity"
   },
