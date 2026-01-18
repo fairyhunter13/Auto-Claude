@@ -72,11 +72,11 @@ This document provides comprehensive test coverage mapping for all 48 Functional
 
 | FR | Description | Test Type | Test File | Status |
 |----|-------------|-----------|-----------|--------|
-| FR31 | Start Interactive Mode session | Unit | `chat-store.test.ts` | 🆕 Needed |
-| FR32 | Chat with AI agents | Unit | `chat-store.test.ts` | 🆕 Needed |
-| FR33 | Run workflows via slash commands | Unit | `chat-store.test.ts` | 🆕 Needed |
-| FR34 | @mention specific agents | Unit | `chat-store.test.ts` | 🆕 Needed |
-| FR35 | Maintain conversation history | Unit | `chat-store.test.ts` | 🆕 Needed |
+| FR31 | Start Interactive Mode session | Unit | `chat-store.test.ts` | ✅ Covered |
+| FR32 | Chat with AI agents | Unit | `chat-store.test.ts` | ✅ Covered |
+| FR33 | Run workflows via slash commands | Unit | `chat-store.test.ts` | ✅ Covered |
+| FR34 | @mention specific agents | Unit | `chat-store.test.ts` | ✅ Covered |
+| FR35 | Maintain conversation history | Unit | `chat-store.test.ts` | ✅ Covered |
 
 ### Status Tracking (FR36-FR40)
 
@@ -92,10 +92,10 @@ This document provides comprehensive test coverage mapping for all 48 Functional
 
 | FR | Description | Test Type | Test File | Status |
 |----|-------------|-----------|-----------|--------|
-| FR41 | Run gate check before Phase 4 | Unit | `gate-check-manager.test.ts` | 🆕 Needed |
-| FR42 | View gate check results | Unit | `gate-check-store.test.ts` | 🆕 Needed |
-| FR43 | Block Phase 4 on failure | Unit | `gate-check-store.test.ts` | 🆕 Needed |
-| FR44 | Override gate check | Unit | `gate-check-manager.test.ts` | 🆕 Needed |
+| FR41 | Run gate check before Phase 4 | Unit | `gate-check-manager.test.ts` | ✅ Covered |
+| FR42 | View gate check results | Unit | `gate-check-store.test.ts` | ✅ Covered |
+| FR43 | Block Phase 4 on failure | Unit | `gate-check-store.test.ts` | ✅ Covered |
+| FR44 | Override gate check | Unit | `gate-check-manager.test.ts` | ✅ Covered |
 
 ### File Explorer (FR45-FR48)
 
@@ -136,8 +136,8 @@ This document provides comprehensive test coverage mapping for all 48 Functional
 |-----|-------------|-----------|-----------|--------|
 | NFR11 | Handle OpenCode unavailability | Unit | `workflow-runner.test.ts` | ⚠️ Partial |
 | NFR12 | Status file corruption recovery | Unit | `status-manager.test.ts` | ✅ Covered |
-| NFR13 | Resume workflow after crash | Integration | `workflow-lifecycle.test.ts` | 🆕 Needed |
-| NFR14 | No data loss on termination | Integration | `workflow-lifecycle.test.ts` | 🆕 Needed |
+| NFR13 | Resume workflow after crash | Integration | `workflow-lifecycle.test.ts` | ✅ Covered |
+| NFR14 | No data loss on termination | Integration | `workflow-lifecycle.test.ts` | ✅ Covered |
 | NFR15 | Atomic artifact saves | Unit | `artifact-store.test.ts` | 🆕 Needed |
 
 ### Compatibility (NFR16-19)
@@ -173,27 +173,38 @@ This document provides comprehensive test coverage mapping for all 48 Functional
 
 | Category | Total | Covered | Partial | Needed |
 |----------|-------|---------|---------|--------|
-| **FRs** | 48 | 26 | 9 | 13 |
-| **NFRs** | 27 | 8 | 10 | 9 |
-| **Total** | 75 | 34 (45%) | 19 (25%) | 22 (29%) |
+| **FRs** | 48 | 35 | 9 | 4 |
+| **NFRs** | 27 | 10 | 10 | 7 |
+| **Total** | 75 | 45 (60%) | 19 (25%) | 11 (15%) |
+
+### Test Suite Summary
+
+| Test File | Tests | Coverage |
+|-----------|-------|----------|
+| `chat-store.test.ts` | 38 | FR31-FR35 |
+| `gate-check-manager.test.ts` | 26 | FR41-FR44 |
+| `gate-check-store.test.ts` | 30 | FR41-FR44 |
+| `workflow-lifecycle.test.ts` | 32 | FR6-16, FR36-40, NFR13-14 |
+| **New Tests Total** | **126** | |
 
 ---
 
 ## Priority Test Implementation
 
-### P0 - Critical (Implement First)
-1. `chat-store.test.ts` - Interactive Mode (FR31-35)
-2. `gate-check-manager.test.ts` - Gate Checks (FR41-44)
-3. `workflow-lifecycle.test.ts` - Crash recovery (NFR13-14)
+### P0 - Critical ✅ COMPLETED
+1. ✅ `chat-store.test.ts` - Interactive Mode (FR31-35) - 38 tests
+2. ✅ `gate-check-manager.test.ts` - Gate Checks (FR41-44) - 26 tests
+3. ✅ `gate-check-store.test.ts` - Gate Check UI (FR41-44) - 30 tests
+4. ✅ `workflow-lifecycle.test.ts` - Crash recovery (NFR13-14) - 32 tests
 
 ### P1 - High (Implement Next)
-4. `agent-store.test.ts` - Agent Roster (FR17-20)
-5. `artifact-store.test.ts` - Artifact Management (FR21-25)
-6. `performance.test.ts` - Performance NFRs (NFR1-5)
+5. `agent-store.test.ts` - Agent Roster (FR17-20)
+6. `artifact-store.test.ts` - Artifact Management (FR21-25)
+7. `performance.test.ts` - Performance NFRs (NFR1-5)
 
 ### P2 - Medium (Enhancement)
-7. `user-journey.spec.ts` - E2E User Journeys
-8. `accessibility.spec.ts` - Accessibility NFRs
+8. `user-journey.spec.ts` - E2E User Journeys
+9. `accessibility.spec.ts` - Accessibility NFRs
 
 ---
 
@@ -219,4 +230,5 @@ npx vitest run src/path/to/test.ts
 ---
 
 **Last Updated:** 2026-01-19
-**Status:** Sprint 9 - Test Implementation
+**Status:** Sprint 9 - Test Implementation (Stories 9.1-9.3 Complete)
+**New Tests Added:** 126 (chat-store: 38, gate-check-manager: 26, gate-check-store: 30, workflow-lifecycle: 32)
