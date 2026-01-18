@@ -1,6 +1,6 @@
 # BMAD Workflow Status - Auto-BMAD Project
 # Generated: 2026-01-16
-# Last Updated: 2026-01-17
+# Last Updated: 2026-01-18
 
 project_name: Auto-BMAD
 project_type: greenfield
@@ -77,6 +77,11 @@ sprint_history:
     epic: "Epic 4: Workflow Execution"
     stories_completed: 6
     status: completed
+  - sprint: 5
+    epic: "Epic 5: Agent Roster"
+    stories_planned: 4
+    status: in_progress
+    started_at: 2026-01-18
 
 total_progress:
   total_stories_completed: 23
@@ -84,11 +89,14 @@ total_progress:
   epics_completed: [1, 2, 3, 4]
   epics_remaining: [5, 6, 7, 8]
 
-next_workflow: sprint-planning
+next_workflow: dev-story
+current_story: "story-5.1: Display Agent Roster"
 next_sprint: 5
-next_epic: "Epic 5: Agent Roster"
+current_epic: "Epic 5: Agent Roster"
 
 notes:
+  - "2026-01-18: Sprint 5 (Agent Roster) planned and started"
+  - "2026-01-18: Committed TEA maturity detection enhancements"
   - "2026-01-17: Renamed 'Auto Claude' to 'Auto BMAD' throughout project"
   - "2026-01-17: Validated all BMAD artifacts"
   - "2026-01-17: E2E tests updated for new naming"

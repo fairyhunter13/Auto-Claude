@@ -1,132 +1,125 @@
 # Sprint Status - Auto-BMAD Project
-# Sprint 4: Workflow Execution
-# Started: 2026-01-16
-# Completed: 2026-01-16
+# Sprint 5: Agent Roster
+# Started: 2026-01-18
+# Status: In Progress
 
-sprint_number: 4
-sprint_name: "Workflow Execution"
-sprint_goal: "Enable users to start, monitor, and manage BMAD workflow execution via OpenCode"
-epic: "Epic 4: Workflow Execution"
-status: completed
-started_at: 2026-01-16T13:00:00
-completed_at: 2026-01-16T13:30:00
+sprint_number: 5
+sprint_name: "Agent Roster"
+sprint_goal: "Display all 11 BMAD agents with personas, track active agents, and enable filtering by module"
+epic: "Epic 5: Agent Roster"
+status: in_progress
+started_at: 2026-01-18T00:00:00
 
 stories:
-  story-4.1:
-    title: "Start Workflow from UI"
-    status: completed
+  story-5.1:
+    title: "Display Agent Roster"
+    description: "Show all 11 BMAD agents in a roster view with avatars/icons"
+    status: pending
     assigned_to: dev
     priority: P0
-    completed_at: 2026-01-16T13:10:00
-    notes:
-      - "WorkflowExecutionPanel with Start button"
-      - "Integrates with useBmadStore.startWorkflow()"
-      - "Clears terminal before new workflow"
-      - "Shows agent name and elapsed time"
+    fr_coverage: ["FR17"]
+    acceptance_criteria:
+      - "Navigate to Agent Roster view shows all 11 agents"
+      - "Each agent displays: ID, Name, Role"
+      - "Agents include: pm, architect, analyst, ux-designer, sm, dev, tea, etc."
+      - "Each agent shows an avatar/icon"
+    implementation_notes:
+      files_to_create:
+        - "src/renderer/features/bmad/components/AgentRoster.tsx"
+        - "src/renderer/features/bmad/components/AgentCard.tsx"
+        - "src/renderer/features/bmad/stores/agent-store.ts"
+        - "src/renderer/features/bmad/types/agent.ts"
+      files_to_modify:
+        - "src/renderer/features/bmad/index.ts (exports)"
+        - "src/main/bmad/handlers.ts (agent IPC handlers)"
     
-  story-4.2:
-    title: "Display Workflow List"
-    status: completed
+  story-5.2:
+    title: "Show Active Agent Indicator"
+    description: "Highlight the currently active agent during workflow execution"
+    status: pending
     assigned_to: dev
     priority: P0
-    completed_at: 2026-01-16T13:15:00
-    notes:
-      - "WorkflowList component with tabs per phase"
-      - "Shows all workflows grouped by phase"
-      - "Status icons (done/running/blocked/pending)"
-      - "Completion badge per phase"
-      - "Click to select workflow"
+    fr_coverage: ["FR18"]
+    depends_on: ["story-5.1"]
+    acceptance_criteria:
+      - "When workflow is running, active agent is highlighted"
+      - "Active badge shows on their card"
+      - "When workflow ends, indicator clears"
+      - "Syncs with useBmadStore's current agent state"
+    implementation_notes:
+      - "Subscribe to workflow execution state from bmad-store"
+      - "Add 'Active' badge component"
+      - "Animate highlight on/off"
     
-  story-4.3:
-    title: "Execute Workflow via OpenCode"
-    status: completed
-    assigned_to: dev
-    priority: P0
-    completed_at: 2026-01-16T13:10:00
-    notes:
-      - "Uses existing workflow-runner.ts from Sprint 1"
-      - "Spawns: opencode --agent [id] [command]"
-      - "Environment variables passed"
-      - "Working directory set to project path"
-    
-  story-4.4:
-    title: "Stream Terminal Output"
-    status: completed
-    assigned_to: dev
-    priority: P0
-    completed_at: 2026-01-16T13:20:00
-    notes:
-      - "useWorkflowTerminal hook from Sprint 1"
-      - "Real-time stdout/stderr via IPC events"
-      - "ANSI color support via xterm.js"
-      - "Auto-scroll to bottom"
-      - "10,000 line scrollback"
-    
-  story-4.5:
-    title: "Cancel Running Workflow"
-    status: completed
+  story-5.3:
+    title: "Display Agent Details Panel"
+    description: "Show detailed agent info when clicking on an agent card"
+    status: pending
     assigned_to: dev
     priority: P1
-    completed_at: 2026-01-16T13:25:00
-    notes:
-      - "Cancel button with AlertDialog confirmation"
-      - "Terminates OpenCode process"
-      - "Updates UI state immediately"
-      - "Shows 'Workflow cancelled' in terminal"
+    fr_coverage: ["FR19"]
+    depends_on: ["story-5.1"]
+    acceptance_criteria:
+      - "Clicking agent card opens details panel"
+      - "Panel shows: name, title, role description"
+      - "Panel shows: communication style, principles"
+      - "Panel shows: associated workflows"
+      - "Can close panel to return to roster"
+    implementation_notes:
+      files_to_create:
+        - "src/renderer/features/bmad/components/AgentDetailsPanel.tsx"
+      data_sources:
+        - "Parse agent .md files from _bmad/bmm/agents/"
+        - "Extract persona info using frontmatter"
     
-  story-4.6:
-    title: "Track Workflow Completion"
-    status: completed
+  story-5.4:
+    title: "Filter Agents by Module"
+    description: "Allow filtering agents by their module (BMM, CIS, Core)"
+    status: pending
     assigned_to: dev
     priority: P1
-    completed_at: 2026-01-16T13:28:00
-    notes:
-      - "onWorkflowExit event triggers status refresh"
-      - "Status badge shows Done/Running"
-      - "Phase store syncs with status file"
-      - "Dashboard updates automatically"
+    fr_coverage: ["FR20"]
+    depends_on: ["story-5.1"]
+    acceptance_criteria:
+      - "Filter dropdown shows: All, BMM, CIS, Core"
+      - "Selecting filter updates roster to show only matching agents"
+      - "BMM includes: pm, architect, analyst, ux-designer, sm, dev, tea"
+      - "CIS includes: creative agents (if any)"
+      - "Core includes: utility agents"
+    implementation_notes:
+      - "Add filter state to agent-store"
+      - "Compute filtered list with useMemo"
+      - "Use shadcn/ui Select component"
 
 velocity:
-  planned_stories: 6
-  completed_stories: 6
-  story_points_completed: 18
+  planned_stories: 4
+  completed_stories: 0
+  story_points_planned: 13
 
 blockers: []
 
-files_created:
+dependencies:
+  external:
+    - "Agent .md files must be parseable for persona extraction"
+  internal:
+    - "Workflow execution state available from bmad-store"
+
+files_to_create:
   renderer:
-    - "src/renderer/features/bmad/components/WorkflowExecutionPanel.tsx (280 lines)"
-    - "src/renderer/features/bmad/components/WorkflowList.tsx (230 lines)"
-    - "src/renderer/features/bmad/components/WorkflowRunner.tsx (100 lines)"
-    - "Updated src/renderer/features/bmad/index.ts (exports)"
+    - "src/renderer/features/bmad/components/AgentRoster.tsx"
+    - "src/renderer/features/bmad/components/AgentCard.tsx"
+    - "src/renderer/features/bmad/components/AgentDetailsPanel.tsx"
+    - "src/renderer/features/bmad/stores/agent-store.ts"
+    - "src/renderer/features/bmad/types/agent.ts"
+  main:
+    - "src/main/bmad/agent-loader.ts (parse agent .md files)"
 
 key_features:
-  - "Start workflow with one click"
-  - "Real-time terminal output with colors"
-  - "Workflow list with phase tabs"
-  - "Status indicators for all workflows"
-  - "Cancel with confirmation dialog"
-  - "Elapsed time counter"
-  - "OpenCode availability warning"
-  - "Expandable fullscreen terminal"
-  - "Auto-refresh status on completion"
-
-integration_notes:
-  - "Uses existing workflow-runner.ts IPC handlers from Sprint 1"
-  - "Uses useWorkflowTerminal hook from Sprint 1"
-  - "Uses usePhaseStore from Sprint 3 for workflow status"
-  - "Resizable panels via react-resizable-panels"
-
-retrospective:
-  went_well:
-    - "Leveraged existing Sprint 1 infrastructure"
-    - "Clean component composition"
-    - "Good UX with confirmation dialogs"
-  improvements:
-    - "Could add workflow search/filter"
-    - "Could add keyboard shortcuts"
-  action_items:
-    - "Consider adding workflow history"
+  - "Visual roster of all 11 BMAD agents"
+  - "Agent cards with avatars and role info"
+  - "Active agent indicator during workflows"
+  - "Detailed persona panel on click"
+  - "Module-based filtering (BMM/CIS/Core)"
 
 previous_sprints:
   - sprint_number: 1
@@ -141,10 +134,20 @@ previous_sprints:
     sprint_name: "Phase Dashboard & Navigation"
     status: completed
     completed_stories: 6
+  - sprint_number: 4
+    sprint_name: "Workflow Execution"
+    status: completed
+    completed_stories: 6
+
+cumulative_progress:
+  total_epics: 9
+  completed_epics: 4
+  total_stories: 47
+  completed_stories: 23
+  percentage_complete: 49
 
 notes:
-  - "Sprint 4 COMPLETE - Workflow Execution delivered"
-  - "Total new code: ~610 lines across 3 files"
-  - "4 sprints completed, 23 stories total"
-  - "Core Auto-BMAD functionality now complete!"
-  - "Next: Epic 5 (Agent Roster) or Epic 6 (Artifact Management)"
+  - "Sprint 5 kicks off Epic 5 (Agent Roster)"
+  - "4 stories covering FR17-FR20"
+  - "Priority: Story 5.1 (P0) -> 5.2 (P0) -> 5.3, 5.4 (P1)"
+  - "After Sprint 5: Epic 6 (Artifact Management) or Epic 9 (Testing)"
