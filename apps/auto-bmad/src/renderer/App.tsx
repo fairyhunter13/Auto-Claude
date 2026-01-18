@@ -28,6 +28,7 @@ import {
 } from './components/ui/dialog';
 import { Sidebar, type SidebarView } from './components/Sidebar';
 import { KanbanBoard } from './components/KanbanBoard';
+import { BMadPhaseBoard } from './components/bmad-phases';
 import { TaskDetailModal } from './components/task-detail/TaskDetailModal';
 import { TaskCreationWizard } from './components/TaskCreationWizard';
 import { AppSettingsDialog, type AppSection } from './components/settings/AppSettings';
@@ -126,7 +127,7 @@ export function App() {
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [settingsInitialSection, setSettingsInitialSection] = useState<AppSection | undefined>(undefined);
   const [settingsInitialProjectSection, setSettingsInitialProjectSection] = useState<ProjectSettingsSection | undefined>(undefined);
-  const [activeView, setActiveView] = useState<SidebarView>('kanban');
+  const [activeView, setActiveView] = useState<SidebarView>('bmad-phases');
   const [isOnboardingWizardOpen, setIsOnboardingWizardOpen] = useState(false);
   const [isRefreshingTasks, setIsRefreshingTasks] = useState(false);
 
@@ -805,6 +806,17 @@ export function App() {
           <main className="flex-1 overflow-hidden">
             {selectedProject ? (
               <>
+                {activeView === 'bmad-phases' && (
+                  <BMadPhaseBoard
+                    projectId={activeProjectId || selectedProjectId!}
+                    projectPath={selectedProject.path}
+                    tasks={tasks}
+                    onTaskClick={handleTaskClick}
+                    onNewTaskClick={() => setIsNewTaskDialogOpen(true)}
+                    onRefresh={handleRefreshTasks}
+                    isRefreshing={isRefreshingTasks}
+                  />
+                )}
                 {activeView === 'kanban' && (
                   <KanbanBoard
                     tasks={tasks}
