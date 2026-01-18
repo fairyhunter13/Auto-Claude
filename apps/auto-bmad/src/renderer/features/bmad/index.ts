@@ -29,6 +29,13 @@ export {
 export { useWorkflowTerminal } from './hooks/useWorkflowTerminal';
 export { useWorkflowHistory } from './hooks/useWorkflowHistory';
 
+// Agent Store
+export {
+  useAgentStore,
+  syncActiveAgentWithWorkflow,
+  type AgentModule,
+} from './stores/agent-store';
+
 // Components
 export { WorkflowTerminal } from './components/WorkflowTerminal';
 export { WorkflowTerminalPanel, StandaloneWorkflowTerminal } from './components/WorkflowTerminalPanel';
@@ -42,6 +49,11 @@ export { PhaseDetail } from './components/PhaseDetail';
 export { WorkflowExecutionPanel } from './components/WorkflowExecutionPanel';
 export { WorkflowList } from './components/WorkflowList';
 export { WorkflowRunner } from './components/WorkflowRunner';
+
+// Agent Components (Epic 5)
+export { AgentRoster } from './components/AgentRoster';
+export { AgentCard } from './components/AgentCard';
+export { AgentDetailsPanel } from './components/AgentDetailsPanel';
 
 // Target & Language Components (New)
 export {

@@ -335,6 +335,22 @@ export function GeneralSettings({ settings, onSettingsChange, section }: General
             onChange={(e) => onSettingsChange({ ...settings, autoBuildPath: e.target.value })}
           />
         </div>
+        <div className="space-y-3">
+          <Label htmlFor="customBmadPath" className="text-sm font-medium text-foreground">{t('general.customBmadPath')}</Label>
+          <p className="text-sm text-muted-foreground">{t('general.customBmadPathDescription')}</p>
+          <Input
+            id="customBmadPath"
+            placeholder={t('general.customBmadPathPlaceholder')}
+            className="w-full max-w-lg"
+            value={settings.customBmadPath || ''}
+            onChange={(e) => onSettingsChange({ ...settings, customBmadPath: e.target.value })}
+          />
+          {settings.customBmadPath && (
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+              {t('general.customBmadPathWarning')}
+            </p>
+          )}
+        </div>
       </div>
     </SettingsSection>
   );

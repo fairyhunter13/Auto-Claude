@@ -73,7 +73,7 @@ export interface AgentDefinition {
   id: string;
   name: string;
   role: string;
-  module: 'bmm' | 'cis' | 'core';
+  module: 'bmm' | 'cis' | 'core' | 'bmb';
   description?: string;
   principles?: string[];
   communicationStyle?: string;

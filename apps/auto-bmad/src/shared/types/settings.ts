@@ -267,6 +267,8 @@ export interface AppSettings {
   githubCLIPath?: string;
   claudePath?: string;
   autoBuildPath?: string;
+  // Custom _bmad source path for enhanced workflows (overrides default npm package)
+  customBmadPath?: string;
   autoUpdateAutoBuild: boolean;
   autoNameTerminals: boolean;
   notifications: NotificationSettings;

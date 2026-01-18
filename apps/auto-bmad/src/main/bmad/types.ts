@@ -260,11 +260,13 @@ export const BMAD_WORKFLOWS: WorkflowDefinition[] = [
 // Agent Definitions
 // ─────────────────────────────────────────────────────────────────────────────
 
+export type AgentModule = 'bmm' | 'cis' | 'core' | 'bmb';
+
 export interface AgentDefinition {
   id: string;
   name: string;
   role: string;
-  module: 'bmm' | 'cis' | 'core' | 'bmb';
+  module: AgentModule;
   description?: string;
   principles?: string[];
   communicationStyle?: string;

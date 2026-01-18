@@ -5,7 +5,8 @@
   },
   "items": {
     "bmadPhases": "Phases BMAD",
-    "kanban": "Tâches Sprint",
+    "agentRoster": "Liste des Agents",
+    "kanban": "Tableau Sprint",
     "terminals": "Terminaux Agent",
     "insights": "Insights",
     "roadmap": "Feuille de route",
