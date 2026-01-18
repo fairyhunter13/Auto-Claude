@@ -18,5 +18,9 @@ export * from './integrations';
 export * from './app-update';
 export * from './cli';
 
+// BMAD Phase types
+export * from './bmad-phase';
+export * from './human-review';
+
 // IPC types (must be last to use types from other modules)
 export * from './ipc';

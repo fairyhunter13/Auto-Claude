@@ -1,6 +1,7 @@
 // Re-export all components
 export * from './Sidebar';
 export * from './KanbanBoard';
+export * from './bmad-phases';
 export * from './TaskCard';
 export * from './TaskCreationWizard';
 export * from './TaskEditDialog';

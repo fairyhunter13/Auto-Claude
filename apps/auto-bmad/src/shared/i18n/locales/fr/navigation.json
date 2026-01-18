@@ -4,7 +4,8 @@
     "tools": "Outils"
   },
   "items": {
-    "kanban": "Tableau Kanban",
+    "bmadPhases": "Phases BMAD",
+    "kanban": "Tâches Sprint",
     "terminals": "Terminaux Agent",
     "insights": "Insights",
     "roadmap": "Feuille de route",
