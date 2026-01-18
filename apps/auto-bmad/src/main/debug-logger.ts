@@ -28,6 +28,7 @@ export type DebugCategory =
   | 'BMAD'          // BMAD methodology operations
   | 'TERMINAL'      // Terminal operations
   | 'INSIGHTS'      // Insights/Conversation feature
+  | 'INTERACTIVE'   // Interactive Mode chat sessions
   | 'TASK'          // Task operations
   | 'GIT'           // Git operations
   | 'SETTINGS'      // Settings changes
@@ -247,6 +248,10 @@ class DebugLogger extends EventEmitter {
 
   insights(message: string, data?: Record<string, unknown>): void {
     this.log('INSIGHTS', message, data, 'debug');
+  }
+
+  interactive(message: string, data?: Record<string, unknown>): void {
+    this.log('INTERACTIVE', message, data, 'info');
   }
 
   task(message: string, data?: Record<string, unknown>): void {

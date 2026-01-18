@@ -24,6 +24,7 @@ import {
   Workflow,
   Users,
   FolderOpen,
+  MessageSquare,
 } from 'lucide-react';
 import { Button } from './ui/button';
 import { ScrollArea } from './ui/scroll-area';
@@ -56,7 +57,7 @@ import { OpenCodeStatusBadge } from './OpenCodeStatusBadge';
 import { UpdateBanner } from './UpdateBanner';
 import type { Project, AutoBuildVersionInfo, GitStatus, ProjectEnvConfig } from '../../shared/types';
 
-export type SidebarView = 'kanban' | 'bmad-phases' | 'agent-roster' | 'artifacts' | 'terminals' | 'roadmap' | 'context' | 'ideation' | 'github-issues' | 'gitlab-issues' | 'github-prs' | 'gitlab-merge-requests' | 'changelog' | 'insights' | 'worktrees' | 'agent-tools';
+export type SidebarView = 'kanban' | 'bmad-phases' | 'agent-roster' | 'artifacts' | 'interactive' | 'terminals' | 'roadmap' | 'context' | 'ideation' | 'github-issues' | 'gitlab-issues' | 'github-prs' | 'gitlab-merge-requests' | 'changelog' | 'insights' | 'worktrees' | 'agent-tools';
 
 interface SidebarProps {
   onSettingsClick: () => void;
@@ -75,6 +76,7 @@ interface NavItem {
 // Base nav items always shown
 const baseNavItems: NavItem[] = [
   { id: 'bmad-phases', labelKey: 'navigation:items.bmadPhases', icon: Workflow, shortcut: 'B' },
+  { id: 'interactive', labelKey: 'navigation:items.interactive', icon: MessageSquare, shortcut: 'T' },
   { id: 'agent-roster', labelKey: 'navigation:items.agentRoster', icon: Users, shortcut: 'R' },
   { id: 'artifacts', labelKey: 'navigation:items.artifacts', icon: FolderOpen, shortcut: 'F' },
   { id: 'kanban', labelKey: 'navigation:items.kanban', icon: LayoutGrid, shortcut: 'K' },
