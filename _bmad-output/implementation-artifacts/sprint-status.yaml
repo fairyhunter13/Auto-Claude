@@ -1,102 +1,116 @@
 # Sprint Status - Auto-BMAD Project
-# Sprint 5: Agent Roster
+# Sprint 6: Artifact Management
 # Started: 2026-01-18
-# Completed: 2026-01-18
 # Status: Completed
 
-sprint_number: 5
-sprint_name: "Agent Roster"
-sprint_goal: "Display all 19 BMAD agents with personas, track active agents, and enable filtering by module"
-epic: "Epic 5: Agent Roster"
+sprint_number: 6
+sprint_name: "Artifact Management"
+sprint_goal: "Enable viewing, editing, and exporting BMAD artifacts with markdown preview"
+epic: "Epic 6: Artifact Management"
 status: completed
 started_at: 2026-01-18T00:00:00
 completed_at: 2026-01-18T23:59:00
 
 stories:
-  story-5.1:
-    title: "Display Agent Roster"
-    description: "Show all 19 BMAD agents in a roster view with avatars/icons"
+  story-6.1:
+    title: "Display Artifact List"
+    description: "Show all generated artifacts with filtering by type"
     status: completed
     assigned_to: dev
     priority: P0
-    fr_coverage: ["FR17"]
+    fr_coverage: ["FR21"]
     acceptance_criteria:
-      - "Navigate to Agent Roster view shows all 19 agents"
-      - "Each agent displays: ID, Name, Role"
-      - "Agents include: pm, architect, analyst, ux-designer, sm, dev, tea, etc."
-      - "Each agent shows an avatar/icon (emoji)"
+      - "Navigate to Artifacts view shows all artifacts"
+      - "Artifacts grouped by type (planning/implementation)"
+      - "Each artifact shows: name, workflow, modified date"
+      - "Search and filter functionality"
     implementation_notes:
       files_created:
-        - "src/renderer/features/bmad/components/AgentRoster.tsx"
-        - "src/renderer/features/bmad/components/AgentCard.tsx"
-        - "src/renderer/features/bmad/stores/agent-store.ts"
-        - "src/renderer/components/ui/avatar.tsx"
+        - "src/renderer/features/bmad/components/ArtifactsView.tsx"
+        - "src/renderer/features/bmad/stores/artifact-store.ts"
       files_modified:
         - "src/renderer/features/bmad/index.ts (exports)"
         - "src/renderer/App.tsx (route added)"
         - "src/renderer/components/Sidebar.tsx (nav item added)"
     
-  story-5.2:
-    title: "Show Active Agent Indicator"
-    description: "Highlight the currently active agent during workflow execution"
+  story-6.2:
+    title: "Render Markdown Preview"
+    description: "Display artifact content with beautiful markdown formatting"
     status: completed
     assigned_to: dev
     priority: P0
-    fr_coverage: ["FR18"]
-    depends_on: ["story-5.1"]
+    fr_coverage: ["FR22"]
+    depends_on: ["story-6.1"]
     acceptance_criteria:
-      - "When workflow is running, active agent is highlighted with green ring"
-      - "Active badge shows on their card with pulse animation"
-      - "When workflow ends, indicator clears"
-      - "Syncs with useBmadStore's current agent state"
-      - "Global Active badge in header shows current agent name"
-    implementation_notes:
-      - "Implemented as part of Story 5.1"
-      - "Agent store has activeAgentId tracking"
-      - "AgentRoster syncs with bmad-store workflow state"
-    
-  story-5.3:
-    title: "Display Agent Details Panel"
-    description: "Show detailed agent info when clicking on an agent card"
-    status: completed
-    assigned_to: dev
-    priority: P1
-    fr_coverage: ["FR19"]
-    depends_on: ["story-5.1"]
-    acceptance_criteria:
-      - "Clicking agent card opens details panel (slide-in from right)"
-      - "Panel shows: name, title, role description"
-      - "Panel shows: communication style, principles"
-      - "Panel shows: associated workflows"
-      - "Can close panel to return to roster"
+      - "Markdown renders with proper headings"
+      - "Code blocks with syntax highlighting"
+      - "Tables render correctly"
+      - "Links are clickable"
+      - "GFM (GitHub Flavored Markdown) support"
     implementation_notes:
       files_created:
-        - "src/renderer/features/bmad/components/AgentDetailsPanel.tsx"
-      - "Implemented as part of Story 5.1"
+        - "src/renderer/features/bmad/components/MarkdownPreview.tsx"
+      - "Uses react-markdown with remark-gfm"
     
-  story-5.4:
-    title: "Filter Agents by Module"
-    description: "Allow filtering agents by their module (BMM, CIS, Core, BMB)"
+  story-6.3:
+    title: "Show Artifact Metadata"
+    description: "Display file metadata including dates and workflow info"
     status: completed
     assigned_to: dev
     priority: P1
-    fr_coverage: ["FR20"]
-    depends_on: ["story-5.1"]
+    fr_coverage: ["FR23"]
+    depends_on: ["story-6.1"]
     acceptance_criteria:
-      - "Filter dropdown shows: All, BMM, CIS, Core, BMB"
-      - "Selecting filter updates roster to show only matching agents"
-      - "BMM includes 9 agents: pm, architect, analyst, ux-designer, sm, dev, tea, tech-writer, quick-flow-solo-dev"
-      - "CIS includes 6 agents: creative agents"
-      - "Core includes 1 agent: bmad-master"
-      - "BMB includes 3 agents: agent-builder, module-builder, workflow-builder"
+      - "Shows created date"
+      - "Shows last modified date"
+      - "Shows associated workflow"
+      - "Shows file size"
+      - "Shows artifact type badge"
     implementation_notes:
-      - "Implemented as part of Story 5.1"
-      - "Filter state in agent-store"
-      - "Uses shadcn/ui Select component"
+      files_created:
+        - "src/renderer/features/bmad/components/ArtifactMetadata.tsx"
+      - "Metadata sidebar in artifact preview"
+    
+  story-6.4:
+    title: "Export Artifacts"
+    description: "Allow copying artifact content to clipboard"
+    status: completed
+    assigned_to: dev
+    priority: P1
+    fr_coverage: ["FR24"]
+    depends_on: ["story-6.1", "story-6.2"]
+    acceptance_criteria:
+      - "Copy to clipboard button works"
+      - "Export button copies to clipboard"
+      - "Open in editor copies path to clipboard"
+      - "Toast notifications confirm actions"
+    implementation_notes:
+      - "Uses navigator.clipboard API"
+      - "File save dialog requires additional IPC (future enhancement)"
+    
+  story-6.5:
+    title: "Edit Artifacts"
+    description: "In-app markdown editor with save functionality"
+    status: completed
+    assigned_to: dev
+    priority: P1
+    fr_coverage: ["FR25"]
+    depends_on: ["story-6.1", "story-6.2"]
+    acceptance_criteria:
+      - "Edit button switches to edit mode"
+      - "Split view with editor and preview"
+      - "Save/Cancel buttons"
+      - "Unsaved changes warning"
+      - "Revert to original content"
+    implementation_notes:
+      files_created:
+        - "src/renderer/features/bmad/components/ArtifactEditor.tsx"
+      - "Uses textarea with split preview mode"
+      - "Full file write requires additional IPC (saves via clipboard)"
 
 velocity:
-  planned_stories: 4
-  completed_stories: 4
+  planned_stories: 5
+  completed_stories: 5
   story_points_planned: 13
   story_points_completed: 13
 
@@ -104,29 +118,30 @@ blockers: []
 
 dependencies:
   external:
-    - "Agent .md files must be parseable for persona extraction"
+    - "react-markdown package installed"
+    - "remark-gfm for GFM support"
   internal:
-    - "Workflow execution state available from bmad-store"
+    - "BMAD listArtifacts API"
+    - "electronAPI.readFile for content loading"
 
 files_created:
   renderer:
-    - "src/renderer/features/bmad/components/AgentRoster.tsx"
-    - "src/renderer/features/bmad/components/AgentCard.tsx"
-    - "src/renderer/features/bmad/components/AgentDetailsPanel.tsx"
-    - "src/renderer/features/bmad/stores/agent-store.ts"
-    - "src/renderer/components/ui/avatar.tsx"
+    - "src/renderer/features/bmad/components/ArtifactsView.tsx"
+    - "src/renderer/features/bmad/components/MarkdownPreview.tsx"
+    - "src/renderer/features/bmad/components/ArtifactMetadata.tsx"
+    - "src/renderer/features/bmad/components/ArtifactEditor.tsx"
+    - "src/renderer/features/bmad/stores/artifact-store.ts"
 
 key_features:
-  - "Visual roster of all 19 BMAD agents (BMM: 9, CIS: 6, Core: 1, BMB: 3)"
-  - "Agent cards with emoji avatars and role info"
-  - "Active agent indicator during workflows (green ring + badge)"
-  - "Detailed persona panel on click (slide-in from right)"
-  - "Module-based filtering (All/BMM/CIS/Core/BMB)"
-  - "Keyboard shortcut: R for Agent Roster"
-
-bonus_features:
-  - "Renamed 'Sprint Tasks' to 'Sprint Board' for clarity"
-  - "Added custom _bmad source path setting for enhanced workflows"
+  - "Artifacts view with grid of artifact cards"
+  - "Search and filter by type (planning/implementation)"
+  - "Beautiful markdown preview with GFM support"
+  - "Code blocks, tables, headings all styled"
+  - "Metadata sidebar with file info and dates"
+  - "In-app editor with split preview mode"
+  - "Copy to clipboard for export"
+  - "Unsaved changes warning in editor"
+  - "Keyboard shortcut: F for Artifacts"
 
 previous_sprints:
   - sprint_number: 1
@@ -149,16 +164,20 @@ previous_sprints:
     sprint_name: "Agent Roster"
     status: completed
     completed_stories: 4
+  - sprint_number: 6
+    sprint_name: "Artifact Management"
+    status: completed
+    completed_stories: 5
 
 cumulative_progress:
   total_epics: 9
-  completed_epics: 5
+  completed_epics: 6
   total_stories: 47
-  completed_stories: 27
-  percentage_complete: 57
+  completed_stories: 32
+  percentage_complete: 68
 
 notes:
-  - "Sprint 5 completed all 4 stories (Epic 5 complete!)"
+  - "Sprint 6 completed all 5 stories (Epic 6 complete!)"
   - "All stories implemented together as cohesive feature"
-  - "Bonus: UI improvements (Sprint Board rename, _bmad override setting)"
-  - "Next: Sprint 6 - Epic 6 (Artifact Management) or Epic 9 (Testing)"
+  - "Project now at 68% completion (32/47 stories)"
+  - "Next: Sprint 7 - Epic 7 (Interactive Mode) or Epic 8 (Gate Checks) or Epic 9 (Testing)"

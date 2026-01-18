@@ -6,6 +6,7 @@
   "items": {
     "bmadPhases": "Phases BMAD",
     "agentRoster": "Liste des Agents",
+    "artifacts": "Artefacts",
     "kanban": "Tableau Sprint",
     "terminals": "Terminaux Agent",
     "insights": "Insights",

@@ -83,3 +83,19 @@ export {
   type ArtifactStatus,
   type ArtifactGroup,
 } from './components/ArtifactDashboard';
+
+// Artifact Management (Epic 6)
+export { ArtifactsView } from './components/ArtifactsView';
+export { MarkdownPreview } from './components/MarkdownPreview';
+export { ArtifactMetadata, type ArtifactMetadataInfo } from './components/ArtifactMetadata';
+export { ArtifactEditor } from './components/ArtifactEditor';
+export {
+  useArtifactStore,
+  loadArtifacts,
+  loadArtifactContent,
+  saveArtifactContent,
+  exportArtifact,
+  copyArtifactToClipboard,
+  type ArtifactFile,
+  type ArtifactViewMode,
+} from './stores/artifact-store';
