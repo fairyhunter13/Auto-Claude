@@ -10,13 +10,14 @@
  */
 
 import { app } from 'electron';
-import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from 'fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, cpSync } from 'fs';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import YAML from 'yaml';
 import type { BmadConfig, BmadWorkflowStatus, DetectedLanguage } from './types';
 import { BmadConfigSchema, BmadWorkflowStatusSchema } from './types';
 import { getLanguageDetector } from './language-detector';
+import { readSettingsFile } from '../settings-utils';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BMAD Project Types
@@ -62,6 +63,60 @@ export interface BmadProjectValidation {
   errors: string[];
   /** Detected languages (if language detection was performed) */
   detectedLanguages?: DetectedLanguage[];
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// _bmad Directory Management
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Get the custom _bmad source path from settings
+ */
+function getCustomBmadPath(): string | null {
+  try {
+    const settings = readSettingsFile();
+    if (settings?.customBmadPath && typeof settings.customBmadPath === 'string') {
+      const customPath = settings.customBmadPath;
+      // Validate the path exists and has a _bmad directory
+      if (existsSync(customPath)) {
+        // Check if it's directly a _bmad dir or contains one
+        const bmadPath = path.basename(customPath) === '_bmad' 
+          ? customPath 
+          : path.join(customPath, '_bmad');
+        if (existsSync(bmadPath)) {
+          return bmadPath;
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('[BmadProjectManager] Failed to read customBmadPath from settings:', error);
+  }
+  return null;
+}
+
+/**
+ * Copy _bmad directory from source to target project
+ */
+function copyBmadDirectory(sourceBmadPath: string, targetProjectPath: string): { success: boolean; error?: string } {
+  const targetBmadPath = path.join(targetProjectPath, '_bmad');
+  
+  try {
+    if (existsSync(targetBmadPath)) {
+      return { success: false, error: 'Target _bmad directory already exists' };
+    }
+    
+    console.log(`[BmadProjectManager] Copying _bmad from ${sourceBmadPath} to ${targetBmadPath}`);
+    
+    // Use cpSync with recursive option (Node 16.7+)
+    cpSync(sourceBmadPath, targetBmadPath, { recursive: true });
+    
+    console.log('[BmadProjectManager] _bmad directory copied successfully');
+    return { success: true };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    console.error('[BmadProjectManager] Failed to copy _bmad directory:', message);
+    return { success: false, error: `Failed to copy _bmad: ${message}` };
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -186,6 +241,7 @@ export class BmadProjectManager {
    * Create a new BMAD project
    * 
    * This creates:
+   * - Copies _bmad from customBmadPath if configured (otherwise requires existing _bmad)
    * - _bmad-output/planning-artifacts/ directory
    * - _bmad-output/implementation-artifacts/ directory
    * - bmm-workflow-status.yaml with initial state
@@ -201,9 +257,27 @@ export class BmadProjectManager {
       }
 
       // Check if already a BMAD project
-      const validation = this.validateProject(projectPath);
+      let validation = this.validateProject(projectPath);
+      
+      // If no _bmad directory, try to copy from customBmadPath
       if (!validation.hasBmadDir) {
-        return { success: false, error: 'Directory must contain _bmad/ folder. Copy BMAD framework files first.' };
+        const customBmadPath = getCustomBmadPath();
+        if (customBmadPath) {
+          console.log(`[BmadProjectManager] Copying _bmad from custom path: ${customBmadPath}`);
+          const copyResult = copyBmadDirectory(customBmadPath, projectPath);
+          if (!copyResult.success) {
+            return { success: false, error: copyResult.error || 'Failed to copy _bmad directory' };
+          }
+          // Re-validate after copy
+          validation = this.validateProject(projectPath);
+        }
+      }
+      
+      if (!validation.hasBmadDir) {
+        return { 
+          success: false, 
+          error: 'Directory must contain _bmad/ folder. Either copy BMAD framework files first, or set a Custom _bmad Source in Settings → Paths.'
+        };
       }
 
       // Check if project already in our store
