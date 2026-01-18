@@ -39,24 +39,24 @@ This document provides comprehensive test coverage mapping for all 48 Functional
 | FR15 | Cancel running workflow | Unit | `workflow-runner.test.ts` | ⚠️ Partial |
 | FR16 | Track workflow completion | Unit | `status-manager.test.ts` | ✅ Covered |
 
-### Agent Roster (FR17-FR20)
+### Agent Roster (FR17-FR20) ✅ NEW
 
 | FR | Description | Test Type | Test File | Status |
 |----|-------------|-----------|-----------|--------|
-| FR17 | View all BMAD agents | Unit | `agent-store.test.ts` | 🆕 Needed |
-| FR18 | See active agent indicator | Unit | `agent-store.test.ts` | 🆕 Needed |
-| FR19 | Read agent communication style | Unit | `agent-store.test.ts` | 🆕 Needed |
-| FR20 | Filter agents by module | Unit | `agent-store.test.ts` | 🆕 Needed |
+| FR17 | View all BMAD agents | Unit | `agent-store.test.ts` | ✅ Covered |
+| FR18 | See active agent indicator | Unit | `agent-store.test.ts` | ✅ Covered |
+| FR19 | Read agent communication style | Unit | `agent-store.test.ts` | ✅ Covered |
+| FR20 | Filter agents by module | Unit | `agent-store.test.ts` | ✅ Covered |
 
-### Artifact Management (FR21-FR25)
+### Artifact Management (FR21-FR25) ✅ NEW
 
 | FR | Description | Test Type | Test File | Status |
 |----|-------------|-----------|-----------|--------|
-| FR21 | View generated artifacts | Unit | `artifact-store.test.ts` | 🆕 Needed |
-| FR22 | Render markdown preview | Unit | `MarkdownPreview.test.tsx` | 🆕 Needed |
-| FR23 | Show artifact metadata | Unit | `artifact-store.test.ts` | 🆕 Needed |
-| FR24 | Export artifacts | Unit | `artifact-store.test.ts` | 🆕 Needed |
-| FR25 | Edit artifacts | Unit | `ArtifactEditor.test.tsx` | 🆕 Needed |
+| FR21 | View generated artifacts | Unit | `artifact-store.test.ts` | ✅ Covered |
+| FR22 | Render markdown preview | Unit | `artifact-store.test.ts` | ✅ Covered |
+| FR23 | Show artifact metadata | Unit | `artifact-store.test.ts` | ✅ Covered |
+| FR24 | Export artifacts | Unit | `artifact-store.test.ts` | ✅ Covered |
+| FR25 | Edit artifacts | Unit | `artifact-store.test.ts` | ✅ Covered |
 
 ### Terminal Integration (FR26-FR30)
 
@@ -72,11 +72,11 @@ This document provides comprehensive test coverage mapping for all 48 Functional
 
 | FR | Description | Test Type | Test File | Status |
 |----|-------------|-----------|-----------|--------|
-| FR31 | Start Interactive Mode session | Unit | `chat-store.test.ts` | ✅ Covered |
-| FR32 | Chat with AI agents | Unit | `chat-store.test.ts` | ✅ Covered |
-| FR33 | Run workflows via slash commands | Unit | `chat-store.test.ts` | ✅ Covered |
-| FR34 | @mention specific agents | Unit | `chat-store.test.ts` | ✅ Covered |
-| FR35 | Maintain conversation history | Unit | `chat-store.test.ts` | ✅ Covered |
+| FR31 | Start Interactive Mode session | Unit + E2E | `chat-store.test.ts`, `bmad-interactive-mode.e2e.ts` | ✅ Covered |
+| FR32 | Chat with AI agents | Unit + E2E | `chat-store.test.ts`, `bmad-interactive-mode.e2e.ts` | ✅ Covered |
+| FR33 | Run workflows via slash commands | Unit + E2E | `chat-store.test.ts`, `bmad-interactive-mode.e2e.ts` | ✅ Covered |
+| FR34 | @mention specific agents | Unit + E2E | `chat-store.test.ts`, `bmad-interactive-mode.e2e.ts` | ✅ Covered |
+| FR35 | Maintain conversation history | Unit + E2E | `chat-store.test.ts`, `bmad-interactive-mode.e2e.ts` | ✅ Covered |
 
 ### Status Tracking (FR36-FR40)
 
@@ -92,10 +92,10 @@ This document provides comprehensive test coverage mapping for all 48 Functional
 
 | FR | Description | Test Type | Test File | Status |
 |----|-------------|-----------|-----------|--------|
-| FR41 | Run gate check before Phase 4 | Unit | `gate-check-manager.test.ts` | ✅ Covered |
-| FR42 | View gate check results | Unit | `gate-check-store.test.ts` | ✅ Covered |
-| FR43 | Block Phase 4 on failure | Unit | `gate-check-store.test.ts` | ✅ Covered |
-| FR44 | Override gate check | Unit | `gate-check-manager.test.ts` | ✅ Covered |
+| FR41 | Run gate check before Phase 4 | Unit + E2E | `gate-check-manager.test.ts`, `bmad-gate-check.e2e.ts` | ✅ Covered |
+| FR42 | View gate check results | Unit + E2E | `gate-check-store.test.ts`, `bmad-gate-check.e2e.ts` | ✅ Covered |
+| FR43 | Block Phase 4 on failure | Unit + E2E | `gate-check-store.test.ts`, `bmad-gate-check.e2e.ts` | ✅ Covered |
+| FR44 | Override gate check | Unit + E2E | `gate-check-manager.test.ts`, `bmad-gate-check.e2e.ts` | ✅ Covered |
 
 ### File Explorer (FR45-FR48)
 
@@ -110,24 +110,24 @@ This document provides comprehensive test coverage mapping for all 48 Functional
 
 ## Non-Functional Requirements Coverage
 
-### Performance (NFR1-5)
+### Performance (NFR1-5) ✅ NEW
 
 | NFR | Description | Test Type | Test File | Status |
 |-----|-------------|-----------|-----------|--------|
-| NFR1 | App launches < 5 seconds | Performance | `performance.test.ts` | 🆕 Needed |
-| NFR2 | Workflow list loads < 1 second | Performance | `performance.test.ts` | 🆕 Needed |
-| NFR3 | Terminal streams without lag | Performance | `performance.test.ts` | 🆕 Needed |
-| NFR4 | UI responsive during execution | E2E | `task-workflow.spec.ts` | ⚠️ Implicit |
-| NFR5 | Artifact renders < 2 seconds | Performance | `performance.test.ts` | 🆕 Needed |
+| NFR1 | App launches < 5 seconds | E2E Performance | `performance.e2e.ts` | ✅ Covered |
+| NFR2 | Workflow list loads < 1 second | E2E Performance | `performance.e2e.ts` | ✅ Covered |
+| NFR3 | Terminal streams without lag | E2E Performance | `performance.e2e.ts` | ✅ Covered |
+| NFR4 | UI responsive during execution | E2E Performance | `performance.e2e.ts` | ✅ Covered |
+| NFR5 | Artifact renders < 2 seconds | E2E Performance | `performance.e2e.ts` | ✅ Covered |
 
-### Usability (NFR6-10)
+### Usability (NFR6-10) ✅ NEW
 
 | NFR | Description | Test Type | Test File | Status |
 |-----|-------------|-----------|-----------|--------|
-| NFR6 | First workflow in 5 minutes | E2E | `user-journey.spec.ts` | 🆕 Needed |
-| NFR7 | Phase progress always visible | E2E | `user-journey.spec.ts` | 🆕 Needed |
+| NFR6 | First workflow in 5 minutes | E2E Journey | `user-journey-1-greenfield.e2e.ts` | ✅ Covered |
+| NFR7 | Phase progress always visible | E2E Journey | `user-journey-2-brownfield.e2e.ts` | ✅ Covered |
 | NFR8 | Error messages with guidance | Unit | Various stores | ✅ Covered |
-| NFR9 | Keyboard shortcuts available | E2E | `user-journey.spec.ts` | 🆕 Needed |
+| NFR9 | Keyboard shortcuts available | E2E | `accessibility.e2e.ts` | ✅ Covered |
 | NFR10 | UI follows platform conventions | Manual | - | ⚠️ Manual |
 
 ### Reliability (NFR11-15)
@@ -138,7 +138,7 @@ This document provides comprehensive test coverage mapping for all 48 Functional
 | NFR12 | Status file corruption recovery | Unit | `status-manager.test.ts` | ✅ Covered |
 | NFR13 | Resume workflow after crash | Integration | `workflow-lifecycle.test.ts` | ✅ Covered |
 | NFR14 | No data loss on termination | Integration | `workflow-lifecycle.test.ts` | ✅ Covered |
-| NFR15 | Atomic artifact saves | Unit | `artifact-store.test.ts` | 🆕 Needed |
+| NFR15 | Atomic artifact saves | Unit | `artifact-store.test.ts` | ✅ Covered |
 
 ### Compatibility (NFR16-19)
 
@@ -158,24 +158,24 @@ This document provides comprehensive test coverage mapping for all 48 Functional
 | NFR22 | Files accessed with permission | Unit | `ipc-handlers.test.ts` | ✅ Covered |
 | NFR23 | No telemetry without opt-in | Audit | Code Review | ⚠️ Manual |
 
-### Accessibility (NFR24-27)
+### Accessibility (NFR24-27) ✅ NEW
 
 | NFR | Description | Test Type | Test File | Status |
 |-----|-------------|-----------|-----------|--------|
-| NFR24 | Keyboard-only navigation | E2E | `accessibility.spec.ts` | 🆕 Needed |
-| NFR25 | Screen reader compatible | E2E | `accessibility.spec.ts` | 🆕 Needed |
-| NFR26 | WCAG 2.1 AA standards | E2E | `accessibility.spec.ts` | 🆕 Needed |
-| NFR27 | System dark/light mode | Unit | `App.test.tsx` | ⚠️ Partial |
+| NFR24 | Keyboard-only navigation | E2E | `accessibility.e2e.ts` | ✅ Covered |
+| NFR25 | Screen reader compatible | E2E | `accessibility.e2e.ts` | ✅ Covered |
+| NFR26 | WCAG 2.1 AA standards | E2E | `accessibility.e2e.ts` | ✅ Covered |
+| NFR27 | System dark/light mode | E2E | `accessibility.e2e.ts` | ✅ Covered |
 
 ---
 
 ## Coverage Summary
 
-| Category | Total | Covered | Partial | Needed |
-|----------|-------|---------|---------|--------|
-| **FRs** | 48 | 35 | 9 | 4 |
-| **NFRs** | 27 | 10 | 10 | 7 |
-| **Total** | 75 | 45 (60%) | 19 (25%) | 11 (15%) |
+| Category | Total | Covered | Partial | Manual/CI |
+|----------|-------|---------|---------|-----------|
+| **FRs** | 48 | 44 | 4 | 0 |
+| **NFRs** | 27 | 21 | 3 | 3 |
+| **Total** | 75 | 65 (87%) | 7 (9%) | 3 (4%) |
 
 ### Test Suite Summary
 
@@ -185,26 +185,41 @@ This document provides comprehensive test coverage mapping for all 48 Functional
 | `gate-check-manager.test.ts` | 26 | FR41-FR44 |
 | `gate-check-store.test.ts` | 30 | FR41-FR44 |
 | `workflow-lifecycle.test.ts` | 32 | FR6-16, FR36-40, NFR13-14 |
-| **New Tests Total** | **126** | |
+| `agent-store.test.ts` | 35 | FR17-FR20 ✅ NEW |
+| `artifact-store.test.ts` | 42 | FR21-FR25 ✅ NEW |
+| `bmad-interactive-mode.e2e.ts` | 25+ | FR31-FR35 E2E ✅ NEW |
+| `bmad-gate-check.e2e.ts` | 20+ | FR41-FR44 E2E ✅ NEW |
+| `user-journey-1-greenfield.e2e.ts` | 14 | NFR6-7 ✅ NEW |
+| `user-journey-2-brownfield.e2e.ts` | 18 | NFR6-7 ✅ NEW |
+| `performance.e2e.ts` | 15+ | NFR1-5 ✅ NEW |
+| `accessibility.e2e.ts` | 25+ | NFR24-27 ✅ NEW |
+| **Total New Tests** | **~300+** | |
 
 ---
 
-## Priority Test Implementation
+## Sprint 9 Test Implementation - COMPLETE
 
-### P0 - Critical ✅ COMPLETED
-1. ✅ `chat-store.test.ts` - Interactive Mode (FR31-35) - 38 tests
-2. ✅ `gate-check-manager.test.ts` - Gate Checks (FR41-44) - 26 tests
-3. ✅ `gate-check-store.test.ts` - Gate Check UI (FR41-44) - 30 tests
-4. ✅ `workflow-lifecycle.test.ts` - Crash recovery (NFR13-14) - 32 tests
+### Story 9.1: FR/NFR Test Assessment Matrix ✅
+- Created comprehensive test matrix documentation
 
-### P1 - High (Implement Next)
-5. `agent-store.test.ts` - Agent Roster (FR17-20)
-6. `artifact-store.test.ts` - Artifact Management (FR21-25)
-7. `performance.test.ts` - Performance NFRs (NFR1-5)
+### Story 9.2: Backend Integration Tests ✅
+- 94 tests for workflow lifecycle, status management
 
-### P2 - Medium (Enhancement)
-8. `user-journey.spec.ts` - E2E User Journeys
-9. `accessibility.spec.ts` - Accessibility NFRs
+### Story 9.3: BMAD Workflow Lifecycle Tests ✅
+- 32 tests for crash recovery, phase management
+
+### Story 9.4: E2E Test Automation ✅ NEW
+- `bmad-interactive-mode.e2e.ts` - 25+ tests for FR31-35
+- `bmad-gate-check.e2e.ts` - 20+ tests for FR41-44
+
+### Story 9.5: User Journey Regression Suite ✅ NEW
+- `user-journey-1-greenfield.e2e.ts` - 14 tests
+- `user-journey-2-brownfield.e2e.ts` - 18 tests
+- `user-journey-3-sprint.e2e.ts` - Existing tests
+
+### Story 9.6: Performance & Load Testing ✅ NEW
+- `performance.e2e.ts` - 15+ tests for NFR1-5
+- `accessibility.e2e.ts` - 25+ tests for NFR24-27
 
 ---
 
@@ -214,21 +229,31 @@ This document provides comprehensive test coverage mapping for all 48 Functional
 # Run all unit tests
 npm run test
 
-# Run BMAD-specific tests
-npm run test:bmad
+# Run BMAD-specific unit tests (203 tests)
+npm run test -- --run src/renderer/features/bmad/stores/__tests__/ src/main/bmad/__tests__/
 
 # Run E2E tests
 npm run test:e2e
 
+# Run BMAD E2E tests specifically
+npx playwright test --config=e2e/playwright.config.ts bmad-interactive-mode.e2e.ts bmad-gate-check.e2e.ts
+
+# Run User Journey E2E tests
+npx playwright test --config=e2e/playwright.config.ts --project=user-journeys
+
+# Run Performance tests
+npx playwright test --config=e2e/playwright.config.ts performance.e2e.ts
+
+# Run Accessibility tests
+npx playwright test --config=e2e/playwright.config.ts accessibility.e2e.ts
+
 # Run with coverage
 npm run test:coverage
-
-# Run specific test file
-npx vitest run src/path/to/test.ts
 ```
 
 ---
 
 **Last Updated:** 2026-01-19
-**Status:** Sprint 9 - Test Implementation (Stories 9.1-9.3 Complete)
-**New Tests Added:** 126 (chat-store: 38, gate-check-manager: 26, gate-check-store: 30, workflow-lifecycle: 32)
+**Status:** Sprint 9 - COMPLETE (Stories 9.1-9.6)
+**Total Tests Added This Sprint:** ~300+ (Unit: 203, E2E: ~100+)
+**Coverage Improvement:** 60% → 87%
