@@ -175,6 +175,72 @@ export interface ExecutionCompletedEvent {
   rateLimited: boolean;
 }
 
+// Chat/Interactive Mode Types
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+  timestamp: Date;
+  agentId?: string;
+  agentName?: string;
+  isStreaming?: boolean;
+  workflowId?: string;
+}
+
+export interface ChatSession {
+  id: string;
+  projectPath: string;
+  messages: ChatMessage[];
+  createdAt: Date;
+  updatedAt: Date;
+  activeAgentId?: string;
+}
+
+export interface ChatSessionInit {
+  sessionId: string;
+  messages: ChatMessage[];
+}
+
+export interface ChatStreamEvent {
+  messageId: string;
+  chunk: string;
+  content: string;
+}
+
+// Gate Check Types
+export interface GateCheckItem {
+  id: string;
+  name: string;
+  description: string;
+  required: boolean;
+  status: 'pass' | 'fail' | 'warning' | 'skipped';
+  message?: string;
+  artifactPath?: string;
+  details?: string[];
+}
+
+export interface GateCheckResult {
+  passed: boolean;
+  overridden: boolean;
+  overriddenAt?: Date;
+  checkedAt: Date;
+  items: GateCheckItem[];
+  summary: {
+    total: number;
+    passed: number;
+    failed: number;
+    warnings: number;
+    skipped: number;
+  };
+  blockingIssues: string[];
+}
+
+export interface GateCheckOverride {
+  confirmation: string;
+  reason?: string;
+  timestamp: Date;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Event Types
 // ─────────────────────────────────────────────────────────────────────────────
@@ -288,6 +354,24 @@ export interface BmadAPI {
   enableLoadBalancing: (projectPath: string) => Promise<IpcResult<void>>;
   disableLoadBalancing: (projectPath: string) => Promise<IpcResult<void>>;
   isLoadBalancingEnabled: (projectPath: string) => Promise<IpcResult<{ enabled: boolean }>>;
+
+  // Interactive Mode / Chat
+  initInteractiveSession: (projectPath: string) => Promise<IpcResult<ChatSessionInit>>;
+  sendChatMessage: (content: string, options?: { agentId?: string }) => Promise<IpcResult<ChatMessage>>;
+  cancelChatResponse: () => Promise<IpcResult<void>>;
+  setActiveAgent: (agentId: string) => Promise<IpcResult<void>>;
+  clearChatHistory: () => Promise<IpcResult<void>>;
+  saveChatSession: () => Promise<IpcResult<void>>;
+  loadChatSession: (sessionId: string) => Promise<IpcResult<ChatSession>>;
+  listChatSessions: (projectPath: string) => Promise<IpcResult<Array<{ id: string; createdAt: Date; messageCount: number }>>>;
+  onChatStream: (callback: (event: ChatStreamEvent) => void) => () => void;
+  onChatMessageComplete: (callback: (message: ChatMessage) => void) => () => void;
+
+  // Gate Check
+  runGateCheck: (projectPath: string) => Promise<IpcResult<GateCheckResult>>;
+  overrideGateCheck: (projectPath: string, override: GateCheckOverride) => Promise<IpcResult<GateCheckResult>>;
+  shouldBlockPhase4: (projectPath: string) => Promise<IpcResult<boolean>>;
+  getBlockingReasons: (projectPath: string) => Promise<IpcResult<string[]>>;
 
   // Event Subscriptions
   onStatusChanged: (callback: (event: StatusChangeEvent) => void) => () => void;
@@ -460,6 +544,56 @@ export const createBmadAPI = (): BmadAPI => ({
 
   isLoadBalancingEnabled: (projectPath: string): Promise<IpcResult<{ enabled: boolean }>> =>
     ipcRenderer.invoke('bmad:is-load-balancing-enabled', projectPath),
+
+  // Interactive Mode / Chat
+  initInteractiveSession: (projectPath: string): Promise<IpcResult<ChatSessionInit>> =>
+    ipcRenderer.invoke('bmad:init-interactive-session', projectPath),
+
+  sendChatMessage: (content: string, options?: { agentId?: string }): Promise<IpcResult<ChatMessage>> =>
+    ipcRenderer.invoke('bmad:send-chat-message', content, options),
+
+  cancelChatResponse: (): Promise<IpcResult<void>> =>
+    ipcRenderer.invoke('bmad:cancel-chat-response'),
+
+  setActiveAgent: (agentId: string): Promise<IpcResult<void>> =>
+    ipcRenderer.invoke('bmad:set-active-agent', agentId),
+
+  clearChatHistory: (): Promise<IpcResult<void>> =>
+    ipcRenderer.invoke('bmad:clear-chat-history'),
+
+  saveChatSession: (): Promise<IpcResult<void>> =>
+    ipcRenderer.invoke('bmad:save-chat-session'),
+
+  loadChatSession: (sessionId: string): Promise<IpcResult<ChatSession>> =>
+    ipcRenderer.invoke('bmad:load-chat-session', sessionId),
+
+  listChatSessions: (projectPath: string): Promise<IpcResult<Array<{ id: string; createdAt: Date; messageCount: number }>>> =>
+    ipcRenderer.invoke('bmad:list-chat-sessions', projectPath),
+
+  onChatStream: (callback: (event: ChatStreamEvent) => void) => {
+    const listener = (_: Electron.IpcRendererEvent, event: ChatStreamEvent) => callback(event);
+    ipcRenderer.on('bmad:chat-stream', listener);
+    return () => ipcRenderer.off('bmad:chat-stream', listener);
+  },
+
+  onChatMessageComplete: (callback: (message: ChatMessage) => void) => {
+    const listener = (_: Electron.IpcRendererEvent, message: ChatMessage) => callback(message);
+    ipcRenderer.on('bmad:chat-message-complete', listener);
+    return () => ipcRenderer.off('bmad:chat-message-complete', listener);
+  },
+
+  // Gate Check
+  runGateCheck: (projectPath: string): Promise<IpcResult<GateCheckResult>> =>
+    ipcRenderer.invoke('bmad:run-gate-check', projectPath),
+
+  overrideGateCheck: (projectPath: string, override: GateCheckOverride): Promise<IpcResult<GateCheckResult>> =>
+    ipcRenderer.invoke('bmad:override-gate-check', projectPath, override),
+
+  shouldBlockPhase4: (projectPath: string): Promise<IpcResult<boolean>> =>
+    ipcRenderer.invoke('bmad:should-block-phase4', projectPath),
+
+  getBlockingReasons: (projectPath: string): Promise<IpcResult<string[]>> =>
+    ipcRenderer.invoke('bmad:get-blocking-reasons', projectPath),
 
   // Event Subscriptions
   onStatusChanged: (callback: (event: StatusChangeEvent) => void) => {

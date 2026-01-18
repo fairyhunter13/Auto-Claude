@@ -5,6 +5,7 @@
   },
   "items": {
     "bmadPhases": "Phases BMAD",
+    "interactive": "Mode Interactif",
     "agentRoster": "Liste des Agents",
     "artifacts": "Artefacts",
     "kanban": "Tableau Sprint",

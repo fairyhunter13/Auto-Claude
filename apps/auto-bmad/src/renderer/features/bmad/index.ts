@@ -99,3 +99,28 @@ export {
   type ArtifactFile,
   type ArtifactViewMode,
 } from './stores/artifact-store';
+
+// Interactive Mode / Chat (Epic 7)
+export { ChatView } from './components/ChatView';
+export { ChatMessage } from './components/ChatMessage';
+export { ChatInput } from './components/ChatInput';
+export {
+  useChatStore,
+  selectMessages,
+  selectIsStreaming,
+  selectActiveAgent,
+  type ChatMessage as ChatMessageType,
+  type ChatSession,
+  type SlashCommand,
+} from './stores/chat-store';
+
+// Gate Checks (Epic 8)
+export { GateCheckPanel } from './components/GateCheckPanel';
+export {
+  useGateCheckStore,
+  selectGateCheckResult,
+  selectIsGateCheckRunning,
+  selectGateCheckPassed,
+  type GateCheckItem,
+  type GateCheckResult,
+} from './stores/gate-check-store';

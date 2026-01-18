@@ -29,7 +29,7 @@ import {
 import { Sidebar, type SidebarView } from './components/Sidebar';
 import { KanbanBoard } from './components/KanbanBoard';
 import { BMadPhaseBoard } from './components/bmad-phases';
-import { AgentRoster, ArtifactsView } from './features/bmad';
+import { AgentRoster, ArtifactsView, ChatView } from './features/bmad';
 import { TaskDetailModal } from './components/task-detail/TaskDetailModal';
 import { TaskCreationWizard } from './components/TaskCreationWizard';
 import { AppSettingsDialog, type AppSection } from './components/settings/AppSettings';
@@ -823,6 +823,9 @@ export function App() {
                 )}
                 {activeView === 'artifacts' && (
                   <ArtifactsView projectPath={selectedProject.path} />
+                )}
+                {activeView === 'interactive' && (
+                  <ChatView projectPath={selectedProject.path} />
                 )}
                 {activeView === 'kanban' && (
                   <KanbanBoard
