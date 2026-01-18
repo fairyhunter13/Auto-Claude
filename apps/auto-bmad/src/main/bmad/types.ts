@@ -264,20 +264,41 @@ export interface AgentDefinition {
   id: string;
   name: string;
   role: string;
-  module: 'bmm' | 'cis' | 'core';
+  module: 'bmm' | 'cis' | 'core' | 'bmb';
   description?: string;
   principles?: string[];
   communicationStyle?: string;
 }
 
-// Agent definitions from AGENTS.md
+/**
+ * All BMAD agents across all modules (19 total)
+ * 
+ * Core (1): bmad-master
+ * BMM (9): analyst, architect, dev, pm, quick-flow-solo-dev, sm, tea, tech-writer, ux-designer
+ * CIS (6): brainstorming-coach, creative-problem-solver, design-thinking-coach, innovation-strategist, presentation-master, storyteller
+ * BMB (3): agent-builder, module-builder, workflow-builder
+ */
 export const BMAD_AGENTS: AgentDefinition[] = [
+  // ─────────────────────────────────────────────────────────────────────────────
+  // Core Module (1 agent)
+  // ─────────────────────────────────────────────────────────────────────────────
   {
-    id: 'pm',
-    name: 'John',
-    role: 'Product Manager',
+    id: 'bmad-master',
+    name: 'BMAD Master',
+    role: 'Master Orchestrator',
+    module: 'core',
+    description: 'Master agent for BMAD methodology orchestration',
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // BMM Module (9 agents) - BMAD Method Module
+  // ─────────────────────────────────────────────────────────────────────────────
+  {
+    id: 'analyst',
+    name: 'Mary',
+    role: 'Business Analyst',
     module: 'bmm',
-    description: 'Creates PRD, manages epics and stories',
+    description: 'Conducts research, creates product briefs, and brainstorms',
   },
   {
     id: 'architect',
@@ -287,18 +308,25 @@ export const BMAD_AGENTS: AgentDefinition[] = [
     description: 'Designs system architecture, performs gate checks',
   },
   {
-    id: 'analyst',
-    name: 'Mary',
-    role: 'Business Analyst',
+    id: 'dev',
+    name: 'Amelia',
+    role: 'Developer',
     module: 'bmm',
-    description: 'Conducts research, creates product briefs',
+    description: 'Implements features and code',
   },
   {
-    id: 'ux-designer',
-    name: 'Sally',
-    role: 'UX Designer',
+    id: 'pm',
+    name: 'John',
+    role: 'Product Manager',
     module: 'bmm',
-    description: 'Creates UX designs and user flows',
+    description: 'Creates PRD, manages epics and stories',
+  },
+  {
+    id: 'quick-flow-solo-dev',
+    name: 'Quick Dev',
+    role: 'Solo Developer',
+    module: 'bmm',
+    description: 'Fast-track development for small projects',
   },
   {
     id: 'sm',
@@ -308,18 +336,96 @@ export const BMAD_AGENTS: AgentDefinition[] = [
     description: 'Manages sprints, prepares stories',
   },
   {
-    id: 'dev',
-    name: 'Amelia',
-    role: 'Developer',
-    module: 'bmm',
-    description: 'Implements features and code',
-  },
-  {
     id: 'tea',
     name: 'Murat',
     role: 'Test Architect',
     module: 'bmm',
-    description: 'Designs test strategies',
+    description: 'Designs test strategies and frameworks',
+  },
+  {
+    id: 'tech-writer',
+    name: 'Alex',
+    role: 'Technical Writer',
+    module: 'bmm',
+    description: 'Creates documentation and technical content',
+  },
+  {
+    id: 'ux-designer',
+    name: 'Sally',
+    role: 'UX Designer',
+    module: 'bmm',
+    description: 'Creates UX designs and user flows',
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // CIS Module (6 agents) - Creative Innovation System
+  // ─────────────────────────────────────────────────────────────────────────────
+  {
+    id: 'brainstorming-coach',
+    name: 'Brainstorm Coach',
+    role: 'Ideation Facilitator',
+    module: 'cis',
+    description: 'Facilitates brainstorming and ideation sessions',
+  },
+  {
+    id: 'creative-problem-solver',
+    name: 'Problem Solver',
+    role: 'Creative Problem Solver',
+    module: 'cis',
+    description: 'Applies creative techniques to solve complex problems',
+  },
+  {
+    id: 'design-thinking-coach',
+    name: 'Design Coach',
+    role: 'Design Thinking Facilitator',
+    module: 'cis',
+    description: 'Guides design thinking methodology and workshops',
+  },
+  {
+    id: 'innovation-strategist',
+    name: 'Innovation Strategist',
+    role: 'Innovation Strategist',
+    module: 'cis',
+    description: 'Develops innovation strategies and roadmaps',
+  },
+  {
+    id: 'presentation-master',
+    name: 'Presentation Master',
+    role: 'Presentation Expert',
+    module: 'cis',
+    description: 'Creates compelling presentations and pitches',
+  },
+  {
+    id: 'storyteller',
+    name: 'Storyteller',
+    role: 'Narrative Designer',
+    module: 'cis',
+    description: 'Crafts compelling narratives and stories',
+  },
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // BMB Module (3 agents) - BMAD Builder Module
+  // ─────────────────────────────────────────────────────────────────────────────
+  {
+    id: 'agent-builder',
+    name: 'Agent Builder',
+    role: 'Agent Creator',
+    module: 'bmb',
+    description: 'Creates and configures new BMAD agents',
+  },
+  {
+    id: 'module-builder',
+    name: 'Module Builder',
+    role: 'Module Creator',
+    module: 'bmb',
+    description: 'Creates and configures new BMAD modules',
+  },
+  {
+    id: 'workflow-builder',
+    name: 'Workflow Builder',
+    role: 'Workflow Creator',
+    module: 'bmb',
+    description: 'Creates and configures new BMAD workflows',
   },
 ];
 

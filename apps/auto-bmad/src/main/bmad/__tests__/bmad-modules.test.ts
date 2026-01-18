@@ -592,24 +592,61 @@ describe('BMAD Types and Constants', () => {
 
   describe('BMAD_AGENTS', () => {
     it('should have all required agents', () => {
-      expect(BMAD_AGENTS.length).toBeGreaterThanOrEqual(7);
+      // We now have 19 agents across 4 modules
+      expect(BMAD_AGENTS.length).toBe(19);
 
       const agentIds = BMAD_AGENTS.map((a) => a.id);
-      expect(agentIds).toContain('pm');
-      expect(agentIds).toContain('architect');
+      
+      // Core module (1)
+      expect(agentIds).toContain('bmad-master');
+      
+      // BMM module (9)
       expect(agentIds).toContain('analyst');
-      expect(agentIds).toContain('ux-designer');
-      expect(agentIds).toContain('sm');
+      expect(agentIds).toContain('architect');
       expect(agentIds).toContain('dev');
+      expect(agentIds).toContain('pm');
+      expect(agentIds).toContain('quick-flow-solo-dev');
+      expect(agentIds).toContain('sm');
       expect(agentIds).toContain('tea');
+      expect(agentIds).toContain('tech-writer');
+      expect(agentIds).toContain('ux-designer');
+      
+      // CIS module (6)
+      expect(agentIds).toContain('brainstorming-coach');
+      expect(agentIds).toContain('creative-problem-solver');
+      expect(agentIds).toContain('design-thinking-coach');
+      expect(agentIds).toContain('innovation-strategist');
+      expect(agentIds).toContain('presentation-master');
+      expect(agentIds).toContain('storyteller');
+      
+      // BMB module (3)
+      expect(agentIds).toContain('agent-builder');
+      expect(agentIds).toContain('module-builder');
+      expect(agentIds).toContain('workflow-builder');
     });
 
     it('should have names and roles', () => {
       for (const agent of BMAD_AGENTS) {
         expect(agent.name).toBeTruthy();
         expect(agent.role).toBeTruthy();
-        expect(agent.module).toBe('bmm');
+        // Agents can be from any of the 4 modules: core, bmm, cis, bmb
+        expect(['core', 'bmm', 'cis', 'bmb']).toContain(agent.module);
       }
+    });
+
+    it('should have all 19 agents across all modules', () => {
+      expect(BMAD_AGENTS.length).toBe(19);
+      
+      // Verify module distribution
+      const byModule = BMAD_AGENTS.reduce((acc, agent) => {
+        acc[agent.module] = (acc[agent.module] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      expect(byModule['core']).toBe(1);   // bmad-master
+      expect(byModule['bmm']).toBe(9);    // analyst, architect, dev, pm, quick-flow-solo-dev, sm, tea, tech-writer, ux-designer
+      expect(byModule['cis']).toBe(6);    // brainstorming-coach, creative-problem-solver, design-thinking-coach, innovation-strategist, presentation-master, storyteller
+      expect(byModule['bmb']).toBe(3);    // agent-builder, module-builder, workflow-builder
     });
   });
 });

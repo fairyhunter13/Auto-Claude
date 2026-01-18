@@ -52,6 +52,7 @@ export async function hasStatusFile(projectPath: string): Promise<boolean> {
 /**
  * StatusManager handles reading, writing, and watching the BMAD workflow status file.
  * Implements atomic writes to prevent data corruption.
+ * Uses a write queue to serialize concurrent operations and prevent race conditions.
  */
 export class StatusManager extends EventEmitter {
   private projectPath: string;
@@ -59,6 +60,9 @@ export class StatusManager extends EventEmitter {
   private watcher: FSWatcher | null = null;
   private cachedStatus: BmadWorkflowStatus | null = null;
   private isWriting = false;
+  
+  // Write queue for serializing concurrent operations
+  private writeQueue: Promise<void> = Promise.resolve();
 
   constructor(projectPath: string) {
     super();
@@ -75,12 +79,14 @@ export class StatusManager extends EventEmitter {
 
   /**
    * Initialize the status manager
-   * Creates the status file if it doesn't exist
+   * Creates the status file if it doesn't exist or if the existing file is corrupted
+   * @param projectName - Optional project name for the new status
+   * @param force - If true, overwrite existing file even if it exists
    */
-  async initialize(projectName?: string): Promise<IpcResult<BmadWorkflowStatus>> {
+  async initialize(projectName?: string, force: boolean = false): Promise<IpcResult<BmadWorkflowStatus>> {
     const exists = await hasStatusFile(this.projectPath);
     
-    if (!exists) {
+    if (!exists || force) {
       // Create default status
       const defaultStatus = this.createDefaultStatus(projectName);
       const writeResult = await this.write(defaultStatus);
@@ -91,8 +97,22 @@ export class StatusManager extends EventEmitter {
       return successResult(defaultStatus);
     }
 
-    // Load existing status
-    return this.read();
+    // Try to load existing status
+    const readResult = await this.read();
+    
+    // If read fails (corrupted file), recreate the status file
+    if (!readResult.success) {
+      console.warn(`[StatusManager] Existing status file is corrupted, recreating: ${readResult.error.message}`);
+      const defaultStatus = this.createDefaultStatus(projectName);
+      const writeResult = await this.write(defaultStatus);
+      if (!writeResult.success) {
+        return writeResult as IpcResult<BmadWorkflowStatus>;
+      }
+      this.cachedStatus = defaultStatus;
+      return successResult(defaultStatus);
+    }
+    
+    return readResult;
   }
 
   /**
@@ -201,8 +221,36 @@ export class StatusManager extends EventEmitter {
 
   /**
    * Update a specific workflow status
+   * Uses a write queue to serialize concurrent operations and prevent race conditions
    */
   async updateWorkflowStatus(
+    phase: BmadPhase,
+    workflowId: string,
+    status: WorkflowStatusValue,
+    options?: {
+      artifactPath?: string;
+      note?: string;
+      result?: string;
+      currentStory?: string;
+    }
+  ): Promise<IpcResult<BmadWorkflowStatus>> {
+    // Queue this operation to prevent race conditions
+    return new Promise((resolve) => {
+      this.writeQueue = this.writeQueue.then(async () => {
+        const result = await this.doUpdateWorkflowStatus(phase, workflowId, status, options);
+        resolve(result);
+      }).catch(async (error) => {
+        // Even if previous operation failed, continue with this one
+        const result = await this.doUpdateWorkflowStatus(phase, workflowId, status, options);
+        resolve(result);
+      });
+    });
+  }
+
+  /**
+   * Internal method to perform the actual workflow status update
+   */
+  private async doUpdateWorkflowStatus(
     phase: BmadPhase,
     workflowId: string,
     status: WorkflowStatusValue,

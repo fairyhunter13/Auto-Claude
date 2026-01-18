@@ -33,6 +33,12 @@ import { debugLogger } from '../debug-logger';
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Default model for BMAD workflow execution
+ * Uses Anthropic Claude Sonnet as specified in project requirements
+ */
+export const DEFAULT_OPENCODE_MODEL = 'anthropic/claude-sonnet-4-20250514';
+
 export interface WorkflowRunOptions {
   /** Additional arguments to pass to OpenCode CLI */
   args?: string[];
@@ -58,6 +64,8 @@ export interface WorkflowRunOptions {
   retryOnRateLimit?: boolean;
   /** Maximum retries on rate limit (default: 3) */
   maxRetries?: number;
+  /** Model to use (defaults to anthropic/claude-sonnet-4-20250514) */
+  model?: string;
 }
 
 export interface WorkflowRunResult {
@@ -82,8 +90,9 @@ export interface WorkflowRunResult {
 async function findOpenCode(): Promise<string | null> {
   debugLogger.opencode('Searching for OpenCode CLI...');
   
-  // Try common paths
+  // Try common paths - prioritize ~/.opencode/bin/opencode
   const candidates = [
+    join(process.env.HOME || '', '.opencode', 'bin', 'opencode'), // Primary install location
     'opencode',           // In PATH
     '/usr/local/bin/opencode',
     '/usr/bin/opencode',
@@ -396,7 +405,7 @@ export class WorkflowRunner extends EventEmitter {
     await statusManager.updateWorkflowStatus(workflow.phase, workflowId, 'in_progress');
 
     // Build command arguments for OpenCode
-    // OpenCode CLI syntax: opencode run [message..] --agent <agent>
+    // OpenCode CLI syntax: opencode run [message..] --agent <agent> --model <model>
     // The slash command goes as the message positional argument
     const args: string[] = ['run'];
 
@@ -404,6 +413,10 @@ export class WorkflowRunner extends EventEmitter {
     if (workflow.agent) {
       args.push('--agent', workflow.agent);
     }
+
+    // Specify the model to use (default: anthropic/claude-sonnet-4-20250514)
+    const model = options.model || DEFAULT_OPENCODE_MODEL;
+    args.push('--model', model);
 
     // Add any additional user-specified args (excluding --yolo which isn't valid)
     if (options.args) {
@@ -421,6 +434,10 @@ export class WorkflowRunner extends EventEmitter {
       BMAD_PROJECT_PATH: this.projectPath,
       // Set working directory context
       PWD: options.cwd || this.projectPath,
+      // Allow all permissions for autonomous workflow execution
+      // This prevents OpenCode from prompting for permission approval
+      // which would block autonomous BMAD workflow execution
+      OPENCODE_PERMISSION: JSON.stringify({ "*": "allow" }),
     };
 
     // Emit start event
@@ -553,11 +570,14 @@ export class WorkflowRunner extends EventEmitter {
     await statusManager.updateWorkflowStatus(workflow.phase, workflowId, 'in_progress');
 
     // Build command arguments
-    // OpenCode CLI syntax: opencode run [message..] --agent <agent>
+    // OpenCode CLI syntax: opencode run [message..] --agent <agent> --model <model>
     const args: string[] = ['run'];
     if (workflow.agent) {
       args.push('--agent', workflow.agent);
     }
+    // Specify the model to use (default: anthropic/claude-sonnet-4-20250514)
+    const model = options.model || DEFAULT_OPENCODE_MODEL;
+    args.push('--model', model);
     // Note: --yolo is not a valid opencode flag, skip it
     if (options.args) {
       args.push(...options.args.filter(arg => arg !== '--yolo'));
@@ -571,6 +591,10 @@ export class WorkflowRunner extends EventEmitter {
       env: {
         ...options.env,
         BMAD_PROJECT_PATH: this.projectPath,
+        // Allow all permissions for autonomous workflow execution
+        // This prevents OpenCode from prompting for permission approval
+        // which would block autonomous BMAD workflow execution
+        OPENCODE_PERMISSION: JSON.stringify({ "*": "allow" }),
       },
       preferredProfile: options.preferredProfile,
       forceProfile: options.forceProfile,
